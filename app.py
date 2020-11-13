@@ -17,7 +17,7 @@ import logging
 app = Flask(__name__)
 app.config["JSON_AS_ASCII"] = False
 app.config["APISPEC_SWAGGER_URL"] = "/v0/swagger.json"
-app.config["APISPEC_SWAGGER_UI_URL"] = "/v0/docs/"
+app.config["APISPEC_SWAGGER_UI_URL"] = "/"
 app.config["CACHE_TYPE"] = "simple"
 app.config["CACHE_DEFAULT_TIMEOUT"] = 60*60*24*2
 
