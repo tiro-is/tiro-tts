@@ -1,0 +1,23 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: tiro-tts-deployment
+  labels:
+    app: tiro-tts
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: tiro-tts
+  template:
+    metadata:
+      labels:
+        app: tiro-tts
+    spec:
+      containers:
+      - name: tiro-tts
+        image: tiro-tts
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+          protocol: TCP

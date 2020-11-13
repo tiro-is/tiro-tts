@@ -1,0 +1,15 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: tiro-tts-ingress
+  annotations:
+    kubernetes.io/ingress.class: traefik
+spec:
+  rules:
+  - host: tts.tiro.is
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: tiro-tts-svc
+          servicePort: http

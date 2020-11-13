@@ -1,0 +1,5 @@
+flask
+gunicorn
+flask-cors
+flask-apispec
+flask-caching

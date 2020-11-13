@@ -1,0 +1,6 @@
+bases:
+- ../../base
+images:
+- name: tiro-tts
+  newName: eu.gcr.io/talgreining-is/tiro-tts
+  newTag: "%GIT_COMMIT%"
