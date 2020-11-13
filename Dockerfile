@@ -1,7 +1,9 @@
 FROM python:3.7-slim AS build
 
-RUN apt-get update -yqq && apt-get install -yqq \
-        python3 python3-pip espeak-ng espeak-ng-data \
+RUN DEBIAN_FRONTEND=noninteractive \
+	&& apt-get update -yqq \
+        && apt-get install -yqq \
+             python3 python3-pip espeak-ng espeak-ng-data \
         && rm -rf /var/lib/{apt,dpkg,log,cache}/
 
 WORKDIR /app
