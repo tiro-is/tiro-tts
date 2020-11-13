@@ -104,6 +104,7 @@ docs.register(route_post_speak)
 @doc(description="Generate WAV file from phoneme string")
 @use_kwargs({
     "q": fields.Str(
+        required=True,
         description="X-SAMPA phoneme string",
         example='r_0iNtI',
         validate=validate.Length(min=1, max=126)
