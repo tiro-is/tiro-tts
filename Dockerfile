@@ -1,6 +1,6 @@
 FROM python:3.7-slim AS build
 
-RUN APT-get update -yqq && apt-get install -yqq \
+RUN apt-get update -yqq && apt-get install -yqq \
         python3 python3-pip espeak-ng espeak-ng-data \
         && rm -rf /var/lib/{apt,dpkg,log,cache}/
 
