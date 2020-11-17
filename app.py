@@ -1,6 +1,9 @@
 import os
 import uuid
 import json
+import re
+import subprocess
+import logging
 from flask import Flask, request, jsonify, Response, send_from_directory
 from flask_cors import CORS
 from webargs import fields
@@ -10,9 +13,7 @@ from marshmallow import validate, Schema
 from apispec import APISpec, BasePlugin
 from apispec.ext.marshmallow import MarshmallowPlugin
 from typing import Dict, List
-import re
-import subprocess
-import logging
+from config import EnvvarConfig
 
 app = Flask(__name__)
 app.config["JSON_AS_ASCII"] = False
@@ -20,6 +21,7 @@ app.config["APISPEC_SWAGGER_URL"] = "/v0/swagger.json"
 app.config["APISPEC_SWAGGER_UI_URL"] = "/"
 app.config["CACHE_TYPE"] = "simple"
 app.config["CACHE_DEFAULT_TIMEOUT"] = 60*60*24*2
+app.config.from_object(EnvvarConfig)
 
 CORS(app)
 cache = Cache(app)
@@ -35,9 +37,13 @@ class DisableOptionsOperationPlugin(BasePlugin):
 app.config["APISPEC_SPEC"] = APISpec(
     title="TTS",
     version="v0",
-    host="tts.tiro.is",
+    host=app.config["HOST"],
     openapi_version="2.0",
     plugins=[MarshmallowPlugin(), DisableOptionsOperationPlugin()],
+    tags=[
+        {"name": "speak",
+         "description": "Generate waveform for phoneme strings."},
+    ],
 )
 docs = FlaskApiSpec(app)
 
@@ -81,27 +87,41 @@ class SpeakResponse(Schema):
     url = fields.Str(
         required=True,
         description="The URL for the generate WAV file",
-        example="https://tts.tiro.is/v0/speak/generated/"
+        example=(
+            "{}://{}/v0/speak/generated/82fb88cf-914b-41ac-ac1d-6519b2bf181b.wav"
+            .format(app.config["SCHEME"],
+                    app.config["HOST"])
+        )
     )
 
 
 @app.route("/v0/speak", methods=["POST", "OPTIONS"])
 @use_kwargs(SpeakRequest)
 @marshal_with(SpeakResponse)
-@doc(description="Generate WAV file from phoneme string")
+@doc(
+    description="Generate WAV file from phoneme string",
+    tags=["speak"]
+)
+@cache.memoize()
 def route_post_speak(pronunciation):
     filename = speak_espeak_to_file(pronunciation)
 
     return jsonify({
         "pronunciation": pronunciation,
-        "url": "https://tts.tiro.is/v0/generated/{}".format(filename)
+        "url": "{}://{}/v0/generated/{}".format(app.config["SCHEME"],
+                                                app.config["HOST"],
+                                                filename)
     })
 
 docs.register(route_post_speak)
 
 
 @app.route("/v0/speak", methods=["GET"])
-@doc(description="Generate WAV file from phoneme string")
+@doc(
+    description="Generate WAV file from phoneme string",
+    produces=["audio/x-wav"],
+    tags=["speak"],
+)
 @use_kwargs({
     "q": fields.Str(
         required=True,
@@ -123,8 +143,11 @@ docs.register(route_speak)
 
 @app.route("/v0/generated/<filename>", methods=["GET", "OPTIONS"])
 @marshal_with(None)
+@doc(
+    produces=["audio/x-wav"],
+    tags=["speak"],
+)
 def route_serve_generated_speech(filename):
-    print("depr")
     return send_from_directory("generated", filename)
 
 docs.register(route_serve_generated_speech)
