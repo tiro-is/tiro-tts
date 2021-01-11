@@ -4,3 +4,4 @@ flask-cors
 flask-apispec
 flask-caching
 flask-env
+boto3
