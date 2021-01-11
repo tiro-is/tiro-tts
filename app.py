@@ -1,10 +1,8 @@
-import os
+import io
+import contextlib
 import uuid
-import json
-import re
 import subprocess
-import logging
-from flask import Flask, request, jsonify, Response, send_from_directory
+from flask import Flask, jsonify, Response, send_from_directory
 from flask_cors import CORS
 from webargs import fields
 from flask_apispec import use_kwargs, marshal_with, FlaskApiSpec, doc
@@ -12,8 +10,8 @@ from flask_caching import Cache
 from marshmallow import validate, Schema
 from apispec import APISpec, BasePlugin
 from apispec.ext.marshmallow import MarshmallowPlugin
-from typing import Dict, List
 from config import EnvvarConfig
+from aws import Polly
 
 app = Flask(__name__)
 app.config["JSON_AS_ASCII"] = False
@@ -26,8 +24,11 @@ app.config.from_object(EnvvarConfig)
 CORS(app)
 cache = Cache(app)
 
-# See https://github.com/jmcarp/flask-apispec/issues/155#issuecomment-562542538
+g_polly = Polly()
+
+
 class DisableOptionsOperationPlugin(BasePlugin):
+    # See https://github.com/jmcarp/flask-apispec/issues/155#issuecomment-562542538
     def operation_helper(self, operations, **kwargs):
         # flask-apispec auto generates an options operation, which cannot handled by apispec.
         # apispec.exceptions.DuplicateParameterError: Duplicate parameter with name body and location body
@@ -41,13 +42,16 @@ app.config["APISPEC_SPEC"] = APISpec(
     host=app.config["HOST"],
     openapi_version="2.0",
     plugins=[MarshmallowPlugin(), DisableOptionsOperationPlugin()],
-    tags=[{"name": "speak", "description": "Generate waveform for phoneme strings."},],
+    tags=[
+        {"name": "speak", "description": "Generate waveform for phoneme strings."},
+        {"name": "speech", "description": "Synthesize speech from input text"},
+    ],
 )
 docs = FlaskApiSpec(app)
 
 
 def speak_espeak(phoneme_string):
-    logging.info("Speaking '{}'".format(phoneme_string))
+    app.logger.info("Speaking '{}'".format(phoneme_string))
     wav = subprocess.check_output(
         ["espeak-ng", "-v", "icelandic", "--stdout"],
         input="[[{}]]".format(phoneme_string).encode(),
@@ -56,7 +60,7 @@ def speak_espeak(phoneme_string):
 
 
 def speak_espeak_to_file(phoneme_string) -> str:
-    logging.info("Speaking '{}'".format(phoneme_string))
+    app.logger.info("Speaking '{}'".format(phoneme_string))
     filename = "{}.wav".format(uuid.uuid4())
     wav = subprocess.check_output(
         ["espeak-ng", "-v", "icelandic", "-w", "generated/{}".format(filename)],
@@ -150,3 +154,96 @@ def route_serve_generated_speech(filename):
 
 
 docs.register(route_serve_generated_speech)
+
+
+class SynthesizeSpeechRequest(Schema):
+    Engine = fields.Str(
+        required=True,
+        description="Specify which engine to use",
+        validate=validate.OneOf(["standard"]),
+    )
+    LanguageCode = fields.Str(required=False, example=None)
+    LexiconNames = fields.List(
+        fields.Str(),
+        required=False,
+        description=(
+            "List of one or more pronunciation lexicon names you want the "
+            + "service to apply during synthesis. Lexicons are applied only if the "
+            + "language of the lexicon is the same as the language of the voice. "
+            + "For information about storing lexicons, see PutLexicon. "
+            + "UNIMPLEMENTED"
+        ),
+        example=None,
+    )
+    OutputFormat = fields.Str(
+        required=True,
+        description=(
+            " The format in which the returned output will be encoded. "
+            + "For audio stream, this will be mp3, ogg_vorbis, or pcm. "
+            + "For speech marks, this will be json. "
+        ),
+        validate=validate.OneOf(["json", "pcm", "mp3", "ogg_vorbis"]),
+        example="mp3",
+    )
+    SampleRate = fields.Str(
+        required=True,
+        description="The audio frequency specified in Hz.",
+        validate=validate.OneOf(["8000", "16000", "22050", "24000"]),
+        example="16000",
+    )
+    SpeechMarkTypes = fields.List(
+        fields.Str(validate=validate.OneOf(["sentence", "ssml", "viseme", "word"])),
+        required=False,
+        description="The type of speech marks returned for the input text",
+        example=None,
+    )
+    Text = fields.Str(
+        required=True,
+        description="Input text to synthesize.",
+        example="Halló! Ég er gervimaður.",
+    )
+    TextType = fields.Str(
+        required=False,
+        description=(
+            "Specifies whether the input text is plain text or SSML. "
+            + "The default value is plain text. For more information, see Using SSML. "
+        ),
+        validate=validate.OneOf(["text", "ssml"]),
+    )
+    VoiceId = fields.Str(
+        required=True,
+        description="Voice ID to use for the synthesis",
+        validate=validate.OneOf(["Dora", "Karl"]),
+    )
+
+
+@app.route("/v0/speech", methods=["POST", "OPTIONS"])
+@use_kwargs(SynthesizeSpeechRequest)
+@doc(
+    description="Synthesize speech",
+    tags=["speech"],
+    produces=["audio/mpeg", "audio/ogg", "application/x-json-stream",],
+)
+@cache.memoize()
+def route_synthesize_speech(**kwargs):
+    app.logger.info("Got request: %s", kwargs)
+    polly_resp = g_polly.synthesize_speech(**kwargs)
+
+    output_content_type = "application/x-json-stream"
+    if kwargs["OutputFormat"] == "mp3":
+        output_content_type = "audio/mpeg"
+    elif kwargs["OutputFormat"] == "ogg_vorbis":
+        output_content_type = "audio/ogg"
+
+    try:
+        if "AudioStream" in polly_resp:
+            with contextlib.closing(polly_resp["AudioStream"]) as stream:
+                content = stream.read()
+            return Response(content, content_type=output_content_type)
+        else:
+            return {"error": 1}, 400
+    except:
+        return {"error": 1}, 400
+
+
+docs.register(route_synthesize_speech)
