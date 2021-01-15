@@ -59,13 +59,61 @@ def speak_espeak(phoneme_string):
     return wav
 
 
-def speak_espeak_to_file(phoneme_string) -> str:
-    app.logger.info("Speaking '{}'".format(phoneme_string))
-    filename = "{}.wav".format(uuid.uuid4())
+def speak_espeak_to_file(phoneme_string: str, filename: str) -> None:
     wav = subprocess.check_output(
         ["espeak-ng", "-v", "icelandic", "-w", "generated/{}".format(filename)],
         input="[[{}]]".format(phoneme_string).encode(),
     )
+
+
+def speak_polly(phoneme_string: str) -> bytes:
+    ssml_content = """
+    <speak>
+      <phoneme alphabet='x-sampa' ph='{phoneme_string}'>{phoneme_string}</phoneme>
+    </speak>
+    """.format(phoneme_string=phoneme_string)
+    polly_resp = g_polly.synthesize_speech(
+        Engine="standard",
+        SampleRate="16000",
+        Text=ssml_content,
+        TextType="ssml",
+        VoiceId="Dora",
+        OutputFormat="mp3",
+    )
+
+    content = b""
+    if "AudioStream" in polly_resp:
+        with contextlib.closing(polly_resp["AudioStream"]) as stream:
+            content = stream.read()
+    return content
+
+
+def speak_polly_to_file(phoneme_string: str, filename: str) -> None:
+    ssml_content = """
+    <speak>
+      <phoneme alphabet='x-sampa' ph='{phoneme_string}'>{phoneme_string}</phoneme>
+    </speak>
+    """.format(phoneme_string=phoneme_string)
+    polly_resp = g_polly.synthesize_speech(
+        Engine="standard",
+        SampleRate="16000",
+        Text=ssml_content,
+        TextType="ssml",
+        VoiceId="Dora",
+        OutputFormat="mp3",
+    )
+
+    if "AudioStream" in polly_resp:
+        with contextlib.closing(polly_resp["AudioStream"]) as stream, open(
+            "generated/{}".format(filename), "wb"
+        ) as f:
+            f.write(stream.read())
+
+
+def speak_phoneme_to_file(phoneme_string: str) -> str:
+    app.logger.info("Speaking '{}'".format(phoneme_string))
+    filename = "{}.mp3".format(uuid.uuid4())
+    speak_polly_to_file(phoneme_string, filename)
     return filename
 
 
@@ -103,7 +151,7 @@ class SpeakResponse(Schema):
 @doc(description="Generate WAV file from phoneme string", tags=["speak"])
 @cache.memoize()
 def route_post_speak(pronunciation):
-    filename = speak_espeak_to_file(pronunciation)
+    filename = speak_phoneme_to_file(pronunciation)
 
     return jsonify(
         {
@@ -120,8 +168,8 @@ docs.register(route_post_speak)
 
 @app.route("/v0/speak", methods=["GET"])
 @doc(
-    description="Generate WAV file from phoneme string",
-    produces=["audio/x-wav"],
+    description="Generate audio file from phoneme string",
+    produces=["audio/x-wav", "audio/mpeg"],
     tags=["speak"],
 )
 @use_kwargs(
@@ -138,7 +186,7 @@ docs.register(route_post_speak)
 @marshal_with(None)
 @cache.memoize()
 def route_speak(q):
-    return Response(response=speak_espeak(q), content_type="audio/x-wav")
+    return Response(response=speak_polly(q), content_type="audio/mpeg")
 
 
 docs.register(route_speak)
@@ -147,8 +195,9 @@ docs.register(route_speak)
 @app.route("/v0/generated/<filename>", methods=["GET", "OPTIONS"])
 @marshal_with(None)
 @doc(
-    produces=["audio/x-wav"], tags=["speak"],
+    produces=["audio/x-wav", "audio/mpeg"], tags=["speak"],
 )
+@cache.memoize()
 def route_serve_generated_speech(filename):
     return send_from_directory("generated", filename)
 
