@@ -1,6 +1,7 @@
 from optparse import Values
 import SequiturTool
 from sequitur import Translator
+from align_phonemes import Aligner
 
 
 def load_g2p(model_path):
@@ -25,13 +26,30 @@ def translate(text, g2p_model):
 
     translator = Translator(g2p_model)
     phone = []
+    phoneme_str_open = False
     for w in text.split(" "):
         try:
-            if w in [".", ","]:
-                phone.append("sp")
-            else:
-                phones = translator(w.lower())
-                phone.extend(phones)
+            if phoneme_str_open:
+                if w.endswith("}"):
+                    phone.append(w.replace("}", ""))
+                    phoneme_str_open = False
+                else:
+                    phone.append(w)
+            elif not phoneme_str_open:
+                print(w)
+                if w.startswith("{") and w.endswith("}"):
+                    print(Aligner().align(
+                        w.replace("{", "").replace("}", "")).split(" "))
+                    phone.extend(Aligner().align(
+                        w.replace("{", "").replace("}", "")).split(" "))
+                elif w.startswith("{"):
+                    phone.append(w.replace("{", ""))
+                    phoneme_str_open = True
+                elif w in [".", ","]:
+                    phone.append("sp")
+                else:
+                    phones = translator(w.lower())
+                    phone.extend(phones)
             phone.append(" ")
         except Translator.TranslationFailure:
             pass

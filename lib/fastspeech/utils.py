@@ -1,14 +1,16 @@
-import hparams as hp
-import text
 import os
-from scipy.io import wavfile
-from matplotlib import pyplot as plt
+
+import matplotlib
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
-import matplotlib
-import matplotlib
+from matplotlib import pyplot as plt
+from scipy.io import wavfile
+
+import hparams as hp
+import text
+
 matplotlib.use("Agg")
 
 
@@ -144,6 +146,11 @@ def melgan_infer(mel, melgan, path):
     wav = wav.astype('int16')
     wavfile.write(path, hp.sampling_rate, wav)
 
+def melgan_infer(mel, melgan, path):
+    with torch.no_grad():
+        wav = melgan.inference(mel).cpu().numpy()
+    wav = wav.astype('int16')
+    wavfile.write(path, hp.sampling_rate, wav)
 
 def get_melgan(full_path=None):
     if not full_path:
@@ -151,7 +158,7 @@ def get_melgan(full_path=None):
         melgan.eval()
         melgan.to(device)
         return melgan
-    
+
     # make sure to clone seungwonpark/melgan
     from melgan.utils.hparams import load_hparam_str
     from melgan.model.generator import Generator
