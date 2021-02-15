@@ -5,5 +5,3 @@ flask-apispec
 flask-caching
 flask-env
 boto3
--r lib/fastspeech/requirements.txt
--r lib/fastspeech/melgan/requirements.txt
