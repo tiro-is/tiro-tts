@@ -1,3 +1,4 @@
+import os
 import sys
 import io
 import wave
@@ -74,9 +75,15 @@ IPA_XSAMPA_MAP = {
 
 XSAMPA_IPA_MAP = {val: key for key, val in IPA_XSAMPA_MAP.items()}
 
-MELGAN_VOCODER_PATH = "lib/fastspeech/v2021-01-01/vocoder_aca5990_3350.pt"
-FASTSPEECH_MODEL_PATH = "lib/fastspeech/v2021-01-01/checkpoint_490000.pth.tar"
-SEQUITUR_MODEL_PATH = "lib/fastspeech/models/is-IS.ipd_clean_slt2018.mdl"
+MELGAN_VOCODER_PATH = os.environ.get(
+    "MELGAN_VOCODER_PATH", "lib/fastspeech/v2021-01-01/vocoder_aca5990_3350.pt"
+)
+FASTSPEECH_MODEL_PATH = os.environ.get(
+    "FASTSPEECH_MODEL_PATH", "lib/fastspeech/v2021-01-01/checkpoint_490000.pth.tar"
+)
+SEQUITUR_MODEL_PATH = os.environ.get(
+    "SEQUITUR_MODEL_PATH", "lib/fastspeech/models/is-IS.ipd_clean_slt2018.mdl"
+)
 
 
 class FastSpeech2Synthesizer:

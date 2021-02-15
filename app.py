@@ -12,6 +12,9 @@ from apispec import APISpec, BasePlugin
 from apispec.ext.marshmallow import MarshmallowPlugin
 from config import EnvvarConfig
 from aws import Polly
+from lib.fastspeech.align_phonemes import Aligner
+from fastspeech import FastSpeech2Synthesizer, XSAMPA_IPA_MAP
+
 
 app = Flask(__name__)
 app.config["JSON_AS_ASCII"] = False
@@ -71,7 +74,9 @@ def speak_polly(phoneme_string: str) -> bytes:
     <speak>
       <phoneme alphabet='x-sampa' ph='{phoneme_string}'>{phoneme_string}</phoneme>
     </speak>
-    """.format(phoneme_string=phoneme_string)
+    """.format(
+        phoneme_string=phoneme_string
+    )
     polly_resp = g_polly.synthesize_speech(
         Engine="standard",
         SampleRate="16000",
@@ -93,7 +98,9 @@ def speak_polly_to_file(phoneme_string: str, filename: str) -> None:
     <speak>
       <phoneme alphabet='x-sampa' ph='{phoneme_string}'>{phoneme_string}</phoneme>
     </speak>
-    """.format(phoneme_string=phoneme_string)
+    """.format(
+        phoneme_string=phoneme_string
+    )
     polly_resp = g_polly.synthesize_speech(
         Engine="standard",
         SampleRate="16000",
@@ -110,10 +117,35 @@ def speak_polly_to_file(phoneme_string: str, filename: str) -> None:
             f.write(stream.read())
 
 
+g_fastspeech = FastSpeech2Synthesizer()
+
+
+def speak_fs(phoneme_string: str):
+    phoneme_string = " ".join(
+        XSAMPA_IPA_MAP[phn]
+        for phn in Aligner(phoneme_set=set(XSAMPA_IPA_MAP.keys()))
+        .align(phoneme_string)
+        .split(" ")
+    )
+    content = io.BytesIO()
+    g_fastspeech.synthesize("{" + phoneme_string + "}", content)
+    return content
+
+
+def speak_fs_to_file(phoneme_string: str, filename: str) -> None:
+    phoneme_string = " ".join(
+        XSAMPA_IPA_MAP[phn]
+        for phn in Aligner(phoneme_set=set(XSAMPA_IPA_MAP.keys()))
+        .align(phoneme_string)
+        .split(" ")
+    )
+    g_fastspeech.synthesize("{" + phoneme_string + "}", filename)
+
+
 def speak_phoneme_to_file(phoneme_string: str) -> str:
     app.logger.info("Speaking '{}'".format(phoneme_string))
-    filename = "{}.mp3".format(uuid.uuid4())
-    speak_polly_to_file(phoneme_string, filename)
+    filename = "{}.wav".format(uuid.uuid4())
+    speak_fs_to_file(phoneme_string, "generated/{}".format(filename))
     return filename
 
 
@@ -151,6 +183,7 @@ class SpeakResponse(Schema):
 @doc(description="Generate WAV file from phoneme string", tags=["speak"])
 @cache.memoize()
 def route_post_speak(pronunciation):
+
     filename = speak_phoneme_to_file(pronunciation)
 
     return jsonify(
@@ -186,7 +219,7 @@ docs.register(route_post_speak)
 @marshal_with(None)
 @cache.memoize()
 def route_speak(q):
-    return Response(response=speak_polly(q), content_type="audio/mpeg")
+    return Response(response=speak_fs(q), content_type="audio/mpeg")
 
 
 docs.register(route_speak)
@@ -197,7 +230,6 @@ docs.register(route_speak)
 @doc(
     produces=["audio/x-wav", "audio/mpeg"], tags=["speak"],
 )
-@cache.memoize()
 def route_serve_generated_speech(filename):
     return send_from_directory("generated", filename)
 
@@ -211,7 +243,7 @@ class SynthesizeSpeechRequest(Schema):
         description="Specify which engine to use",
         validate=validate.OneOf(["standard"]),
     )
-    LanguageCode = fields.Str(required=False, example=None)
+    LanguageCode = fields.Str(required=False, example="is-IS")
     LexiconNames = fields.List(
         fields.Str(),
         required=False,
@@ -222,7 +254,7 @@ class SynthesizeSpeechRequest(Schema):
             + "For information about storing lexicons, see PutLexicon. "
             + "UNIMPLEMENTED"
         ),
-        example=None,
+        example=[],
     )
     OutputFormat = fields.Str(
         required=True,
@@ -232,19 +264,19 @@ class SynthesizeSpeechRequest(Schema):
             + "For speech marks, this will be json. "
         ),
         validate=validate.OneOf(["json", "pcm", "mp3", "ogg_vorbis"]),
-        example="mp3",
+        example="pcm",
     )
     SampleRate = fields.Str(
         required=True,
         description="The audio frequency specified in Hz.",
         validate=validate.OneOf(["8000", "16000", "22050", "24000"]),
-        example="16000",
+        example="22050",
     )
     SpeechMarkTypes = fields.List(
         fields.Str(validate=validate.OneOf(["sentence", "ssml", "viseme", "word"])),
         required=False,
         description="The type of speech marks returned for the input text",
-        example=None,
+        example=[],
     )
     Text = fields.Str(
         required=True,
@@ -257,12 +289,13 @@ class SynthesizeSpeechRequest(Schema):
             "Specifies whether the input text is plain text or SSML. "
             + "The default value is plain text. For more information, see Using SSML. "
         ),
-        validate=validate.OneOf(["text", "ssml"]),
+        validate=validate.OneOf(["text",]),  # "ssml"
     )
     VoiceId = fields.Str(
         required=True,
         description="Voice ID to use for the synthesis",
-        validate=validate.OneOf(["Dora", "Karl"]),
+        validate=validate.OneOf(["Dora", "Karl", "Other"]),
+        example="Other",
     )
 
 
@@ -271,28 +304,37 @@ class SynthesizeSpeechRequest(Schema):
 @doc(
     description="Synthesize speech",
     tags=["speech"],
-    produces=["audio/mpeg", "audio/ogg", "application/x-json-stream",],
+    produces=["audio/mpeg", "audio/ogg", "application/x-json-stream", "audio/x-wav"],
 )
 @cache.memoize()
 def route_synthesize_speech(**kwargs):
     app.logger.info("Got request: %s", kwargs)
-    polly_resp = g_polly.synthesize_speech(**kwargs)
 
     output_content_type = "application/x-json-stream"
     if kwargs["OutputFormat"] == "mp3":
         output_content_type = "audio/mpeg"
     elif kwargs["OutputFormat"] == "ogg_vorbis":
         output_content_type = "audio/ogg"
+    elif kwargs["OutputFormat"] == "pcm":
+        output_content_type = "audio/x-wav"
 
-    try:
-        if "AudioStream" in polly_resp:
-            with contextlib.closing(polly_resp["AudioStream"]) as stream:
-                content = stream.read()
-            return Response(content, content_type=output_content_type)
-        else:
+    if kwargs["VoiceId"] in ("Dora", "Karl"):
+        polly_resp = g_polly.synthesize_speech(**kwargs)
+        try:
+            if "AudioStream" in polly_resp:
+                with contextlib.closing(polly_resp["AudioStream"]) as stream:
+                    content = stream.read()
+                return Response(content, content_type=output_content_type)
+            else:
+                return {"error": 1}, 400
+        except:
             return {"error": 1}, 400
-    except:
-        return {"error": 1}, 400
+    else:
+        if kwargs["OutputFormat"] != "pcm" or kwargs["TextType"] != "text":
+            return {"error": 1, "message": "Unsupported arguments"}, 400
+        content = io.BytesIO()
+        g_fastspeech.synthesize(kwargs["Text"], content)
+        return Response(content, content_type=output_content_type)
 
 
 docs.register(route_synthesize_speech)

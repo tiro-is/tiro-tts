@@ -14,6 +14,32 @@ spec:
       labels:
         app: tiro-tts
     spec:
+      volumes:
+      - name: models
+        emptyDir: {}
+      initContainers:
+      - name: fetch-models
+        image: google/cloud-sdk:latest
+        command:
+        - bash
+        - -xeu
+        - -c
+        - |
+          mkdir -p /models/
+
+          FASTSPEECH=gs://models-talgreinir-is/tts/fastspeech2/v2021-01-01/checkpoint_490000.pth.tar
+          MELGAN=gs://models-talgreinir-is/tts/fastspeech2/v2021-01-01/vocoder_aca5990_3350.pt
+          SEQUITUR=gs://models-talgreinir-is/g2p/ipd_clean_slt2018.mdl
+
+          gsutil cp $FASTSPEECH /models/fastspeech.pth.tar
+          gsutil cp $MELGAN /models/melgan.pt
+          gsutil cp $SEQUITUR /models/sequitur.mdl
+
+          exit 0
+        volumeMounts:
+        - name: models
+          mountPath: /models
+          readOnly: false
       containers:
       - name: tiro-tts
         image: tiro-tts
@@ -21,6 +47,14 @@ spec:
         ports:
         - containerPort: 8000
           protocol: TCP
+        volumeMounts:
+        - name: models
+          mountPath: /models
+          readOnly: true
+        resources:
+          requests:
+            memory: "800Mi"
+            cpu: "100m"
         env:
         - name: TIRO_TTS_AWS_ACCESS_KEY_ID
           valueFrom:
@@ -31,4 +65,11 @@ spec:
           valueFrom:
             secretKeyRef:
               name: dev-aws-secret
-              key: aws_secret_access_key                
+              key: aws_secret_access_key
+        - name: FASTSPEECH_MODEL_PATH
+          value: /models/fastspeech.pth.tar
+        - name: MELGAN_VOCODER_PATH
+          value: /models/melgan.pt
+        - name: SEQUITUR_MODEL_PATH
+          value: /models/sequitur.mdl
+          
