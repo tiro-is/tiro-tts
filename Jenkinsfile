@@ -79,7 +79,7 @@ pipeline {
 		withKubeConfig([credentialsId: 'gke-kubeconfig']) {
 		    sh "kubectl kustomize k8s/overlays/prod | sed 's/%GIT_COMMIT%/git${GIT_COMMIT[0..7]}/'  | kubectl apply -f -"
 		    echo 'Waiting for successful rollout...'
-		    sh 'kubectl rollout status -w tiro-tts-deployment
+		    sh 'kubectl rollout status -w deploy/tiro-tts-deployment'
 		}
             }
             post {
