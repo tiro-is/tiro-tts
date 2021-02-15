@@ -7,8 +7,9 @@ RUN DEBIAN_FRONTEND=noninteractive \
         && rm -rf /var/lib/{apt,dpkg,log,cache}/
 
 WORKDIR /app
-COPY requirements.txt lib/fastspeech/requirements.txt \
-        lib/fastspeech/melgan/requirements.txt  ./
+COPY requirements.txt ./requirements.txt
+COPY lib/fastspeech/requirements.txt lib/fastspeech/requirements.txt
+COPY lib/fastspeech/melgan/requirements.txt lib/fastspeech/melgan/requirements.txt
 RUN pip install -r requirements.txt
 COPY . /app
 
