@@ -1,9 +1,9 @@
-FROM python:3.7-slim AS build
+FROM python:3.8-slim AS build
 
 RUN DEBIAN_FRONTEND=noninteractive \
 	&& apt-get update -yqq \
         && apt-get install -yqq \
-             python3 python3-pip espeak-ng espeak-ng-data \
+             python3 python3-pip espeak-ng espeak-ng-data git swig \
         && rm -rf /var/lib/{apt,dpkg,log,cache}/
 
 WORKDIR /app
