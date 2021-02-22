@@ -24,7 +24,7 @@ app.config["CACHE_TYPE"] = "simple"
 app.config["CACHE_DEFAULT_TIMEOUT"] = 60 * 60 * 24 * 2
 app.config.from_object(EnvvarConfig)
 
-CORS(app)
+cors = CORS(app)
 cache = Cache(app)
 
 g_polly = Polly()
@@ -177,7 +177,7 @@ class SpeakResponse(Schema):
     )
 
 
-@app.route("/v0/speak", methods=["POST", "OPTIONS"])
+@app.route("/v0/speak", methods=["POST"])
 @use_kwargs(SpeakRequest)
 @marshal_with(SpeakResponse)
 @doc(description="Generate WAV file from phoneme string", tags=["speak"])
@@ -225,7 +225,7 @@ def route_speak(q):
 docs.register(route_speak)
 
 
-@app.route("/v0/generated/<filename>", methods=["GET", "OPTIONS"])
+@app.route("/v0/generated/<filename>", methods=["GET"])
 @marshal_with(None)
 @doc(
     produces=["audio/x-wav", "audio/mpeg"], tags=["speak"],
@@ -299,7 +299,7 @@ class SynthesizeSpeechRequest(Schema):
     )
 
 
-@app.route("/v0/speech", methods=["POST", "OPTIONS"])
+@app.route("/v0/speech", methods=["POST"])
 @use_kwargs(SynthesizeSpeechRequest)
 @doc(
     description="Synthesize speech",
