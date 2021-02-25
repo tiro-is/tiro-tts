@@ -237,11 +237,14 @@ def route_serve_generated_speech(filename):
 docs.register(route_serve_generated_speech)
 
 
+SUPPORTED_VOICE_IDS = ["Dora", "Karl", "Other", "Joanna"]
+
+
 class SynthesizeSpeechRequest(Schema):
     Engine = fields.Str(
         required=True,
         description="Specify which engine to use",
-        validate=validate.OneOf(["standard"]),
+        validate=validate.OneOf(["standard", "neural"]),
     )
     LanguageCode = fields.Str(required=False, example="is-IS")
     LexiconNames = fields.List(
@@ -318,7 +321,7 @@ def route_synthesize_speech(**kwargs):
     elif kwargs["OutputFormat"] == "pcm":
         output_content_type = "audio/x-wav"
 
-    if kwargs["VoiceId"] in ("Dora", "Karl"):
+    if kwargs["VoiceId"] in ("Dora", "Karl", "Joanna"):
         polly_resp = g_polly.synthesize_speech(**kwargs)
         try:
             if "AudioStream" in polly_resp:
