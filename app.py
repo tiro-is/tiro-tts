@@ -298,6 +298,7 @@ class SynthesizeSpeechRequest(Schema):
         required=True,
         description="Voice ID to use for the synthesis",
         validate=validate.OneOf(["Dora", "Karl", "Other"]),
+        validate=validate.OneOf(SUPPORTED_VOICE_IDS),
         example="Other",
     )
 
