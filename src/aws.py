@@ -1,5 +1,6 @@
 import os
 from boto3 import Session
+from flask import current_app
 
 
 class Polly:
@@ -7,9 +8,9 @@ class Polly:
 
     def __init__(self):
         self._session = Session(
-            aws_access_key_id=os.environ["TIRO_TTS_AWS_ACCESS_KEY_ID"],
-            aws_secret_access_key=os.environ["TIRO_TTS_AWS_SECRET_ACCESS_KEY"],
-            region_name=os.environ.get("TIRO_TTS_AWS_REGION", "eu-west-1"),
+            aws_access_key_id=current_app.config["AWS_ACCESS_KEY_ID"],
+            aws_secret_access_key=current_app.config["AWS_SECRET_ACCESS_KEY"],
+            region_name=current_app.config["AWS_REGION"],
         )
         self._polly = self._session.client("polly")
 

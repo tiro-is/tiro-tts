@@ -66,10 +66,10 @@ spec:
             secretKeyRef:
               name: dev-aws-secret
               key: aws_secret_access_key
-        - name: FASTSPEECH_MODEL_PATH
+        - name: TIRO_TTS_FASTSPEECH_MODEL_PATH
           value: /models/fastspeech.pth.tar
-        - name: MELGAN_VOCODER_PATH
+        - name: TIRO_TTS_MELGAN_VOCODER_PATH
           value: /models/melgan.pt
-        - name: SEQUITUR_MODEL_PATH
+        - name: TIRO_TTS_SEQUITUR_MODEL_PATH
           value: /models/sequitur.mdl
           

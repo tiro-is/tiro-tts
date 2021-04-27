@@ -5,6 +5,7 @@ import wave
 from typing import BinaryIO
 import torch
 import numpy as np
+from flask import current_app
 
 sys.path.insert(0, "src/lib/fastspeech")
 from lib.fastspeech.synthesize import synthesize, preprocess, get_FastSpeech2, load_g2p
@@ -75,25 +76,24 @@ IPA_XSAMPA_MAP = {
 
 XSAMPA_IPA_MAP = {val: key for key, val in IPA_XSAMPA_MAP.items()}
 
-MELGAN_VOCODER_PATH = os.environ.get(
-    "MELGAN_VOCODER_PATH", "lib/fastspeech/v2021-01-01/vocoder_aca5990_3350.pt"
-)
-FASTSPEECH_MODEL_PATH = os.environ.get(
-    "FASTSPEECH_MODEL_PATH", "lib/fastspeech/v2021-01-01/checkpoint_490000.pth.tar"
-)
-SEQUITUR_MODEL_PATH = os.environ.get(
-    "SEQUITUR_MODEL_PATH", "lib/fastspeech/models/is-IS.ipd_clean_slt2018.mdl"
-)
+MELGAN_VOCODER_PATH = current_app.config["MELGAN_VOCODER_PATH"]
+FASTSPEECH_MODEL_PATH = current_app.config["FASTSPEECH_MODEL_PATH"]
+SEQUITUR_MODEL_PATH = current_app.config["SEQUITUR_MODEL_PATH"]
 
 
 class FastSpeech2Synthesizer:
-    def __init__(self):
+    def __init__(
+        self,
+        melgan_vocoder_path: str = MELGAN_VOCODER_PATH,
+        fastspeech_model_path: str = FASTSPEECH_MODEL_PATH,
+        sequitur_model_path: str = SEQUITUR_MODEL_PATH,
+    ):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.melgan_model = utils.get_melgan(full_path=MELGAN_VOCODER_PATH)
+        self.melgan_model = utils.get_melgan(full_path=melgan_vocoder_path)
         self.melgan_model.to(self.device)
-        self.fs_model = get_FastSpeech2(490000, full_path=FASTSPEECH_MODEL_PATH)
+        self.fs_model = get_FastSpeech2(490000, full_path=fastspeech_model_path)
         self.fs_model.to(self.device)
-        self.g2p_model = load_g2p(SEQUITUR_MODEL_PATH)
+        self.g2p_model = load_g2p(sequitur_model_path)
 
     def synthesize(self, text_string: str, filename: BinaryIO) -> None:
         """Surround phoneme strings with {}"""

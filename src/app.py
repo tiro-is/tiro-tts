@@ -22,6 +22,10 @@ app.config["APISPEC_SWAGGER_URL"] = "/v0/swagger.json"
 app.config["APISPEC_SWAGGER_UI_URL"] = "/"
 app.config.from_object(EnvvarConfig)
 
+
+# Give everyone access to current_app
+app.app_context().push()
+
 cors = CORS(app)
 cache = Cache(app)
 
