@@ -11,9 +11,6 @@ from marshmallow import validate, Schema
 from apispec import APISpec, BasePlugin
 from apispec.ext.marshmallow import MarshmallowPlugin
 from config import EnvvarConfig
-from aws import Polly
-from lib.fastspeech.align_phonemes import Aligner
-from fastspeech import FastSpeech2Synthesizer, XSAMPA_IPA_MAP
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 
@@ -30,11 +27,16 @@ app.config["JSON_AS_ASCII"] = False
 app.config["MAX_CONTENT_LENGTH"] = 1 * 1024 * 1024
 app.config["CACHE_NO_NULL_WARNING"] = True
 
+cors = CORS(app)
+cache = Cache(app)
+
 # Give everyone access to current_app
 app.app_context().push()
 
-cors = CORS(app)
-cache = Cache(app)
+from aws import Polly
+from lib.fastspeech.align_phonemes import Aligner
+from fastspeech import FastSpeech2Synthesizer, XSAMPA_IPA_MAP
+
 
 g_polly = Polly()
 
@@ -352,5 +354,5 @@ def route_synthesize_speech(**kwargs):
 
 docs.register(route_synthesize_speech)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run()
