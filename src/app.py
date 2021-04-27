@@ -14,6 +14,7 @@ from config import EnvvarConfig
 from aws import Polly
 from lib.fastspeech.align_phonemes import Aligner
 from fastspeech import FastSpeech2Synthesizer, XSAMPA_IPA_MAP
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 
 app = Flask(__name__)
@@ -22,6 +23,12 @@ app.config["APISPEC_SWAGGER_URL"] = "/v0/swagger.json"
 app.config["APISPEC_SWAGGER_UI_URL"] = "/"
 app.config.from_object(EnvvarConfig)
 
+# Fix access to client remote_addr when running behind proxy
+setattr(app, "wsgi_app", ProxyFix(app.wsgi_app))
+
+app.config["JSON_AS_ASCII"] = False
+app.config["MAX_CONTENT_LENGTH"] = 1 * 1024 * 1024
+app.config["CACHE_NO_NULL_WARNING"] = True
 
 # Give everyone access to current_app
 app.app_context().push()
