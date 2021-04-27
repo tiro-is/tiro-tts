@@ -6,7 +6,7 @@ from typing import BinaryIO
 import torch
 import numpy as np
 
-sys.path.insert(0, "lib/fastspeech")
+sys.path.insert(0, "src/lib/fastspeech")
 from lib.fastspeech.synthesize import synthesize, preprocess, get_FastSpeech2, load_g2p
 from lib.fastspeech import utils
 from scipy.io import wavfile

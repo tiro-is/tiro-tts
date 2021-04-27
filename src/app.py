@@ -340,3 +340,6 @@ def route_synthesize_speech(**kwargs):
 
 
 docs.register(route_synthesize_speech)
+
+if __name__ == '__main__':
+    app.run()
