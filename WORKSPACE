@@ -53,12 +53,31 @@ load("@io_bazel_rules_docker//repositories:deps.bzl", container_deps = "deps")
 
 container_deps()
 
+# pull in a custom base image to use Python 3.7
+load(
+    "@io_bazel_rules_docker//container:container.bzl",
+    "container_pull",
+)
+
+container_pull(
+    name = "py3_8_image_base",
+    registry = "docker.io",
+    repository = "library/python",
+
+    # Python 3.8.9-slim
+    digest = "sha256:9a88d644ef19ab2b16061d4aa8ea5cb140a5fd2e76e6b858b0f139e68f40f984",
+
+    # distroless 3.7
+    # digest = "sha256:80a90be7e33b931284194ba32c3af8fd8745017cfee18ba22c8269ae286f16f8",
+)
+
 load(
     "@io_bazel_rules_docker//python3:image.bzl",
     _py3_image_repos = "repositories",
 )
 
 _py3_image_repos()
+
 
 ########################################
 # rules_gitops needed for k8s deployment
