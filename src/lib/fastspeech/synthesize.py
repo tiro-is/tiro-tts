@@ -11,7 +11,6 @@ from fastspeech2 import FastSpeech2
 from text import text_to_sequence, sequence_to_text
 import hparams as hp
 import utils
-import audio as Audio
 from g2p_is import load_g2p, translate as g2p
 
 
