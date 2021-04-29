@@ -4,32 +4,34 @@ workspace(
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
-rules_python_version = "0.1.0"
+rules_python_version = "0.2.0"
 
 http_archive(
     name = "rules_python",
-    sha256 = "b6d46438523a3ec0f3cead544190ee13223a52f6a6765a29eae7b7cc24cc83a0",
+    sha256 = "778197e26c5fbeb07ac2a2c5ae405b30f6cb7ad1f5510ea6fdac03bded96cc6f",
     url = "https://github.com/bazelbuild/rules_python/releases/download/{v}/rules_python-{v}.tar.gz".format(v = rules_python_version),
 )
 
 ###########################################
 # Python dependencies from requirements.txt
-load("@rules_python//python:pip.bzl", "pip_install")
+load("@rules_python//python:pip.bzl", "pip_parse")
 
-pip_install(
+pip_parse(
     name = "pip_deps",
-    requirements = "//:requirements.bazel.txt",
+    requirements_lock = "//:requirements.bazel.txt"
 )
 
+load("@pip_deps//:requirements.bzl", "install_deps")
+install_deps()
 
 
 #################################################
 # rules_docker required to build container images
-io_bazel_rules_docker_version = "0.15.0"
+io_bazel_rules_docker_version = "0.17.0"
 
 http_archive(
     name = "io_bazel_rules_docker",
-    sha256 = "1698624e878b0607052ae6131aa216d45ebb63871ec497f26c67455b34119c80",
+    sha256 = "59d5b42ac315e7eadffa944e86e90c2990110a1c8075f1cd145f487e999d22b3",
     strip_prefix = "rules_docker-{}".format(io_bazel_rules_docker_version),
     urls = [
         "https://github.com/bazelbuild/rules_docker/releases/download/v{v}/rules_docker-v{v}.tar.gz".format(
