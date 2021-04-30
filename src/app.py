@@ -102,7 +102,9 @@ def route_synthesize_speech(**kwargs):
     ].properties.supported_output_formats:
         # TODO(rkjaran): error out with a nicer message
         abort(400)
-    output_content_type = OutputFormat(kwargs["OutputFormat"], [kwargs["SampleRate"]])
+    output_content_type = OutputFormat(
+        kwargs["OutputFormat"], [kwargs["SampleRate"]]
+    ).content_type
 
     voice = g_synthesizers[voice_id]
     if (
