@@ -42,7 +42,7 @@ class PollyVoice(VoiceBase):
             return content
 
     def synthesize_from_ssml(self, ssml: str, **kwargs) -> bytes:
-        return self.synthesize(text=ssml, **kwargs)
+        raise NotImplementedError()
 
     @property
     def properties(self) -> VoiceProperties:
