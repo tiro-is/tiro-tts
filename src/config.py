@@ -32,3 +32,8 @@ class EnvvarConfig(metaclass=flask_env.MetaFlaskEnv):
     MELGAN_VOCODER_PATH = None
     FASTSPEECH_MODEL_PATH = None
     SEQUITUR_MODEL_PATH = None
+
+    # Features flags
+
+    # Enable to use ffmpeg executable to encode ogg_vorbis/mp3
+    USE_FFMPEG = True

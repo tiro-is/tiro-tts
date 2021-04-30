@@ -26,7 +26,7 @@ from typing import (
 
 
 class OutputFormat:
-    output_format: Literal["mp3", "pcm"]
+    output_format: Literal["mp3", "pcm", "ogg_vorbis"]
     supported_sample_rates: List[str]
 
     def __init__(self, output_format, supported_sample_rates):

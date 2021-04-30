@@ -63,10 +63,14 @@ class PollyVoice(VoiceBase):
 
 
 _MP3_SAMPLE_RATES = ["8000", "16000", "22050", "24000"]
+_OGG_VORBIS_SAMPLE_RATES = ["8000", "16000", "22050", "24000"]
 _PCM_SAMPLE_RATES = ["8000", "16000", "22050"]
 _SUPPORTED_OUTPUT_FORMATS = [
     OutputFormat(output_format="mp3", supported_sample_rates=_MP3_SAMPLE_RATES),
     OutputFormat(output_format="pcm", supported_sample_rates=_PCM_SAMPLE_RATES),
+    OutputFormat(
+        output_format="ogg_vorbis", supported_sample_rates=_OGG_VORBIS_SAMPLE_RATES
+    ),
 ]
 
 # List of Polly voices we want to use
