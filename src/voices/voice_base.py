@@ -15,13 +15,9 @@ from abc import ABC, abstractmethod
 from typing import (
     Union,
     TextIO,
-    BinaryIO,
-    NewType,
     Literal,
     Optional,
-    Iterator,
     List,
-    Tuple,
 )
 
 
@@ -87,7 +83,7 @@ class VoiceBase(ABC):
         return NotImplemented
 
     @abstractmethod
-    def synthesize_from_ssml(self, ssml: Union[str, TextIO], **kwargs) -> bytes:
+    def synthesize_from_ssml(self, ssml: str, **kwargs) -> bytes:
         return NotImplemented
 
     @property

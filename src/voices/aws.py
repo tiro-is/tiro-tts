@@ -12,12 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
-import os
-import typing
 from boto3 import Session
-from botocore.exceptions import ClientError
 from flask import current_app
-from webargs import ValidationError
 from . import VoiceBase, VoiceProperties, OutputFormat
 
 # Session singleton

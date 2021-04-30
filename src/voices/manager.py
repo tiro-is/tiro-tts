@@ -12,21 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import typing
-from . import VoiceBase, OutputFormat, aws, fastspeech
+from . import VoiceBase
 from .aws import PollyVoice, VOICES as POLLY_VOICES
 from .fastspeech import (
-    FastSpeech2Synthesizer,
     FastSpeech2Voice,
     VOICES as FASTSPEECH_VOICES,
 )
 
 
 class VoiceManager:
-    _synthesizers: typing.Dict[str, VoiceBase] = {}
+    _synthesizers: typing.Dict[str, VoiceBase]
     _voices: typing.Dict[str, VoiceBase]
 
     def __init__(self, synthesizers: typing.Dict[str, VoiceBase] = {}):
         if not synthesizers:
+            self._synthesizers = {}
             self._synthesizers.update(
                 {voice.voice_id: FastSpeech2Voice(voice) for voice in FASTSPEECH_VOICES}
             )

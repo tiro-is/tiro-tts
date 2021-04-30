@@ -14,7 +14,6 @@
 import os
 import sys
 import io
-import wave
 import typing
 from typing import BinaryIO
 import torch
@@ -25,11 +24,10 @@ from . import VoiceBase, VoiceProperties, OutputFormat
 import ffmpeg
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../lib/fastspeech"))
-from lib.fastspeech.synthesize import synthesize, preprocess, get_FastSpeech2, load_g2p
-from lib.fastspeech import utils
+from lib.fastspeech.synthesize import preprocess, get_FastSpeech2, load_g2p
+from lib.fastspeech import utils, hparams as hp
 from lib.fastspeech.align_phonemes import Aligner
 from scipy.io import wavfile
-import hparams as hp
 from .phonemes import XSAMPA_IPA_MAP, IPA_XSAMPA_MAP
 
 
