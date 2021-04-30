@@ -2,8 +2,15 @@ import io
 import contextlib
 import uuid
 import subprocess
-from flask import Flask, jsonify, Response, send_from_directory
+import typing
+from flask import (
+    Flask,
+    jsonify,
+    Response,
+    send_from_directory,
+)
 from flask_cors import CORS
+from webargs.flaskparser import FlaskParser, abort
 from flask_apispec import use_kwargs, marshal_with, FlaskApiSpec, doc
 from flask_caching import Cache
 from apispec import APISpec, BasePlugin
@@ -31,12 +38,10 @@ cache = Cache(app)
 # Give everyone access to current_app
 app.app_context().push()
 
-from aws import Polly
-from lib.fastspeech.align_phonemes import Aligner
-from fastspeech import FastSpeech2Synthesizer, XSAMPA_IPA_MAP
+from voices import OutputFormat, VoiceManager
 import schemas
 
-g_polly = Polly()
+g_synthesizers = VoiceManager()
 
 
 class DisableOptionsOperationPlugin(BasePlugin):
@@ -59,8 +64,6 @@ app.config["APISPEC_SPEC"] = APISpec(
 docs = FlaskApiSpec(app)
 
 
-g_fastspeech = FastSpeech2Synthesizer()
-
 
 
 
@@ -75,31 +78,29 @@ g_fastspeech = FastSpeech2Synthesizer()
 def route_synthesize_speech(**kwargs):
     app.logger.info("Got request: %s", kwargs)
 
-    output_content_type = "application/x-json-stream"
-    if kwargs["OutputFormat"] == "mp3":
-        output_content_type = "audio/mpeg"
-    elif kwargs["OutputFormat"] == "ogg_vorbis":
-        output_content_type = "audio/ogg"
-    elif kwargs["OutputFormat"] == "pcm":
-        output_content_type = "audio/x-wav"
+    if not "Engine" in kwargs:
+        kwargs["Engine"] = "standard"
 
-    if kwargs["VoiceId"] in ("Dora", "Karl", "Joanna"):
-        polly_resp = g_polly.synthesize_speech(**kwargs)
-        try:
-            if "AudioStream" in polly_resp:
-                with contextlib.closing(polly_resp["AudioStream"]) as stream:
-                    content = stream.read()
-                return Response(content, content_type=output_content_type)
-            else:
-                return {"error": 1}, 400
-        except:
-            return {"error": 1}, 400
-    else:
-        if kwargs["OutputFormat"] != "pcm" or kwargs["TextType"] != "text":
-            return {"error": 1, "message": "Unsupported arguments"}, 400
-        content = io.BytesIO()
-        g_fastspeech.synthesize(kwargs["Text"], content)
-        return Response(content, content_type=output_content_type)
+    output_content_type = "application/x-json-stream"
+    voice_id = kwargs["VoiceId"]
+    text = kwargs["Text"]
+
+    # TODO(rkjaran): handle json/speech marks
+    if (kwargs["OutputFormat"], kwargs["SampleRate"]) not in g_synthesizers[
+        voice_id
+    ].properties.supported_output_formats:
+        # TODO(rkjaran): error out with a nicer message
+        abort(400)
+    output_content_type = OutputFormat(kwargs["OutputFormat"], [kwargs["SampleRate"]])
+
+    voice = g_synthesizers[voice_id]
+    if (
+        "LanguageCode" in kwargs
+        and voice.properties.language_code != kwargs["LanguageCode"]
+    ):
+        abort(400)
+
+    return Response(voice.synthesize(text, **kwargs), content_type=output_content_type)
 
 
 docs.register(route_synthesize_speech)
