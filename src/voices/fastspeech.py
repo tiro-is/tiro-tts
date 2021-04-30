@@ -7,14 +7,79 @@ from typing import BinaryIO
 import torch
 import numpy as np
 from flask import current_app
+from html.parser import HTMLParser
 from . import VoiceBase, VoiceProperties, OutputFormat
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../lib/fastspeech"))
 from lib.fastspeech.synthesize import synthesize, preprocess, get_FastSpeech2, load_g2p
 from lib.fastspeech import utils
+from lib.fastspeech.align_phonemes import Aligner
 from scipy.io import wavfile
 import hparams as hp
-from phonemes import XSAMPA_IPA_MAP, IPA_XSAMPA_MAP
+from .phonemes import XSAMPA_IPA_MAP, IPA_XSAMPA_MAP
+
+
+def _align_ipa_from_xsampa(phoneme_string: str):
+    return " ".join(
+        XSAMPA_IPA_MAP[phn]
+        for phn in Aligner(phoneme_set=set(XSAMPA_IPA_MAP.keys()))
+        .align(phoneme_string.replace(" ", ""))
+        .split(" ")
+    )
+
+
+def _align_ipa(phoneme_string: str):
+    return " ".join(
+        phn
+        for phn in Aligner(phoneme_set=set(IPA_XSAMPA_MAP.keys()))
+        .align(phoneme_string.replace(" ", ""))
+        .split(" ")
+    )
+
+
+class SSMLParser(HTMLParser):
+    _ALLOWED_TAGS = ["speak", "phoneme"]
+    _first_tag_seen: bool
+    _tags_queue: typing.List[str]
+    _prepared_fastspeech_strings: typing.List[str]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._first_tag_seen = False
+        self._tags_queue = []
+        self._prepared_fastspeech_strings = []
+
+    def handle_starttag(self, tag, attrs):
+        print("Encountered a start tag:", tag)
+        if tag not in SSMLParser._ALLOWED_TAGS:
+            raise ValueError("Unsupported tag encountered: {}".format(tag))
+        if not self._first_tag_seen:
+            if tag != "speak":
+                raise ValueError("Start tag is not <speak>")
+            self._first_tag_seen = True
+
+        if tag == "phoneme":
+            attrs_map = dict(attrs)
+            if attrs_map.get("alphabet") != "x-sampa" or "ph" not in attrs_map:
+                raise ValueError(
+                    "<phoneme> tag has to have 'alphabet' and 'ph' attributes"
+                )
+            self._prepared_fastspeech_strings.append(
+                "{%s}" % _align_ipa_from_xsampa(attrs_map["ph"])
+            )
+        self._tags_queue.append(tag)
+
+    def handle_endtag(self, tag):
+        print("Encountered an end tag :", tag)
+        self._tags_queue.pop()
+
+    def handle_data(self, data):
+        if self._tags_queue[-1] != "phoneme":
+            self._prepared_fastspeech_strings.append(data.strip())
+        print("Encountered some data  :", data)
+
+    def get_fastspeech_string(self):
+        return " ".join(self._prepared_fastspeech_strings)
 
 
 MELGAN_VOCODER_PATH = current_app.config["MELGAN_VOCODER_PATH"]
@@ -99,11 +164,15 @@ class FastSpeech2Voice(VoiceBase):
             raise ValueError("Synthesize request not valid")
 
         content = io.BytesIO()
-        self._backend.synthesize(kwargs["Text"], content)
+        self._backend.synthesize(text, content)
         return content
 
     def synthesize_from_ssml(self, ssml: str, **kwargs) -> bytes:
-        raise NotImplementedError()
+        parser = SSMLParser()
+        parser.feed(ssml)
+        text = parser.get_fastspeech_string()
+        parser.close()
+        return self.synthesize(text=text, **kwargs)
 
     @property
     def properties(self) -> VoiceProperties:
