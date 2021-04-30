@@ -9,8 +9,7 @@ RUN DEBIAN_FRONTEND=noninteractive \
 WORKDIR /app
 COPY requirements.txt ./requirements.txt
 RUN pip install -r requirements.txt
-RUN pip install git+https://github.com/sequitur-g2p/sequitur-g2p.git@master
-COPY src /app
+COPY src /app/
 
 FROM build as runtime-prod
 
