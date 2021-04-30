@@ -162,7 +162,9 @@ class FastSpeech2Voice(VoiceBase):
         try:
             return (
                 kwargs["OutputFormat"] in ("pcm", "ogg_vorbis", "mp3")
-                and kwargs["SampleRate"] == "22050"
+                and not (
+                    kwargs["OutputFormat"] == "pcm" and kwargs["SampleRate"] != "22050"
+                )
                 and kwargs["VoiceId"] == self._properties.voice_id
                 and "Text" in kwargs
             )
