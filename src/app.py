@@ -18,7 +18,6 @@ from apispec.ext.marshmallow import MarshmallowPlugin
 from config import EnvvarConfig
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-
 app = Flask(__name__)
 app.config["JSON_AS_ASCII"] = False
 app.config["APISPEC_SWAGGER_URL"] = "/v0/swagger.json"
@@ -104,6 +103,43 @@ def route_synthesize_speech(**kwargs):
 
 
 docs.register(route_synthesize_speech)
+
+
+@app.route("/v0/voices", methods=["GET"])
+@use_kwargs(schemas.DescribeVoicesRequest, location="query")
+@doc(
+    description="Describe/query available voices",
+    tags=["speech"],
+    produces=["application/json"],
+)
+@marshal_with(schemas.Voice(many=True))
+def route_describe_voices(**kwargs):
+    def query_filter(elem):
+        if "LanguageCode" in kwargs and kwargs["LanguageCode"]:
+            return elem["LanguageCode"] == kwargs["LanguageCode"]
+        return True
+
+    return jsonify(
+        list(
+            filter(
+                query_filter,
+                (
+                    {
+                        "VoiceId": v[1].properties.voice_id,
+                        "Gender": v[1].properties.gender,
+                        "LanguageCode": v[1].properties.language_code,
+                        "LanguageName": v[1].properties.language_name,
+                        "SupportedEngines": ["standard"],
+                    }
+                    for v in g_synthesizers.voices()
+                ),
+            )
+        )
+    )
+
+
+docs.register(route_describe_voices)
+
 
 if __name__ == "__main__":
     app.run()

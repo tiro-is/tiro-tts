@@ -65,3 +65,33 @@ class SynthesizeSpeechRequest(Schema):
         validate=validate.OneOf(SUPPORTED_VOICE_IDS),
         example="Other",
     )
+
+
+class DescribeVoicesRequest(Schema):
+    Engine = fields.Str(
+        description="Specify which engine to use",
+        validate=validate.OneOf(["standard"]),
+    )
+
+    LanguageCode = fields.Str(
+        required=False,
+        description=(
+            "The language identification tag (ISO 639 code for the language "
+            + "name-ISO 3166 country code) for filtering the list of voices "
+            + "returned. If you don't specify this optional parameter, all available"
+            + " voices are returned. "
+        ),
+        example="is-IS",
+    )
+
+
+class Voice(Schema):
+    VoiceId = fields.Str(example="Other",)
+
+    Gender = fields.Str(validate=validate.OneOf(["Male", "Female"]),)
+
+    LanguageCode = fields.Str(example="is-IS")
+
+    LanguageName = fields.Str(example="Íslenska")
+
+    SupportedEngines = fields.List(fields.Str(validate=validate.OneOf(["standard"])))
