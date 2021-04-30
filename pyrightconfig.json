@@ -1,0 +1,5 @@
+{
+  "include": ["src"],
+  "extraPaths": ["src"],
+  "exclude": ["src/lib", "src/lexconvert.py"]
+}
