@@ -22,6 +22,7 @@ import numpy as np
 from flask import current_app
 from html.parser import HTMLParser
 from . import VoiceBase, VoiceProperties, OutputFormat
+import ffmpeg
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../lib/fastspeech"))
 from lib.fastspeech.synthesize import synthesize, preprocess, get_FastSpeech2, load_g2p
@@ -63,7 +64,6 @@ class SSMLParser(HTMLParser):
         self._prepared_fastspeech_strings = []
 
     def handle_starttag(self, tag, attrs):
-        print("Encountered a start tag:", tag)
         if tag not in SSMLParser._ALLOWED_TAGS:
             raise ValueError("Unsupported tag encountered: {}".format(tag))
         if not self._first_tag_seen:
@@ -83,13 +83,11 @@ class SSMLParser(HTMLParser):
         self._tags_queue.append(tag)
 
     def handle_endtag(self, tag):
-        print("Encountered an end tag :", tag)
         self._tags_queue.pop()
 
     def handle_data(self, data):
         if self._tags_queue[-1] != "phoneme":
             self._prepared_fastspeech_strings.append(data.strip())
-        print("Encountered some data  :", data)
 
     def get_fastspeech_string(self):
         return " ".join(self._prepared_fastspeech_strings)
@@ -163,7 +161,7 @@ class FastSpeech2Voice(VoiceBase):
         # Some sanity checks
         try:
             return (
-                kwargs["OutputFormat"] == "pcm"
+                kwargs["OutputFormat"] in ("pcm", "ogg_vorbis", "mp3")
                 and kwargs["SampleRate"] == "22050"
                 and kwargs["VoiceId"] == self._properties.voice_id
                 and "Text" in kwargs
@@ -178,7 +176,18 @@ class FastSpeech2Voice(VoiceBase):
 
         content = io.BytesIO()
         self._backend.synthesize(text, content)
-        return content
+
+        if current_app.config["USE_FFMPEG"]:
+            if kwargs["OutputFormat"] == "ogg_vorbis":
+                return ffmpeg.to_ogg_vorbis(
+                    content.getvalue(), sample_rate=kwargs["SampleRate"]
+                )
+            elif kwargs["OutputFormat"] == "mp3":
+                return ffmpeg.to_mp3(
+                    content.getvalue(), sample_rate=kwargs["SampleRate"]
+                )
+
+        return content.getvalue()
 
     def synthesize_from_ssml(self, ssml: str, **kwargs) -> bytes:
         parser = SSMLParser()
@@ -192,9 +201,15 @@ class FastSpeech2Voice(VoiceBase):
         return self._properties
 
 
+_OGG_VORBIS_SAMPLE_RATES = ["8000", "16000", "22050", "24000"]
+_MP3_SAMPLE_RATES = ["8000", "16000", "22050", "24000"]
 _PCM_SAMPLE_RATES = ["22050"]
 _SUPPORTED_OUTPUT_FORMATS = [
     OutputFormat(output_format="pcm", supported_sample_rates=_PCM_SAMPLE_RATES),
+    OutputFormat(
+        output_format="ogg_vorbis", supported_sample_rates=_OGG_VORBIS_SAMPLE_RATES
+    ),
+    OutputFormat(output_format="mp3", supported_sample_rates=_MP3_SAMPLE_RATES),
 ]
 
 # List of all available fastspeech voices

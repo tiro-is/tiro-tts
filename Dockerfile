@@ -3,7 +3,7 @@ FROM python:3.8-slim AS build
 RUN DEBIAN_FRONTEND=noninteractive \
 	&& apt-get update -yqq \
         && apt-get install -yqq \
-             python3 python3-pip espeak-ng espeak-ng-data git swig \
+             python3 python3-pip libavcodec*-extra git swig ffmpeg \
         && rm -rf /var/lib/{apt,dpkg,log,cache}/
 
 WORKDIR /app

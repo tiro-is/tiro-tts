@@ -13,6 +13,7 @@
 # limitations under the License.
 import io
 import contextlib
+import logging
 import uuid
 import subprocess
 import typing
@@ -135,7 +136,8 @@ def route_synthesize_speech(**kwargs):
         return Response(
             voice.synthesize(text, **kwargs), content_type=output_content_type
         )
-    except (NotImplementedError, ValueError):
+    except (NotImplementedError, ValueError) as ex:
+        app.logger.warning("Synthesis failed: %s", ex)
         abort(400)
 
 
@@ -179,4 +181,7 @@ docs.register(route_describe_voices)
 
 
 if __name__ == "__main__":
+    gunicorn_logger = logging.getLogger("gunicorn.error")
+    app.logger.handlers = gunicorn_logger.handlers
+    app.logger.setLevel(gunicorn_logger.level)
     app.run()
