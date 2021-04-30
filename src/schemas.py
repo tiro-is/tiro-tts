@@ -57,7 +57,7 @@ class SynthesizeSpeechRequest(Schema):
             "Specifies whether the input text is plain text or SSML. "
             + "The default value is plain text. For more information, see Using SSML. "
         ),
-        validate=validate.OneOf(["text",]),  # "ssml"
+        validate=validate.OneOf(["text", "ssml"]),
     )
     VoiceId = fields.Str(
         required=True,
