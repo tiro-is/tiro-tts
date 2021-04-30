@@ -63,7 +63,19 @@ app.config["APISPEC_SPEC"] = APISpec(
 docs = FlaskApiSpec(app)
 
 
+# Use code 400 for invalid requests
+FlaskParser.DEFAULT_VALIDATION_STATUS = 400
 
+# Return validation errors as JSON
+@app.errorhandler(422)
+@app.errorhandler(400)
+def handle_error(err):
+    headers = err.data.get("headers", None)
+    messages = err.data.get("messages", ["Invalid request."])
+    if headers:
+        return jsonify({"errors": messages}), err.code, headers
+    else:
+        return jsonify({"errors": messages}), err.code
 
 
 @app.route("/v0/speech", methods=["POST"])
