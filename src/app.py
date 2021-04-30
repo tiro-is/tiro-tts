@@ -4,10 +4,8 @@ import uuid
 import subprocess
 from flask import Flask, jsonify, Response, send_from_directory
 from flask_cors import CORS
-from webargs import fields
 from flask_apispec import use_kwargs, marshal_with, FlaskApiSpec, doc
 from flask_caching import Cache
-from marshmallow import validate, Schema
 from apispec import APISpec, BasePlugin
 from apispec.ext.marshmallow import MarshmallowPlugin
 from config import EnvvarConfig
@@ -36,7 +34,7 @@ app.app_context().push()
 from aws import Polly
 from lib.fastspeech.align_phonemes import Aligner
 from fastspeech import FastSpeech2Synthesizer, XSAMPA_IPA_MAP
-
+import schemas
 
 g_polly = Polly()
 
@@ -64,73 +62,10 @@ docs = FlaskApiSpec(app)
 g_fastspeech = FastSpeech2Synthesizer()
 
 
-SUPPORTED_VOICE_IDS = ["Dora", "Karl", "Other", "Joanna"]
-
-
-class SynthesizeSpeechRequest(Schema):
-    Engine = fields.Str(
-        required=True,
-        description="Specify which engine to use",
-        validate=validate.OneOf(["standard", "neural"]),
-    )
-    LanguageCode = fields.Str(required=False, example="is-IS")
-    LexiconNames = fields.List(
-        fields.Str(),
-        required=False,
-        description=(
-            "List of one or more pronunciation lexicon names you want the "
-            + "service to apply during synthesis. Lexicons are applied only if the "
-            + "language of the lexicon is the same as the language of the voice. "
-            + "For information about storing lexicons, see PutLexicon. "
-            + "UNIMPLEMENTED"
-        ),
-        example=[],
-    )
-    OutputFormat = fields.Str(
-        required=True,
-        description=(
-            " The format in which the returned output will be encoded. "
-            + "For audio stream, this will be mp3, ogg_vorbis, or pcm. "
-            + "For speech marks, this will be json. "
-        ),
-        validate=validate.OneOf(["json", "pcm", "mp3", "ogg_vorbis"]),
-        example="pcm",
-    )
-    SampleRate = fields.Str(
-        required=True,
-        description="The audio frequency specified in Hz.",
-        validate=validate.OneOf(["8000", "16000", "22050", "24000"]),
-        example="22050",
-    )
-    SpeechMarkTypes = fields.List(
-        fields.Str(validate=validate.OneOf(["sentence", "ssml", "viseme", "word"])),
-        required=False,
-        description="The type of speech marks returned for the input text",
-        example=[],
-    )
-    Text = fields.Str(
-        required=True,
-        description="Input text to synthesize.",
-        example="Halló! Ég er gervimaður.",
-    )
-    TextType = fields.Str(
-        required=False,
-        description=(
-            "Specifies whether the input text is plain text or SSML. "
-            + "The default value is plain text. For more information, see Using SSML. "
-        ),
-        validate=validate.OneOf(["text",]),  # "ssml"
-    )
-    VoiceId = fields.Str(
-        required=True,
-        description="Voice ID to use for the synthesis",
-        validate=validate.OneOf(SUPPORTED_VOICE_IDS),
-        example="Other",
-    )
 
 
 @app.route("/v0/speech", methods=["POST"])
-@use_kwargs(SynthesizeSpeechRequest)
+@use_kwargs(schemas.SynthesizeSpeechRequest)
 @doc(
     description="Synthesize speech",
     tags=["speech"],
