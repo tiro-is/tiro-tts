@@ -113,7 +113,17 @@ def route_synthesize_speech(**kwargs):
     ):
         abort(400)
 
-    return Response(voice.synthesize(text, **kwargs), content_type=output_content_type)
+    try:
+        if kwargs["TextType"] == "ssml":
+            return Response(
+                voice.synthesize_from_ssml(text, **kwargs),
+                content_type=output_content_type,
+            )
+        return Response(
+            voice.synthesize(text, **kwargs), content_type=output_content_type
+        )
+    except (NotImplementedError, ValueError):
+        abort(400)
 
 
 docs.register(route_synthesize_speech)
