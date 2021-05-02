@@ -15,6 +15,7 @@ import logging
 from flask import (
     Flask,
     jsonify,
+    render_template,
     Response,
 )
 from flask_cors import CORS
@@ -30,7 +31,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 app = Flask(__name__)
 app.config["JSON_AS_ASCII"] = False
 app.config["APISPEC_SWAGGER_URL"] = "/v0/swagger.json"
-app.config["APISPEC_SWAGGER_UI_URL"] = "/"
+app.config["APISPEC_SWAGGER_UI_URL"] = None
 app.config.from_object(EnvvarConfig)
 
 # Fix access to client remote_addr when running behind proxy
@@ -173,6 +174,11 @@ def route_describe_voices(**kwargs):
 
 
 docs.register(route_describe_voices)
+
+
+@app.route("/")
+def route_index():
+    return render_template("index.dhtml")
 
 
 if __name__ == "__main__":

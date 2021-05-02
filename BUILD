@@ -10,6 +10,7 @@ load(
 py_library(
     name = "app_lib",
     srcs = glob(["src/**/*.py"], exclude=["src/app.py"]),
+    data = glob(["src/templates/*.dhtml"]),
     srcs_version = "PY3",
     deps = all_requirements,
 )
