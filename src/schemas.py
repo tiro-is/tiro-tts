@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF AbNY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import textwrap
 from marshmallow import validate, Schema
 from webargs import fields
 
@@ -48,16 +49,43 @@ class SynthesizeSpeechRequest(Schema):
         example="pcm",
     )
     SampleRate = fields.Str(
-        required=True,
+        required=False,
         description="The audio frequency specified in Hz.",
         validate=validate.OneOf(["8000", "16000", "22050", "24000"]),
         example="22050",
     )
     SpeechMarkTypes = fields.List(
-        fields.Str(validate=validate.OneOf(["sentence", "ssml", "viseme", "word"])),
+        fields.Str(validate=validate.OneOf(["word"])),  # "sentence", "ssml", "viseme",
         required=False,
-        description="The type of speech marks returned for the input text",
-        example=[],
+        description=textwrap.dedent(
+            """\
+            The type of speech marks returned for the input text.
+
+            Only word level speech marks are supported, which contain the start
+            time of each word and their start and end byte offsets in the input
+            text. E.g.
+
+                {
+                 "Engine": "standard",
+                 "LanguageCode": "is-IS",
+                 "OutputFormat": "json",
+                 "SpeechMarkTypes": ["word"],
+                 "Text": " Góðan, dag. Hvað heitir þú? Kvöld-Úlfur.",
+                 "VoiceId": "Other"
+                }
+
+            might return
+
+                {"time": 54, "type": "word", "start": 1, "end": 9, "value": "Góðan,"}
+                {"time": 44, "type": "word", "start": 10, "end": 14, "value": "dag."}
+                {"time": 26, "type": "word", "start": 15, "end": 20, "value": "Hvað"}
+                {"time": 33, "type": "word", "start": 21, "end": 27, "value": "heitir"}
+                {"time": 19, "type": "word", "start": 28, "end": 33, "value": "þú?"}
+                {"time": 88, "type": "word", "start": 34, "end": 48, "value": "Kvöld-Úlfur."}
+
+            """
+        ),
+        example=["word"],
     )
     Text = fields.Str(
         required=True,

@@ -105,13 +105,18 @@ def route_synthesize_speech(**kwargs):
     output_content_type = "application/x-json-stream"
     voice_id = kwargs["VoiceId"]
     text = kwargs["Text"]
+    kwargs["SampleRate"] = kwargs.get("SampleRate", "16000")
 
-    # TODO(rkjaran): handle json/speech marks
+    # TODO(rkjaran): error out with a nicer message
+    if kwargs["OutputFormat"] == "json" and kwargs.get("SpeechMarkTypes") != ["word"]:
+        abort(400)
+
     if (kwargs["OutputFormat"], kwargs["SampleRate"]) not in g_synthesizers[
         voice_id
     ].properties.supported_output_formats:
-        # TODO(rkjaran): error out with a nicer message
+        app.logger.info("Client requested unsupported output format")
         abort(400)
+
     output_content_type = OutputFormat(
         kwargs["OutputFormat"], [kwargs["SampleRate"]]
     ).content_type
@@ -121,10 +126,11 @@ def route_synthesize_speech(**kwargs):
         "LanguageCode" in kwargs
         and voice.properties.language_code != kwargs["LanguageCode"]
     ):
+
         abort(400)
 
     try:
-        if kwargs["TextType"] == "ssml":
+        if kwargs.get("TextType") == "ssml":
             return Response(
                 voice.synthesize_from_ssml(text, **kwargs),
                 content_type=output_content_type,
@@ -187,4 +193,6 @@ if __name__ == "__main__":
     gunicorn_logger = logging.getLogger("gunicorn.error")
     app.logger.handlers = gunicorn_logger.handlers
     app.logger.setLevel(gunicorn_logger.level)
+    if app.debug:
+        app.logger.setLevel(logging.DEBUG)
     app.run()
