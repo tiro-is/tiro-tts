@@ -67,7 +67,10 @@ class SynthesizeSpeechRequest(Schema):
         required=False,
         description=(
             "Specifies whether the input text is plain text or SSML. "
-            + "The default value is plain text. For more information, see Using SSML. "
+            + "The default value is plain text. "
+            + "\n\n"
+            + "Currently the SSML support is restricted to just `<phoneme>` tags, e.g:<br>"
+            + "`<speak>Ég er <phoneme alphabet='x-sampa' ph=''>gervimaður</phoneme></speak>`"
         ),
         validate=validate.OneOf(["text", "ssml"]),
     )

@@ -147,7 +147,9 @@ docs.register(route_synthesize_speech)
     tags=["speech"],
     produces=["application/json"],
 )
-@marshal_with(schemas.Voice(many=True))
+@marshal_with(
+    schemas.Voice(many=True), code=200, description="List of voices matching query"
+)
 def route_describe_voices(**kwargs):
     def query_filter(elem):
         if "LanguageCode" in kwargs and kwargs["LanguageCode"]:
