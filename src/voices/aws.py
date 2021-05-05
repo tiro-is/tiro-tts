@@ -67,6 +67,7 @@ _SUPPORTED_OUTPUT_FORMATS = [
     OutputFormat(
         output_format="ogg_vorbis", supported_sample_rates=_OGG_VORBIS_SAMPLE_RATES
     ),
+    OutputFormat(output_format="json", supported_sample_rates=[]),
 ]
 
 # List of Polly voices we want to use
