@@ -61,19 +61,23 @@ class SSMLParser(HTMLParser):
         self._tags_queue = []
         self._prepared_fastspeech_strings = []
 
-    def handle_starttag(self, tag, attrs):
-        if tag not in SSMLParser._ALLOWED_TAGS:
-            raise ValueError("Unsupported tag encountered: {}".format(tag))
+    def _check_first_tag(self, tag):
         if not self._first_tag_seen:
             if tag != "speak":
                 raise ValueError("Start tag is not <speak>")
             self._first_tag_seen = True
 
+    def handle_starttag(self, tag, attrs):
+        self._check_first_tag(tag)
+
+        if tag not in SSMLParser._ALLOWED_TAGS:
+            raise ValueError("Unsupported tag encountered: '{}'".format(tag))
+
         if tag == "phoneme":
             attrs_map = dict(attrs)
             if attrs_map.get("alphabet") != "x-sampa" or "ph" not in attrs_map:
                 raise ValueError(
-                    "<phoneme> tag has to have 'alphabet' and 'ph' attributes"
+                    "'phoneme' tag has to have 'alphabet' and 'ph' attributes"
                 )
             self._prepared_fastspeech_strings.append(
                 "{%s}" % _align_ipa_from_xsampa(attrs_map["ph"])
@@ -81,9 +85,14 @@ class SSMLParser(HTMLParser):
         self._tags_queue.append(tag)
 
     def handle_endtag(self, tag):
-        self._tags_queue.pop()
+        open_tag = self._tags_queue.pop()
+        if open_tag != tag:
+            raise ValueError("Invalid closing tag '{}' for '{}'".format(tag, open_tag))
 
     def handle_data(self, data):
+        # Raise a ValueError if we haven't seen the initial <speak> tag
+        self._check_first_tag("")
+
         if self._tags_queue[-1] != "phoneme":
             self._prepared_fastspeech_strings.append(data.strip())
 
