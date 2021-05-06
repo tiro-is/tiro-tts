@@ -15,6 +15,7 @@ import typing
 from . import VoiceBase
 from .aws import PollyVoice, VOICES as POLLY_VOICES
 from .fastspeech import (
+    FastSpeech2Synthesizer,
     FastSpeech2Voice,
     VOICES as FASTSPEECH_VOICES,
 )
@@ -23,12 +24,18 @@ from .fastspeech import (
 class VoiceManager:
     _synthesizers: typing.Dict[str, VoiceBase]
     _voices: typing.Dict[str, VoiceBase]
+    _fastspeech_backend: FastSpeech2Synthesizer
 
     def __init__(self, synthesizers: typing.Dict[str, VoiceBase] = {}):
         if not synthesizers:
+            # TODO(rkjaran): Remove this initialization here once we get rid of "Other"
+            fastspeech_backend = FastSpeech2Synthesizer()
             self._synthesizers = {}
             self._synthesizers.update(
-                {voice.voice_id: FastSpeech2Voice(voice) for voice in FASTSPEECH_VOICES}
+                {
+                    voice.voice_id: FastSpeech2Voice(voice, backend=fastspeech_backend)
+                    for voice in FASTSPEECH_VOICES
+                }
             )
             self._synthesizers.update(
                 {voice.voice_id: PollyVoice(voice) for voice in POLLY_VOICES}

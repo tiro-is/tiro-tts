@@ -159,9 +159,9 @@ class FastSpeech2Voice(VoiceBase):
     _backend: FastSpeech2Synthesizer
     _properties: VoiceProperties
 
-    def __init__(self, properties: VoiceProperties, backend=FastSpeech2Synthesizer()):
+    def __init__(self, properties: VoiceProperties, backend=None):
         """Initialize a fixed voice with a FastSpeech2 backend"""
-        self._backend = backend
+        self._backend = backend if backend else FastSpeech2Synthesizer()
         self._properties = properties
 
     def _is_valid(self, **kwargs) -> bool:
@@ -223,6 +223,14 @@ _SUPPORTED_OUTPUT_FORMATS = [
 
 # List of all available fastspeech voices
 VOICES = [
+    VoiceProperties(
+        voice_id="Bjartur",
+        name="Other",
+        gender="Male",
+        language_code="is-IS",
+        language_name="Íslenska",
+        supported_output_formats=_SUPPORTED_OUTPUT_FORMATS,
+    ),
     VoiceProperties(
         voice_id="Other",
         name="Other",
