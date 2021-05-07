@@ -150,7 +150,7 @@ class FastSpeech2Synthesizer:
         self._fs_model = get_FastSpeech2(490000, full_path=fastspeech_model_path)
         self._fs_model.to(self._device)
         self._g2p_model = load_g2p(sequitur_model_path)
-        self._max_words_per_segment = 30
+        self._max_words_per_segment = 15
 
     def _word_offsets(self, text: str) -> typing.List[typing.List[int]]:
         """Returns the start and end offsets of each whitespace separated token in

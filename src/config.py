@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
 import flask_env
 
 
@@ -19,9 +18,6 @@ class EnvvarConfig(metaclass=flask_env.MetaFlaskEnv):
     ENV_PREFIX = "TIRO_TTS_"
     HOST = "tts.tiro.is"
     SCHEME = "https"
-    CACHE_TYPE = "filesystem"
-    CACHE_DIR = "generated"
-    CACHE_DEFAULT_TIMEOUT = 60 * 60 * 24 * 2
 
     # For acess to Polly
     AWS_ACCESS_KEY_ID = None

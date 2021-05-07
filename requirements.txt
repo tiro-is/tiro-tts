@@ -2,7 +2,6 @@ flask
 gunicorn
 flask-cors
 flask-apispec
-flask-caching
 flask-env
 boto3
 numpy == 1.19.0

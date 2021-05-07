@@ -22,7 +22,6 @@ from flask import (
 from flask_cors import CORS
 from webargs.flaskparser import FlaskParser, abort
 from flask_apispec import use_kwargs, marshal_with, FlaskApiSpec, doc
-from flask_caching import Cache
 from apispec import APISpec, BasePlugin
 from apispec.ext.marshmallow import MarshmallowPlugin
 from config import EnvvarConfig
@@ -40,10 +39,8 @@ setattr(app, "wsgi_app", ProxyFix(app.wsgi_app))
 
 app.config["JSON_AS_ASCII"] = False
 app.config["MAX_CONTENT_LENGTH"] = 1 * 1024 * 1024
-app.config["CACHE_NO_NULL_WARNING"] = True
 
 cors = CORS(app)
-cache = Cache(app)
 
 # Give everyone access to current_app
 app.app_context().push()
@@ -98,7 +95,6 @@ def handle_error(err):
     tags=["speech"],
     produces=["audio/mpeg", "audio/ogg", "application/x-json-stream", "audio/x-wav"],
 )
-@cache.memoize()
 def route_synthesize_speech(**kwargs):
     app.logger.info("Got request: %s", kwargs)
 
@@ -161,6 +157,8 @@ docs.register(route_synthesize_speech)
     schemas.Voice(many=True), code=200, description="List of voices matching query"
 )
 def route_describe_voices(**kwargs):
+    app.logger.info("Got request: %s", kwargs)
+
     def query_filter(elem):
         if "LanguageCode" in kwargs and kwargs["LanguageCode"]:
             return elem["LanguageCode"] == kwargs["LanguageCode"]
