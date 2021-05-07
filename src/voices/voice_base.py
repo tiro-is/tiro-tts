@@ -16,13 +16,14 @@ from typing import (
     Union,
     TextIO,
     Literal,
+    Iterable,
     Optional,
     List,
 )
 
 
 class OutputFormat:
-    output_format: Literal["mp3", "pcm", "ogg_vorbis"]
+    output_format: Literal["json", "mp3", "pcm", "ogg_vorbis"]
     supported_sample_rates: List[str]
 
     def __init__(self, output_format, supported_sample_rates):
@@ -31,9 +32,8 @@ class OutputFormat:
 
     def __eq__(self, other) -> bool:
         if isinstance(other, tuple):
-            return (
-                self.output_format == other[0]
-                and other[1] in self.supported_sample_rates
+            return self.output_format == other[0] and (
+                other[0] == "json" or other[1] in self.supported_sample_rates
             )
         return other.output_format == self.output_format
 
@@ -50,6 +50,8 @@ class OutputFormat:
             return "audio/ogg"
         elif self.output_format == "pcm":
             return "audio/x-wav"
+        elif self.output_format == "json":
+            return "application/x-json-stream"
 
 
 class VoiceProperties:
@@ -79,11 +81,11 @@ class VoiceProperties:
 
 class VoiceBase(ABC):
     @abstractmethod
-    def synthesize(self, text: str, **kwargs) -> bytes:
+    def synthesize(self, text: str, **kwargs) -> Iterable[bytes]:
         return NotImplemented
 
     @abstractmethod
-    def synthesize_from_ssml(self, ssml: str, **kwargs) -> bytes:
+    def synthesize_from_ssml(self, ssml: str, **kwargs) -> Iterable[bytes]:
         return NotImplemented
 
     @property

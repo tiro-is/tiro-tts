@@ -11,10 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF AbNY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import textwrap
 from marshmallow import validate, Schema
 from webargs import fields
 
-SUPPORTED_VOICE_IDS = ["Dora", "Karl", "Other", "Joanna"]
+# TODO(rkjaran): Get this list from the voice manager
+SUPPORTED_VOICE_IDS = ["Dora", "Karl", "Other", "Bjartur", "Joanna"]
 
 
 class SynthesizeSpeechRequest(Schema):
@@ -47,27 +49,64 @@ class SynthesizeSpeechRequest(Schema):
         example="pcm",
     )
     SampleRate = fields.Str(
-        required=True,
-        description="The audio frequency specified in Hz.",
+        required=False,
+        description=textwrap.dedent(
+            """\
+            The audio frequency specified in Hz. Output formats `mp3` and
+            `ogg_vorbis` support the all sample rates. The `pcm` format for
+            voices `Other` and `Bjartur` only supports 22050 Hz.
+            """
+        ),
         validate=validate.OneOf(["8000", "16000", "22050", "24000"]),
         example="22050",
     )
     SpeechMarkTypes = fields.List(
-        fields.Str(validate=validate.OneOf(["sentence", "ssml", "viseme", "word"])),
+        fields.Str(validate=validate.OneOf(["word"])),  # "sentence", "ssml", "viseme",
         required=False,
-        description="The type of speech marks returned for the input text",
-        example=[],
+        description=textwrap.dedent(
+            """\
+            The type of speech marks returned for the input text.
+
+            Only word level speech marks are supported, which contain the start
+            time of each word and their start and end byte offsets in the input
+            text. E.g.
+
+                {
+                 "Engine": "standard",
+                 "LanguageCode": "is-IS",
+                 "OutputFormat": "json",
+                 "SpeechMarkTypes": ["word"],
+                 "Text": " Góðan, dag. Hvað heitir þú? Kvöld-Úlfur.",
+                 "VoiceId": "Other"
+                }
+
+            might return
+
+                {"time": 54, "type": "word", "start": 1, "end": 9, "value": "Góðan,"}
+                {"time": 44, "type": "word", "start": 10, "end": 14, "value": "dag."}
+                {"time": 26, "type": "word", "start": 15, "end": 20, "value": "Hvað"}
+                {"time": 33, "type": "word", "start": 21, "end": 27, "value": "heitir"}
+                {"time": 19, "type": "word", "start": 28, "end": 33, "value": "þú?"}
+                {"time": 88, "type": "word", "start": 34, "end": 48, "value": "Kvöld-Úlfur."}
+
+            """
+        ),
+        example=["word"],
     )
     Text = fields.Str(
         required=True,
         description="Input text to synthesize.",
         example="Halló! Ég er gervimaður.",
+        validate=validate.Length(min=1, max=3000),
     )
     TextType = fields.Str(
         required=False,
         description=(
             "Specifies whether the input text is plain text or SSML. "
-            + "The default value is plain text. For more information, see Using SSML. "
+            + "The default value is plain text. "
+            + "\n\n"
+            + "Currently the SSML support is restricted to just `<phoneme>` tags, e.g:<br>"
+            + "`<speak>Ég er <phoneme alphabet='x-sampa' ph=''>gervimaður</phoneme></speak>`"
         ),
         validate=validate.OneOf(["text", "ssml"]),
     )

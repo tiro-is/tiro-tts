@@ -17,6 +17,7 @@ from flask import (
     jsonify,
     render_template,
     Response,
+    stream_with_context,
 )
 from flask_cors import CORS
 from webargs.flaskparser import FlaskParser, abort
@@ -68,7 +69,9 @@ app.config["APISPEC_SPEC"] = APISpec(
     host=app.config["HOST"],
     openapi_version="2.0",
     plugins=[MarshmallowPlugin(), DisableOptionsOperationPlugin()],
-    tags=[{"name": "speech", "description": "Synthesize speech from input text"},],
+    tags=[
+        {"name": "speech", "description": "Synthesize speech from input text"},
+    ],
 )
 docs = FlaskApiSpec(app)
 
@@ -99,19 +102,24 @@ def handle_error(err):
 def route_synthesize_speech(**kwargs):
     app.logger.info("Got request: %s", kwargs)
 
-    if not "Engine" in kwargs:
+    if "Engine" not in kwargs:
         kwargs["Engine"] = "standard"
 
     output_content_type = "application/x-json-stream"
     voice_id = kwargs["VoiceId"]
     text = kwargs["Text"]
+    kwargs["SampleRate"] = kwargs.get("SampleRate", "16000")
 
-    # TODO(rkjaran): handle json/speech marks
+    # TODO(rkjaran): error out with a nicer message
+    if kwargs["OutputFormat"] == "json" and kwargs.get("SpeechMarkTypes") != ["word"]:
+        abort(400)
+
     if (kwargs["OutputFormat"], kwargs["SampleRate"]) not in g_synthesizers[
         voice_id
     ].properties.supported_output_formats:
-        # TODO(rkjaran): error out with a nicer message
+        app.logger.info("Client requested unsupported output format")
         abort(400)
+
     output_content_type = OutputFormat(
         kwargs["OutputFormat"], [kwargs["SampleRate"]]
     ).content_type
@@ -121,16 +129,18 @@ def route_synthesize_speech(**kwargs):
         "LanguageCode" in kwargs
         and voice.properties.language_code != kwargs["LanguageCode"]
     ):
+
         abort(400)
 
     try:
-        if kwargs["TextType"] == "ssml":
+        if kwargs.get("TextType") == "ssml":
             return Response(
-                voice.synthesize_from_ssml(text, **kwargs),
+                stream_with_context(voice.synthesize_from_ssml(text, **kwargs)),
                 content_type=output_content_type,
             )
         return Response(
-            voice.synthesize(text, **kwargs), content_type=output_content_type
+            stream_with_context(voice.synthesize(text, **kwargs)),
+            content_type=output_content_type,
         )
     except (NotImplementedError, ValueError) as ex:
         app.logger.warning("Synthesis failed: %s", ex)
@@ -147,7 +157,9 @@ docs.register(route_synthesize_speech)
     tags=["speech"],
     produces=["application/json"],
 )
-@marshal_with(schemas.Voice(many=True))
+@marshal_with(
+    schemas.Voice(many=True), code=200, description="List of voices matching query"
+)
 def route_describe_voices(**kwargs):
     def query_filter(elem):
         if "LanguageCode" in kwargs and kwargs["LanguageCode"]:
@@ -185,4 +197,6 @@ if __name__ == "__main__":
     gunicorn_logger = logging.getLogger("gunicorn.error")
     app.logger.handlers = gunicorn_logger.handlers
     app.logger.setLevel(gunicorn_logger.level)
+    if app.debug:
+        app.logger.setLevel(logging.DEBUG)
     app.run()

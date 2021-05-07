@@ -19,13 +19,16 @@ _FFMPEG_ARGS = [
     "-hide_banner",
     "-loglevel",
     "error",
-    "-i",
-    "-",
 ]
 
 
 # TODO(rkjaran): Implement these using generators/streams to decrease latency
-def to_ogg_vorbis(audio_content: bytes, sample_rate: str) -> bytes:
+def to_ogg_vorbis(
+    audio_content: bytes,
+    sample_rate: str,
+    src_sample_rate: str = "22050",
+    src_fmt: str = "s16le",
+) -> bytes:
     """Convert audio to Ogg Vorbis (using ffmpeg)
 
     Args:
@@ -37,14 +40,31 @@ def to_ogg_vorbis(audio_content: bytes, sample_rate: str) -> bytes:
       Ogg Vorbis encoded audio content
 
     """
+    input_args = [
+        "-ac",
+        "1",
+        "-ar",
+        src_sample_rate,
+        "-f",
+        src_fmt,
+        "-i",
+        "-",
+    ]
     ogg_vorbis_content = sp.check_output(
-        _FFMPEG_ARGS + ["-acodec", "libvorbis", "-ar", sample_rate, "-f", "ogg", "-",],
+        _FFMPEG_ARGS
+        + input_args
+        + ["-acodec", "libvorbis", "-ar", sample_rate, "-f", "ogg", "-",],
         input=audio_content,
     )
     return ogg_vorbis_content
 
 
-def to_mp3(audio_content: bytes, sample_rate: str) -> bytes:
+def to_mp3(
+    audio_content: bytes,
+    sample_rate: str,
+    src_sample_rate: str = "22050",
+    src_fmt: str = "s16le",
+) -> bytes:
     """Convert audio to MP3 (using ffmpeg)
 
     Args:
@@ -56,7 +76,18 @@ def to_mp3(audio_content: bytes, sample_rate: str) -> bytes:
       Ogg Vorbis encoded audio content
 
     """
+    input_args = [
+        "-ac",
+        "1",
+        "-ar",
+        src_sample_rate,
+        "-f",
+        src_fmt,
+        "-i",
+        "-",
+    ]
     mp3_content = sp.check_output(
-        _FFMPEG_ARGS + ["-ar", sample_rate, "-f", "mp3", "-",], input=audio_content,
+        _FFMPEG_ARGS + input_args + ["-ar", sample_rate, "-f", "mp3", "-",],
+        input=audio_content,
     )
     return mp3_content

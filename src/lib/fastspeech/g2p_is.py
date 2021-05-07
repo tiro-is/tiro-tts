@@ -36,10 +36,7 @@ def translate(text, g2p_model):
                 else:
                     phone.append(w)
             elif not phoneme_str_open:
-                print(w)
                 if w.startswith("{") and w.endswith("}"):
-                    print(Aligner().align(
-                        w.replace("{", "").replace("}", "")).split(" "))
                     phone.extend(Aligner().align(
                         w.replace("{", "").replace("}", "")).split(" "))
                 elif w.startswith("{"):
@@ -50,7 +47,6 @@ def translate(text, g2p_model):
                 else:
                     phones = translator(w.lower())
                     phone.extend(phones)
-            phone.append(" ")
         except Translator.TranslationFailure:
             pass
     return phone
