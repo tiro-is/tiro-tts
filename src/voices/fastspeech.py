@@ -13,11 +13,9 @@
 # limitations under the License.
 import os
 import sys
-import io
 import json
 import re
 import typing
-from typing import BinaryIO
 import string
 import torch
 import numpy as np
@@ -32,7 +30,6 @@ from lib.fastspeech.g2p_is import translate as g2p
 from lib.fastspeech import utils, hparams as hp
 from lib.fastspeech.text import text_to_sequence
 from lib.fastspeech.align_phonemes import Aligner
-from scipy.io import wavfile
 from .phonemes import XSAMPA_IPA_MAP, IPA_XSAMPA_MAP
 
 
@@ -153,6 +150,7 @@ class FastSpeech2Synthesizer:
         self._fs_model = get_FastSpeech2(490000, full_path=fastspeech_model_path)
         self._fs_model.to(self._device)
         self._g2p_model = load_g2p(sequitur_model_path)
+        self._max_words_per_segment = 30
 
     def _word_offsets(self, text: str) -> typing.List[typing.List[int]]:
         """Returns the start and end offsets of each whitespace separated token in
@@ -220,10 +218,33 @@ class FastSpeech2Synthesizer:
             word.phone_sequence = g2p(g2p_word, self._g2p_model)
             yield word
 
+    def _do_vocoder_pass(self, mel_postnet: torch.Tensor):  # -> NDArray[np.int16]
+        mel_postnet_torch = mel_postnet.transpose(1, 2).detach()
+        with torch.no_grad():
+            wav = self._melgan_model.inference(mel_postnet_torch).cpu().numpy()
+        return (wav * (20000 / np.max(np.abs(wav)))).astype("int16")
+
+    @staticmethod
+    def _wavarray_to_pcm(array) -> bytes:
+        if sys.byteorder == "big":
+            array.byteswap()
+        return array.ravel().view("b").data.tobytes()
+
     def synthesize(
-        self, text_string: str, file_obj: BinaryIO, emit_speech_marks=False
-    ) -> None:
-        """Surround phoneme strings with {}"""
+        self, text_string: str, emit_speech_marks=False
+    ) -> typing.Iterable[bytes]:
+        """Synthesize 16 bit PCM samples at 22050 Hz or a stream of JSON speech marks
+
+        Args:
+          text_string: Text to be synthesized, can contain embedded phoneme
+                       strings in {}
+
+          emit_speech_marks: Whether to generate speech marks or PCM samples
+
+        Yields:
+          bytes: PCM chunk of synthesized audio, or JSON encoded speech marks
+
+        """
         duration_control = 1.0
         pitch_control = 1.0
         energy_control = 1.0
@@ -231,65 +252,62 @@ class FastSpeech2Synthesizer:
         # Keep track of the phonemes in each word so we'll be able to map the
         # phoneme durations to word time alignment
         words = list(self._add_phonemes(self._tokenize(text_string)))
-        phone_counts: typing.List[int] = []
-        phone_seq = []
 
-        for word in words:
-            phone_counts.append(len(word.phone_sequence))
-            phone_seq.extend(word.phone_sequence)
+        # Segment to decrease latency and memory usage
+        for idx in range(0, len(words), self._max_words_per_segment):
+            segment_words = words[idx : idx + self._max_words_per_segment]
 
-        sequence = np.array(
-            text_to_sequence("{%s}" % " ".join(phone_seq), hp.text_cleaners)
-        )
-        sequence = np.stack([sequence])
-        text_seq = torch.from_numpy(sequence).long().to(self._device)
-        src_len = torch.from_numpy(np.array([text_seq.shape[1]])).to(self._device)
+            phone_counts: typing.List[int] = []
+            phone_seq = []
 
-        (
-            mel,
-            mel_postnet,
-            log_duration_output,  # Duration of each phoneme in log(millisec)
-            f0_output,
-            energy_output,
-            src_mask,
-            mel_mask,
-            mel_len,
-        ) = self._fs_model(
-            text_seq,
-            src_len,
-            d_control=duration_control,
-            p_control=pitch_control,
-            e_control=energy_control,
-        )
+            for word in segment_words:
+                phone_counts.append(len(word.phone_sequence))
+                phone_seq.extend(word.phone_sequence)
 
-        if emit_speech_marks:
-            phone_durations = np.exp(log_duration_output.detach().numpy()[0])
-            word_durations = []
-            offset = 0
-            for count in phone_counts:
-                word_durations.append(
-                    round(sum(phone_durations[offset : offset + count]))  # type: ignore
-                )
-                offset += count
+            sequence = np.array(
+                text_to_sequence("{%s}" % " ".join(phone_seq), hp.text_cleaners)
+            )
+            sequence = np.stack([sequence])
+            text_seq = torch.from_numpy(sequence).long().to(self._device)
+            src_len = torch.from_numpy(np.array([text_seq.shape[1]])).to(self._device)
 
-            for idx, dur in enumerate(word_durations):
-                words[idx].start_time_milli = dur
+            (
+                mel,
+                mel_postnet,
+                log_duration_output,  # Duration of each phoneme in log(millisec)
+                f0_output,
+                energy_output,
+                src_mask,
+                mel_mask,
+                mel_len,
+            ) = self._fs_model(
+                text_seq,
+                src_len,
+                d_control=duration_control,
+                p_control=pitch_control,
+                e_control=energy_control,
+            )
 
-            for word in words:
-                file_obj.write(word.to_json().encode("utf-8"))
-                file_obj.write(b"\n")
-        else:
-            mel_postnet_torch = mel_postnet.transpose(1, 2).detach()
-            mel = mel[0].cpu().transpose(0, 1).detach()
-            mel_postnet = mel_postnet[0].cpu().transpose(0, 1).detach()
-            f0_output = f0_output[0].detach().cpu().numpy()
-            energy_output = energy_output[0].detach().cpu().numpy()
+            if emit_speech_marks:
+                phone_durations = np.exp(log_duration_output.detach().numpy()[0])
+                word_durations = []
+                offset = 0
+                for count in phone_counts:
+                    word_durations.append(
+                        round(sum(phone_durations[offset : offset + count]))  # type: ignore
+                    )
+                    offset += count
 
-            with torch.no_grad():
-                wav = self._melgan_model.inference(mel_postnet_torch).cpu().numpy()
+                for idx, dur in enumerate(word_durations):
+                    segment_words[idx].start_time_milli = dur
 
-            wav = (wav * (20000 / np.max(np.abs(wav)))).astype("int16")
-            wavfile.write(file_obj, hp.sampling_rate, wav)
+                for word in segment_words:
+                    yield word.to_json().encode("utf-8") + b"\n"
+            else:
+                # 22050 Hz 16 bit linear PCM chunks
+                wav = self._do_vocoder_pass(mel_postnet)
+                # TODO(rkjaran): control sample rate
+                yield FastSpeech2Synthesizer._wavarray_to_pcm(wav)
 
 
 class FastSpeech2Voice(VoiceBase):
@@ -315,29 +333,23 @@ class FastSpeech2Voice(VoiceBase):
         except KeyError:
             return False
 
-    def synthesize(self, text: str, **kwargs) -> bytes:
+    def synthesize(self, text: str, **kwargs) -> typing.Iterable[bytes]:
         # TODO(rkjaran): chunk the content
         if not self._is_valid(**kwargs):
             raise ValueError("Synthesize request not valid")
 
-        content = io.BytesIO()
-        self._backend.synthesize(
-            text, content, emit_speech_marks=kwargs["OutputFormat"] == "json"
-        )
+        for chunk in self._backend.synthesize(
+            text, emit_speech_marks=kwargs["OutputFormat"] == "json"
+        ):
+            if current_app.config["USE_FFMPEG"]:
+                if kwargs["OutputFormat"] == "ogg_vorbis":
+                    yield ffmpeg.to_ogg_vorbis(chunk, sample_rate=kwargs["SampleRate"])
+                elif kwargs["OutputFormat"] == "mp3":
+                    yield ffmpeg.to_mp3(chunk, sample_rate=kwargs["SampleRate"])
+            if kwargs["OutputFormat"] in ("pcm", "json"):
+                yield chunk
 
-        if current_app.config["USE_FFMPEG"]:
-            if kwargs["OutputFormat"] == "ogg_vorbis":
-                return ffmpeg.to_ogg_vorbis(
-                    content.getvalue(), sample_rate=kwargs["SampleRate"]
-                )
-            elif kwargs["OutputFormat"] == "mp3":
-                return ffmpeg.to_mp3(
-                    content.getvalue(), sample_rate=kwargs["SampleRate"]
-                )
-
-        return content.getvalue()
-
-    def synthesize_from_ssml(self, ssml: str, **kwargs) -> bytes:
+    def synthesize_from_ssml(self, ssml: str, **kwargs) -> typing.Iterable[bytes]:
         parser = SSMLParser()
         parser.feed(ssml)
         text = parser.get_fastspeech_string()
@@ -378,5 +390,5 @@ VOICES = [
         language_code="is-IS",
         language_name="Íslenska",
         supported_output_formats=_SUPPORTED_OUTPUT_FORMATS,
-    )
+    ),
 ]

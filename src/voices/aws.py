@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
+from typing import Iterable
 from boto3 import Session
 from flask import current_app
 from . import VoiceBase, VoiceProperties, OutputFormat
@@ -42,15 +43,15 @@ class PollyVoice(VoiceBase):
     def _synthesize_speech(self, *args, **kwargs):
         return PollySession.get_client().synthesize_speech(*args, **kwargs)
 
-    def synthesize(self, text: str, **kwargs) -> bytes:
+    def synthesize(self, text: str, **kwargs) -> Iterable[bytes]:
         resp = self._synthesize_speech(**kwargs)
         if "AudioStream" in resp:
             with contextlib.closing(resp["AudioStream"]) as stream:
                 content = stream.read()
             # TODO(rkjaran): Chunk this
-            return content
+            yield content
 
-    def synthesize_from_ssml(self, ssml: str, **kwargs) -> bytes:
+    def synthesize_from_ssml(self, ssml: str, **kwargs) -> Iterable[bytes]:
         return self.synthesize(text=ssml, **kwargs)
 
     @property

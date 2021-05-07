@@ -50,7 +50,13 @@ class SynthesizeSpeechRequest(Schema):
     )
     SampleRate = fields.Str(
         required=False,
-        description="The audio frequency specified in Hz.",
+        description=textwrap.dedent(
+            """\
+            The audio frequency specified in Hz. Output formats `mp3` and
+            `ogg_vorbis` support the all sample rates. The `pcm` format for
+            voices `Other` and `Bjartur` only supports 22050 Hz.
+            """
+        ),
         validate=validate.OneOf(["8000", "16000", "22050", "24000"]),
         example="22050",
     )
@@ -91,6 +97,7 @@ class SynthesizeSpeechRequest(Schema):
         required=True,
         description="Input text to synthesize.",
         example="Halló! Ég er gervimaður.",
+        validate=validate.Length(min=1, max=3000),
     )
     TextType = fields.Str(
         required=False,

@@ -17,6 +17,7 @@ from flask import (
     jsonify,
     render_template,
     Response,
+    stream_with_context,
 )
 from flask_cors import CORS
 from webargs.flaskparser import FlaskParser, abort
@@ -68,7 +69,9 @@ app.config["APISPEC_SPEC"] = APISpec(
     host=app.config["HOST"],
     openapi_version="2.0",
     plugins=[MarshmallowPlugin(), DisableOptionsOperationPlugin()],
-    tags=[{"name": "speech", "description": "Synthesize speech from input text"},],
+    tags=[
+        {"name": "speech", "description": "Synthesize speech from input text"},
+    ],
 )
 docs = FlaskApiSpec(app)
 
@@ -99,7 +102,7 @@ def handle_error(err):
 def route_synthesize_speech(**kwargs):
     app.logger.info("Got request: %s", kwargs)
 
-    if not "Engine" in kwargs:
+    if "Engine" not in kwargs:
         kwargs["Engine"] = "standard"
 
     output_content_type = "application/x-json-stream"
@@ -132,11 +135,12 @@ def route_synthesize_speech(**kwargs):
     try:
         if kwargs.get("TextType") == "ssml":
             return Response(
-                voice.synthesize_from_ssml(text, **kwargs),
+                stream_with_context(voice.synthesize_from_ssml(text, **kwargs)),
                 content_type=output_content_type,
             )
         return Response(
-            voice.synthesize(text, **kwargs), content_type=output_content_type
+            stream_with_context(voice.synthesize(text, **kwargs)),
+            content_type=output_content_type,
         )
     except (NotImplementedError, ValueError) as ex:
         app.logger.warning("Synthesis failed: %s", ex)

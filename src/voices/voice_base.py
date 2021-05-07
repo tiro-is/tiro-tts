@@ -16,6 +16,7 @@ from typing import (
     Union,
     TextIO,
     Literal,
+    Iterable,
     Optional,
     List,
 )
@@ -80,11 +81,11 @@ class VoiceProperties:
 
 class VoiceBase(ABC):
     @abstractmethod
-    def synthesize(self, text: str, **kwargs) -> bytes:
+    def synthesize(self, text: str, **kwargs) -> Iterable[bytes]:
         return NotImplemented
 
     @abstractmethod
-    def synthesize_from_ssml(self, ssml: str, **kwargs) -> bytes:
+    def synthesize_from_ssml(self, ssml: str, **kwargs) -> Iterable[bytes]:
         return NotImplemented
 
     @property
