@@ -127,7 +127,7 @@ class Word:
     def to_json(self):
         return json.dumps(
             {
-                "time": self.start_time_milli,
+                "time": round(self.start_time_milli),
                 "type": "word",
                 "start": self.start_byte_offset,
                 "end": self.end_byte_offset,
@@ -254,6 +254,7 @@ class FastSpeech2Synthesizer:
         words = list(self._add_phonemes(self._tokenize(text_string)))
 
         # Segment to decrease latency and memory usage
+        duration_time_offset = 0
         for idx in range(0, len(words), self._max_words_per_segment):
             segment_words = words[idx : idx + self._max_words_per_segment]
 
@@ -289,20 +290,25 @@ class FastSpeech2Synthesizer:
             )
 
             if emit_speech_marks:
-                phone_durations = np.exp(log_duration_output.detach().numpy()[0])
+                # The model uses 10 ms as the unit (or, technically, log(dur*10ms))
+                phone_durations = 10 * np.exp(log_duration_output.detach().numpy()[0])
                 word_durations = []
                 offset = 0
                 for count in phone_counts:
                     word_durations.append(
-                        round(sum(phone_durations[offset : offset + count]))  # type: ignore
+                        sum(phone_durations[offset : offset + count])  # type: ignore
                     )
                     offset += count
 
+                segment_duration_time_offset = duration_time_offset
                 for idx, dur in enumerate(word_durations):
-                    segment_words[idx].start_time_milli = dur
+                    segment_words[idx].start_time_milli = segment_duration_time_offset
+                    segment_duration_time_offset += dur
 
                 for word in segment_words:
                     yield word.to_json().encode("utf-8") + b"\n"
+
+                duration_time_offset += segment_duration_time_offset
             else:
                 # 22050 Hz 16 bit linear PCM chunks
                 wav = self._do_vocoder_pass(mel_postnet)
