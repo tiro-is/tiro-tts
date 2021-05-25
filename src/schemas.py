@@ -137,12 +137,16 @@ class DescribeVoicesRequest(Schema):
 
 
 class Voice(Schema):
-    VoiceId = fields.Str(example="Other",)
+    VoiceId = fields.Str(example="Other")
 
-    Gender = fields.Str(validate=validate.OneOf(["Male", "Female"]),)
+    Gender = fields.Str(validate=validate.OneOf(["Male", "Female"]))
 
     LanguageCode = fields.Str(example="is-IS")
 
     LanguageName = fields.Str(example="Íslenska")
 
     SupportedEngines = fields.List(fields.Str(validate=validate.OneOf(["standard"])))
+
+
+class Error(Schema):
+    message = fields.Str(required=True)

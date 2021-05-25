@@ -340,7 +340,6 @@ class FastSpeech2Voice(VoiceBase):
             return False
 
     def synthesize(self, text: str, **kwargs) -> typing.Iterable[bytes]:
-        # TODO(rkjaran): chunk the content
         if not self._is_valid(**kwargs):
             raise ValueError("Synthesize request not valid")
 

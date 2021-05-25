@@ -66,9 +66,7 @@ app.config["APISPEC_SPEC"] = APISpec(
     host=app.config["HOST"],
     openapi_version="2.0",
     plugins=[MarshmallowPlugin(), DisableOptionsOperationPlugin()],
-    tags=[
-        {"name": "speech", "description": "Synthesize speech from input text"},
-    ],
+    tags=[{"name": "speech", "description": "Synthesize speech from input text"}],
 )
 docs = FlaskApiSpec(app)
 
@@ -82,10 +80,39 @@ FlaskParser.DEFAULT_VALIDATION_STATUS = 400
 def handle_error(err):
     headers = err.data.get("headers", None)
     messages = err.data.get("messages", ["Invalid request."])
+
+    json_parameters = messages.get("json", {})
+    query_parameters = messages.get("query", {})
+
+    parameter_errors = {**json_parameters, **query_parameters}
+
+    message = "Invalid request."
+    if parameter_errors:
+        message = "Validation failure for the following fields: {}".format(
+            ", ".join(
+                "{}: {}".format(field, err) for field, err in parameter_errors.items()
+            )
+        )
+
     if headers:
-        return jsonify({"errors": messages}), err.code, headers
+        return jsonify({"message": message}), err.code, headers
     else:
-        return jsonify({"errors": messages}), err.code
+        return jsonify({"message": message}), err.code
+
+
+@app.errorhandler(405)
+def handle_method_not_allowed(err):
+    response_body = jsonify({"message": "Method not allowed."})
+    return response_body, err.code
+
+
+@app.errorhandler(500)
+def handle_internal_error(err):
+    response_body = jsonify(
+        {"message": "An unknown conditon has caused a service failure."}
+    )
+
+    return response_body, err.code
 
 
 @app.route("/v0/speech", methods=["POST"])
@@ -93,8 +120,17 @@ def handle_error(err):
 @doc(
     description="Synthesize speech",
     tags=["speech"],
-    produces=["audio/mpeg", "audio/ogg", "application/x-json-stream", "audio/x-wav"],
+    produces=[
+        "audio/mpeg",
+        "audio/ogg",
+        "application/x-json-stream",
+        "audio/x-wav",
+        "application/json",
+    ],
 )
+@marshal_with({}, code=200, description="Audio or speech marks content")
+@marshal_with(schemas.Error, code=400, description="Bad request")
+@marshal_with(schemas.Error, code=500, description="Service error")
 def route_synthesize_speech(**kwargs):
     app.logger.info("Got request: %s", kwargs)
 
@@ -156,6 +192,8 @@ docs.register(route_synthesize_speech)
 @marshal_with(
     schemas.Voice(many=True), code=200, description="List of voices matching query"
 )
+@marshal_with(schemas.Error, code=400, description="Bad request")
+@marshal_with(schemas.Error, code=500, description="Service error")
 def route_describe_voices(**kwargs):
     app.logger.info("Got request: %s", kwargs)
 
