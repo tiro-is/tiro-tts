@@ -17,6 +17,7 @@ import json
 import re
 import typing
 import string
+from pathlib import Path
 import torch
 import numpy as np
 from flask import current_app
@@ -30,7 +31,12 @@ from lib.fastspeech.g2p_is import translate as g2p
 from lib.fastspeech import utils, hparams as hp
 from lib.fastspeech.text import text_to_sequence
 from lib.fastspeech.align_phonemes import Aligner
-from .phonemes import XSAMPA_IPA_MAP, IPA_XSAMPA_MAP
+from .phonemes import (
+    XSAMPA_IPA_MAP,
+    IPA_XSAMPA_MAP,
+    LangID,
+    SequiturGraphemeToPhonemeTranslator,
+)
 
 
 def _align_ipa_from_xsampa(phoneme_string: str):
@@ -105,6 +111,8 @@ class SSMLParser(HTMLParser):
 MELGAN_VOCODER_PATH = current_app.config["MELGAN_VOCODER_PATH"]
 FASTSPEECH_MODEL_PATH = current_app.config["FASTSPEECH_MODEL_PATH"]
 SEQUITUR_MODEL_PATH = current_app.config["SEQUITUR_MODEL_PATH"]
+LEXICON_PATH = current_app.config["LEXICON_PATH"]
+SEQUITUR_FAIL_EN_MODEL_PATH = current_app.config["SEQUITUR_FAIL_EN_MODEL_PATH"]
 
 
 class Word:
@@ -143,13 +151,30 @@ class FastSpeech2Synthesizer:
         melgan_vocoder_path: str = MELGAN_VOCODER_PATH,
         fastspeech_model_path: str = FASTSPEECH_MODEL_PATH,
         sequitur_model_path: str = SEQUITUR_MODEL_PATH,
+        lexicon_path: str = LEXICON_PATH,
+        sequitur_fail_en_model_path: str = SEQUITUR_FAIL_EN_MODEL_PATH,
+        language_code: str = "is-IS",
     ):
         self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self._melgan_model = utils.get_melgan(full_path=melgan_vocoder_path)
         self._melgan_model.to(self._device)
-        self._fs_model = get_FastSpeech2(490000, full_path=fastspeech_model_path)
+        self._fs_model = get_FastSpeech2(None, full_path=fastspeech_model_path)
         self._fs_model.to(self._device)
-        self._g2p_model = load_g2p(sequitur_model_path)
+
+        # TODO(rkjaran): Move the lang codes to a parameter, possibly when we define a
+        #                proper config structure
+        lang_model_paths = {LangID(language_code): Path(sequitur_model_path)}
+        if sequitur_fail_en_model_path:
+            lang_model_paths.update(
+                {LangID("en-IS"): Path(sequitur_fail_en_model_path)}
+            )
+        self._phonetisizer = SequiturGraphemeToPhonemeTranslator(
+            lang_model_paths=lang_model_paths,
+            lexicon_paths={LangID(language_code): Path(lexicon_path)}
+            if lexicon_path
+            else {},
+        )
+
         self._max_words_per_segment = 15
 
     def _word_offsets(self, text: str) -> typing.List[typing.List[int]]:
@@ -215,7 +240,9 @@ class FastSpeech2Synthesizer:
         for word in words:
             punctuation = re.sub(r"[{}\[\]]", "", string.punctuation)
             g2p_word = re.sub(r"([{}])".format(punctuation), r" \1 ", word.symbol)
-            word.phone_sequence = g2p(g2p_word, self._g2p_model)
+            word.phone_sequence = self._phonetisizer.translate(
+                g2p_word, LangID("is-IS"), failure_langs=(LangID("en-IS"),)
+            )
             yield word
 
     def _do_vocoder_pass(self, mel_postnet: torch.Tensor):  # -> NDArray[np.int16]

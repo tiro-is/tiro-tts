@@ -53,7 +53,7 @@ load("@io_bazel_rules_docker//repositories:deps.bzl", container_deps = "deps")
 
 container_deps()
 
-# pull in a custom base image to use Python 3.7
+# pull in a custom base image to use Python 3.8
 load(
     "@io_bazel_rules_docker//container:container.bzl",
     "container_pull",
