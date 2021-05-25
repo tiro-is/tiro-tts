@@ -29,11 +29,17 @@ spec:
 
           FASTSPEECH=gs://models-talgreinir-is/tts/fastspeech2/v2021-01-01/checkpoint_490000.pth.tar
           MELGAN=gs://models-talgreinir-is/tts/fastspeech2/v2021-01-01/vocoder_aca5990_3350.pt
-          SEQUITUR=gs://models-talgreinir-is/g2p/ipd_clean_slt2018.mdl
+          SEQUITUR=gs://models-talgreinir-is/g2p/is-IS.ipd_clean_slt2018.mdl
+
+          LEXICON=gs://models-talgreinir-is/g2p/is-IS.ipd_clean_slt2018.lex
+
+          SEQUITUR_FAIL_EN=gs://models-talgreinir-is/g2p/en-IS.cmudict_frobv1.20200305.mdl
 
           gsutil cp $FASTSPEECH /models/fastspeech.pth.tar
           gsutil cp $MELGAN /models/melgan.pt
           gsutil cp $SEQUITUR /models/sequitur.mdl
+          gsutil cp $LEXICON /models/lexicon.txt
+          gsutil cp $SEQUITUR_FAIL_EN /models/sequitur_fail_en.mdl
 
           exit 0
         volumeMounts:
@@ -72,4 +78,8 @@ spec:
           value: /models/melgan.pt
         - name: TIRO_TTS_SEQUITUR_MODEL_PATH
           value: /models/sequitur.mdl
+        - name: TIRO_TTS_LEXICON_PATH
+          value: /models/lexicon.txt
+        - name: TIRO_TTS_SEQUITUR_FAIL_EN_MODEL_PATH
+          value: /models/sequitur_fail_en.mdl
           
