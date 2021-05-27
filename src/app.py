@@ -209,6 +209,7 @@ def route_describe_voices(**kwargs):
                 (
                     {
                         "VoiceId": v[1].properties.voice_id,
+                        "Name": v[1].properties.name,
                         "Gender": v[1].properties.gender,
                         "LanguageCode": v[1].properties.language_code,
                         "LanguageName": v[1].properties.language_name,
