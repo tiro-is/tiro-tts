@@ -409,7 +409,7 @@ _SUPPORTED_OUTPUT_FORMATS = [
 VOICES = [
     VoiceProperties(
         voice_id="Bjartur",
-        name="Other",
+        name="Bjartur",
         gender="Male",
         language_code="is-IS",
         language_name="Íslenska",
