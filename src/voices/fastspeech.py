@@ -297,6 +297,11 @@ class FastSpeech2Synthesizer:
                 phone_counts.append(len(word.phone_sequence))
                 phone_seq.extend(word.phone_sequence)
 
+            if not phone_seq:
+                # If none of the words in this segment got a phone sequence we skip the
+                # rest
+                continue
+
             sequence = np.array(
                 text_to_sequence("{%s}" % " ".join(phone_seq), hp.text_cleaners)
             )
