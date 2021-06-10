@@ -109,13 +109,14 @@ def handle_method_not_allowed(err):
 
 
 @app.errorhandler(500)
+@app.errorhandler(Exception)
 def handle_internal_error(err):
     """Handle unknown/internal server errors."""
     response_body = jsonify(
         {"message": "An unknown conditon has caused a service failure."}
     )
 
-    return response_body, err.code
+    return response_body, 500
 
 
 @app.route("/v0/speech", methods=["POST"])
