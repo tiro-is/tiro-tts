@@ -78,6 +78,7 @@ FlaskParser.DEFAULT_VALIDATION_STATUS = 400
 @app.errorhandler(422)
 @app.errorhandler(400)
 def handle_error(err):
+    """Handle request validation errors."""
     headers = err.data.get("headers", None)
     messages = err.data.get("messages", ["Invalid request."])
 
@@ -102,12 +103,14 @@ def handle_error(err):
 
 @app.errorhandler(405)
 def handle_method_not_allowed(err):
+    """Handle authorization errors."""
     response_body = jsonify({"message": "Method not allowed."})
     return response_body, err.code
 
 
 @app.errorhandler(500)
 def handle_internal_error(err):
+    """Handle unknown/internal server errors."""
     response_body = jsonify(
         {"message": "An unknown conditon has caused a service failure."}
     )

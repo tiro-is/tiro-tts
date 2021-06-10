@@ -116,6 +116,8 @@ SEQUITUR_FAIL_EN_MODEL_PATH = current_app.config["SEQUITUR_FAIL_EN_MODEL_PATH"]
 
 
 class Word:
+    """A wrapper for individual symbol and its metadata."""
+
     def __init__(
         self,
         original_symbol: str = "",
@@ -133,6 +135,7 @@ class Word:
         self.start_time_milli = start_time_milli
 
     def to_json(self):
+        """Serialize Word to JSON."""
         return json.dumps(
             {
                 "time": round(self.start_time_milli),
@@ -178,8 +181,11 @@ class FastSpeech2Synthesizer:
         self._max_words_per_segment = 15
 
     def _word_offsets(self, text: str) -> typing.List[typing.List[int]]:
-        """Returns the start and end offsets of each whitespace separated token in
-        `text`
+        """Get the start and end offsets of each whitespace separated token.
+
+        Returns:
+          A list of sublists where each sublist has two elements: a start offset *in
+          bytes* and an end offset *in bytes*
 
         NOTE: This doesn't work with SSML input
 
@@ -260,7 +266,7 @@ class FastSpeech2Synthesizer:
     def synthesize(
         self, text_string: str, emit_speech_marks=False
     ) -> typing.Iterable[bytes]:
-        """Synthesize 16 bit PCM samples at 22050 Hz or a stream of JSON speech marks
+        """Synthesize 16 bit PCM samples at 22050 Hz or a stream of JSON speech marks.
 
         Args:
           text_string: Text to be synthesized, can contain embedded phoneme
@@ -270,7 +276,6 @@ class FastSpeech2Synthesizer:
 
         Yields:
           bytes: PCM chunk of synthesized audio, or JSON encoded speech marks
-
         """
         duration_control = 1.0
         pitch_control = 1.0
@@ -348,7 +353,7 @@ class FastSpeech2Voice(VoiceBase):
     _properties: VoiceProperties
 
     def __init__(self, properties: VoiceProperties, backend=None):
-        """Initialize a fixed voice with a FastSpeech2 backend"""
+        """Initialize a fixed voice with a FastSpeech2 backend."""
         self._backend = backend if backend else FastSpeech2Synthesizer()
         self._properties = properties
 
@@ -367,6 +372,7 @@ class FastSpeech2Voice(VoiceBase):
             return False
 
     def synthesize(self, text: str, **kwargs) -> typing.Iterable[bytes]:
+        """Synthesize audio from a string of characters."""
         if not self._is_valid(**kwargs):
             raise ValueError("Synthesize request not valid")
 
@@ -382,6 +388,7 @@ class FastSpeech2Voice(VoiceBase):
                 yield chunk
 
     def synthesize_from_ssml(self, ssml: str, **kwargs) -> typing.Iterable[bytes]:
+        """Synthesize audio from SSML markup."""
         parser = SSMLParser()
         parser.feed(ssml)
         text = parser.get_fastspeech_string()
