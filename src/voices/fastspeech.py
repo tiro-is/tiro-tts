@@ -18,6 +18,7 @@ import re
 import typing
 import string
 from pathlib import Path
+import unicodedata
 import torch
 import numpy as np
 from flask import current_app
@@ -219,6 +220,7 @@ class FastSpeech2Synthesizer:
         # in {}), keeping punctuation attached
         current_word_segments = []
         phoneme_str_open = False
+        text = unicodedata.normalize("NFKC", text)
         for w, offsets in zip(text.split(), self._word_offsets(text)):
             if phoneme_str_open:
                 current_word_segments.append(w)
