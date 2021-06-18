@@ -23,6 +23,7 @@ import torch
 import numpy as np
 from flask import current_app
 from html.parser import HTMLParser
+import resampy
 from . import VoiceBase, VoiceProperties, OutputFormat
 import ffmpeg
 
@@ -254,27 +255,41 @@ class FastSpeech2Synthesizer:
             yield word
 
     def _do_vocoder_pass(self, mel_postnet: torch.Tensor):  # -> NDArray[np.int16]
+        """Perform a vocoder pass, returning int16 samples at 22050 Hz."""
         mel_postnet_torch = mel_postnet.transpose(1, 2).detach()
         with torch.no_grad():
             wav = self._melgan_model.inference(mel_postnet_torch).cpu().numpy()
         return (wav * (20000 / np.max(np.abs(wav)))).astype("int16")
 
     @staticmethod
-    def _wavarray_to_pcm(array) -> bytes:
+    def _wavarray_to_pcm(array, src_sample_rate=22050, dst_sample_rate=22050) -> bytes:
+        """Convert a NDArray (int16) to a PCM byte chunk, resampling if necessary."""
+
+        def to_pcm_bytes(array1d):
+            return array1d.view("b").data.tobytes()
+
         if sys.byteorder == "big":
             array.byteswap()
-        return array.ravel().view("b").data.tobytes()
+
+        orig_samples = array.ravel()
+        if src_sample_rate == dst_sample_rate:
+            return to_pcm_bytes(orig_samples)
+        return to_pcm_bytes(
+            resampy.resample(orig_samples, src_sample_rate, dst_sample_rate)
+        )
 
     def synthesize(
-        self, text_string: str, emit_speech_marks=False
+        self, text_string: str, emit_speech_marks=False, sample_rate=22050
     ) -> typing.Iterable[bytes]:
-        """Synthesize 16 bit PCM samples at 22050 Hz or a stream of JSON speech marks.
+        """Synthesize 16 bit PCM samples or a stream of JSON speech marks.
 
         Args:
           text_string: Text to be synthesized, can contain embedded phoneme
                        strings in {}
 
           emit_speech_marks: Whether to generate speech marks or PCM samples
+
+          sample_rate: Sample rate of the returned PCM chunks
 
         Yields:
           bytes: PCM chunk of synthesized audio, or JSON encoded speech marks
@@ -351,8 +366,9 @@ class FastSpeech2Synthesizer:
             else:
                 # 22050 Hz 16 bit linear PCM chunks
                 wav = self._do_vocoder_pass(mel_postnet)
-                # TODO(rkjaran): control sample rate
-                yield FastSpeech2Synthesizer._wavarray_to_pcm(wav)
+                yield FastSpeech2Synthesizer._wavarray_to_pcm(
+                    wav, src_sample_rate=22050, dst_sample_rate=sample_rate
+                )
 
 
 class FastSpeech2Voice(VoiceBase):
@@ -369,9 +385,6 @@ class FastSpeech2Voice(VoiceBase):
         try:
             return (
                 kwargs["OutputFormat"] in ("pcm", "ogg_vorbis", "mp3", "json")
-                and not (
-                    kwargs["OutputFormat"] == "pcm" and kwargs["SampleRate"] != "22050"
-                )
                 and kwargs["VoiceId"] == self._properties.voice_id
                 and "Text" in kwargs
             )
@@ -384,13 +397,23 @@ class FastSpeech2Voice(VoiceBase):
             raise ValueError("Synthesize request not valid")
 
         for chunk in self._backend.synthesize(
-            text, emit_speech_marks=kwargs["OutputFormat"] == "json"
+            text,
+            emit_speech_marks=kwargs["OutputFormat"] == "json",
+            sample_rate=int(kwargs["SampleRate"]),
         ):
             if current_app.config["USE_FFMPEG"]:
                 if kwargs["OutputFormat"] == "ogg_vorbis":
-                    yield ffmpeg.to_ogg_vorbis(chunk, sample_rate=kwargs["SampleRate"])
+                    yield ffmpeg.to_ogg_vorbis(
+                        chunk,
+                        src_sample_rate=kwargs["SampleRate"],
+                        sample_rate=kwargs["SampleRate"],
+                    )
                 elif kwargs["OutputFormat"] == "mp3":
-                    yield ffmpeg.to_mp3(chunk, sample_rate=kwargs["SampleRate"])
+                    yield ffmpeg.to_mp3(
+                        chunk,
+                        src_sample_rate=kwargs["SampleRate"],
+                        sample_rate=kwargs["SampleRate"],
+                    )
             if kwargs["OutputFormat"] in ("pcm", "json"):
                 yield chunk
 
@@ -409,7 +432,7 @@ class FastSpeech2Voice(VoiceBase):
 
 _OGG_VORBIS_SAMPLE_RATES = ["8000", "16000", "22050", "24000"]
 _MP3_SAMPLE_RATES = ["8000", "16000", "22050", "24000"]
-_PCM_SAMPLE_RATES = ["22050"]
+_PCM_SAMPLE_RATES = ["8000", "16000", "22050"]
 _SUPPORTED_OUTPUT_FORMATS = [
     OutputFormat(output_format="pcm", supported_sample_rates=_PCM_SAMPLE_RATES),
     OutputFormat(

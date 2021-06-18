@@ -53,11 +53,10 @@ class SynthesizeSpeechRequest(Schema):
         description=textwrap.dedent(
             """\
             The audio frequency specified in Hz. Output formats `mp3` and
-            `ogg_vorbis` support the all sample rates. The `pcm` format for
-            voices `Other` and `Bjartur` only supports 22050 Hz.
+            `ogg_vorbis` support the all sample rates.
             """
         ),
-        validate=validate.OneOf(["8000", "16000", "22050", "24000"]),
+        validate=validate.OneOf(["8000", "16000", "22050"]),
         example="22050",
     )
     SpeechMarkTypes = fields.List(
