@@ -27,18 +27,20 @@ import resampy
 from . import VoiceBase, VoiceProperties, OutputFormat
 import ffmpeg
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../lib/fastspeech"))
-from lib.fastspeech.synthesize import get_FastSpeech2, load_g2p
-from lib.fastspeech.g2p_is import translate as g2p
-from lib.fastspeech import utils, hparams as hp
-from lib.fastspeech.text import text_to_sequence
-from lib.fastspeech.align_phonemes import Aligner
 from .phonemes import (
     XSAMPA_IPA_MAP,
     IPA_XSAMPA_MAP,
     LangID,
     SequiturGraphemeToPhonemeTranslator,
 )
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../lib/fastspeech"))
+if True:  # noqa: E402
+    from lib.fastspeech.synthesize import get_FastSpeech2
+    from lib.fastspeech.g2p_is import translate as g2p
+    from lib.fastspeech import utils, hparams as hp
+    from lib.fastspeech.text import text_to_sequence
+    from lib.fastspeech.align_phonemes import Aligner
 
 
 def _align_ipa_from_xsampa(phoneme_string: str):
