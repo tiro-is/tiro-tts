@@ -18,9 +18,9 @@ import re
 import typing
 import string
 from pathlib import Path
-import unicodedata
 import torch
 import numpy as np
+import tokenizer
 from flask import current_app
 from html.parser import HTMLParser
 import resampy
@@ -184,51 +184,51 @@ class FastSpeech2Synthesizer:
 
         self._max_words_per_segment = 15
 
-    def _word_offsets(self, text: str) -> typing.List[typing.List[int]]:
-        """Get the start and end offsets of each whitespace separated token.
-
-        Returns:
-          A list of sublists where each sublist has two elements: a start offset *in
-          bytes* and an end offset *in bytes*
-
-        NOTE: This doesn't work with SSML input
-
-        """
-        start_end_pairs = [[]]
-        text_bytes = text.encode("utf-8")
-        skippable_chars = string.whitespace.encode("utf-8")
-        for offset, b in enumerate(text_bytes):
-            if b in skippable_chars:
-                continue
-
-            if len(start_end_pairs[-1]) == 2:
-                start_end_pairs.append([])
-
-            if len(start_end_pairs[-1]) == 0:
-                start_end_pairs[-1].append(offset)
-
-            if (
-                offset + 1 == len(text_bytes)
-                or text_bytes[offset + 1] in skippable_chars
-            ):
-                start_end_pairs[-1].append(offset + 1)
-
-        return start_end_pairs
-
     def _tokenize(self, text: str) -> typing.Iterable[Word]:
-        # TODO(rkjaran): Very simple "tokenization". Replace once a better
-        #                frontend processor is ready.
+        # TODO(rkjaran): Need to keep track of sentence boundaries.
+        # TODO(rkjaran): This doesn't handle embedded phonemes properly, but the
+        #                previous version didn't either.
+        tokens = list(tokenizer.tokenize_without_annotation(text))
 
-        # Split on whitespace into words except for blocks of phonemes (enclosed
-        # in {}), keeping punctuation attached
+        def utf8_byte_length(string: str) -> int:
+            return len(string.encode("utf-8"))
+
+        def is_token_spoken(
+            token: tokenizer.Tok,
+        ) -> bool:
+            return token.kind != tokenizer.TOK.PUNCTUATION or not token.original
+
+        def add_token_offsets(
+            tokens: typing.Iterable[tokenizer.Tok],
+        ) -> typing.List[typing.Tuple[tokenizer.Tok, int, int]]:
+            # can't throw away sentence end/start info
+            n_bytes_consumed: int = 0
+            byte_offsets: typing.List[typing.Tuple[tokenizer.Tok, int, int]] = []
+            for tok in tokens:
+                if not tok.origin_spans or not tok.original:
+                    continue
+                if is_token_spoken(tok):
+                    start_offset = n_bytes_consumed + utf8_byte_length(
+                        tok.original[: tok.origin_spans[0]]
+                    )
+                    end_offset = start_offset + utf8_byte_length(
+                        tok.original[tok.origin_spans[0] : tok.origin_spans[-1] + 1]
+                    )
+
+                    byte_offsets.append((tok, start_offset, end_offset))
+                n_bytes_consumed += utf8_byte_length(tok.original)
+            return byte_offsets
+
         current_word_segments = []
         phoneme_str_open = False
-        text = unicodedata.normalize("NFKC", text)
-        for w, offsets in zip(text.split(), self._word_offsets(text)):
+        for triple in add_token_offsets(tokens):
+            w = typing.cast(str, triple[0].original).strip()
+            offsets = triple[1:]
             if phoneme_str_open:
                 current_word_segments.append(w)
                 if w.endswith("}"):
                     yield Word(
+                        original_symbol="".join(current_word_segments),
                         symbol="".join(current_word_segments),
                         start_byte_offset=offsets[0],
                         end_byte_offset=offsets[1],
