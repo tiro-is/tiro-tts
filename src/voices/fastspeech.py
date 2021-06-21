@@ -152,6 +152,10 @@ class Word:
         )
 
 
+# Use an empty initialized word as a sentence separator
+WORD_SENTENCE_SEPARATOR = Word()
+
+
 class FastSpeech2Synthesizer:
     def __init__(
         self,
@@ -182,10 +186,19 @@ class FastSpeech2Synthesizer:
             else {},
         )
 
-        self._max_words_per_segment = 15
+        self._max_words_per_segment = 30
 
     def _tokenize(self, text: str) -> typing.Iterable[Word]:
-        # TODO(rkjaran): Need to keep track of sentence boundaries.
+        """Split input into spoken tokens.
+
+        Args:
+          text: Input text to be tokenized.
+
+        Yields:
+          Word: spoken word symbols, including their *byte* offsets in `text`.  A
+            default initialized Word represents a sentence boundary.
+
+        """
         # TODO(rkjaran): This doesn't handle embedded phonemes properly, but the
         #                previous version didn't either.
         tokens = list(tokenizer.tokenize_without_annotation(text))
@@ -205,6 +218,9 @@ class FastSpeech2Synthesizer:
             n_bytes_consumed: int = 0
             byte_offsets: typing.List[typing.Tuple[tokenizer.Tok, int, int]] = []
             for tok in tokens:
+                if tok.kind == tokenizer.TOK.S_END:
+                    byte_offsets.append((tok, 0, 0))
+                    continue
                 if not tok.origin_spans or not tok.original:
                     continue
                 if is_token_spoken(tok):
@@ -221,17 +237,20 @@ class FastSpeech2Synthesizer:
 
         current_word_segments = []
         phoneme_str_open = False
-        for triple in add_token_offsets(tokens):
-            w = typing.cast(str, triple[0].original).strip()
-            offsets = triple[1:]
+        for tok, start_byte_offset, end_byte_offset in add_token_offsets(tokens):
+            if tok.kind == tokenizer.TOK.S_END:
+                yield WORD_SENTENCE_SEPARATOR
+                continue
+
+            w = typing.cast(str, tok.original).strip()
             if phoneme_str_open:
                 current_word_segments.append(w)
                 if w.endswith("}"):
                     yield Word(
                         original_symbol="".join(current_word_segments),
                         symbol="".join(current_word_segments),
-                        start_byte_offset=offsets[0],
-                        end_byte_offset=offsets[1],
+                        start_byte_offset=start_byte_offset,
+                        end_byte_offset=end_byte_offset,
                     )
                     phoneme_str_open = False
                     current_word_segments = []
@@ -243,17 +262,18 @@ class FastSpeech2Synthesizer:
                     yield Word(
                         original_symbol=w,
                         symbol=w,
-                        start_byte_offset=offsets[0],
-                        end_byte_offset=offsets[1],
+                        start_byte_offset=start_byte_offset,
+                        end_byte_offset=end_byte_offset,
                     )
 
     def _add_phonemes(self, words: typing.Iterable[Word]) -> typing.Iterable[Word]:
         for word in words:
-            punctuation = re.sub(r"[{}\[\]]", "", string.punctuation)
-            g2p_word = re.sub(r"([{}])".format(punctuation), r" \1 ", word.symbol)
-            word.phone_sequence = self._phonetisizer.translate(
-                g2p_word, LangID("is-IS"), failure_langs=(LangID("en-IS"),)
-            )
+            if not word == WORD_SENTENCE_SEPARATOR:
+                punctuation = re.sub(r"[{}\[\]]", "", string.punctuation)
+                g2p_word = re.sub(r"([{}])".format(punctuation), r" \1 ", word.symbol)
+                word.phone_sequence = self._phonetisizer.translate(
+                    g2p_word, LangID("is-IS"), failure_langs=(LangID("en-IS"),)
+                )
             yield word
 
     def _do_vocoder_pass(self, mel_postnet: torch.Tensor):  # -> NDArray[np.int16]
@@ -304,73 +324,88 @@ class FastSpeech2Synthesizer:
         # phoneme durations to word time alignment
         words = list(self._add_phonemes(self._tokenize(text_string)))
 
+        sentences: typing.List[typing.List[Word]] = [[]]
+        for idx, word in enumerate(words):
+            if word == WORD_SENTENCE_SEPARATOR:
+                if idx != len(words) - 1:
+                    sentences.append([])
+            else:
+                sentences[-1].append(word)
+
         # Segment to decrease latency and memory usage
         duration_time_offset = 0
-        for idx in range(0, len(words), self._max_words_per_segment):
-            segment_words = words[idx : idx + self._max_words_per_segment]
+        for sentence in sentences:
+            for idx in range(0, len(sentence), self._max_words_per_segment):
+                segment_words = sentence[idx : idx + self._max_words_per_segment]
 
-            phone_counts: typing.List[int] = []
-            phone_seq = []
-
-            for word in segment_words:
-                phone_counts.append(len(word.phone_sequence))
-                phone_seq.extend(word.phone_sequence)
-
-            if not phone_seq:
-                # If none of the words in this segment got a phone sequence we skip the
-                # rest
-                continue
-
-            sequence = np.array(
-                text_to_sequence("{%s}" % " ".join(phone_seq), hp.text_cleaners)
-            )
-            sequence = np.stack([sequence])
-            text_seq = torch.from_numpy(sequence).long().to(self._device)
-            src_len = torch.from_numpy(np.array([text_seq.shape[1]])).to(self._device)
-
-            (
-                mel,
-                mel_postnet,
-                log_duration_output,  # Duration of each phoneme in log(millisec)
-                f0_output,
-                energy_output,
-                src_mask,
-                mel_mask,
-                mel_len,
-            ) = self._fs_model(
-                text_seq,
-                src_len,
-                d_control=duration_control,
-                p_control=pitch_control,
-                e_control=energy_control,
-            )
-
-            if emit_speech_marks:
-                # The model uses 10 ms as the unit (or, technically, log(dur*10ms))
-                phone_durations = 10 * np.exp(log_duration_output.detach().numpy()[0])
-                word_durations = []
-                offset = 0
-                for count in phone_counts:
-                    word_durations.append(
-                        sum(phone_durations[offset : offset + count])  # type: ignore
-                    )
-                    offset += count
-
-                segment_duration_time_offset = duration_time_offset
-                for idx, dur in enumerate(word_durations):
-                    segment_words[idx].start_time_milli = segment_duration_time_offset
-                    segment_duration_time_offset += dur
+                phone_counts: typing.List[int] = []
+                phone_seq = []
 
                 for word in segment_words:
-                    yield word.to_json().encode("utf-8") + b"\n"
+                    phone_counts.append(len(word.phone_sequence))
+                    phone_seq.extend(word.phone_sequence)
 
-                duration_time_offset += segment_duration_time_offset
-            else:
-                # 22050 Hz 16 bit linear PCM chunks
-                wav = self._do_vocoder_pass(mel_postnet)
-                yield FastSpeech2Synthesizer._wavarray_to_pcm(
-                    wav, src_sample_rate=22050, dst_sample_rate=sample_rate
+                if not phone_seq:
+                    # If none of the words in this segment got a phone sequence we skip the
+                    # rest
+                    continue
+
+                sequence = np.array(
+                    text_to_sequence("{%s}" % " ".join(phone_seq), hp.text_cleaners)
                 )
+                sequence = np.stack([sequence])
+                text_seq = torch.from_numpy(sequence).long().to(self._device)
+                src_len = torch.from_numpy(np.array([text_seq.shape[1]])).to(
+                    self._device
+                )
+
+                (
+                    mel,
+                    mel_postnet,
+                    log_duration_output,  # Duration of each phoneme in log(millisec)
+                    f0_output,
+                    energy_output,
+                    src_mask,
+                    mel_mask,
+                    mel_len,
+                ) = self._fs_model(
+                    text_seq,
+                    src_len,
+                    d_control=duration_control,
+                    p_control=pitch_control,
+                    e_control=energy_control,
+                )
+
+                if emit_speech_marks:
+                    # The model uses 10 ms as the unit (or, technically, log(dur*10ms))
+                    phone_durations = 10 * np.exp(
+                        log_duration_output.detach().numpy()[0]
+                    )
+                    word_durations = []
+                    offset = 0
+                    for count in phone_counts:
+                        word_durations.append(
+                            sum(phone_durations[offset : offset + count])  # type: ignore
+                        )
+                        offset += count
+
+                    segment_duration_time_offset = duration_time_offset
+                    for idx, dur in enumerate(word_durations):
+                        segment_words[
+                            idx
+                        ].start_time_milli = segment_duration_time_offset
+                        segment_duration_time_offset += dur
+
+                    for word in segment_words:
+                        yield word.to_json().encode("utf-8") + b"\n"
+
+                    duration_time_offset += segment_duration_time_offset
+                else:
+                    # 22050 Hz 16 bit linear PCM chunks
+                    wav = self._do_vocoder_pass(mel_postnet)
+                    yield FastSpeech2Synthesizer._wavarray_to_pcm(
+                        wav, src_sample_rate=22050, dst_sample_rate=sample_rate
+                    )
 
 
 class FastSpeech2Voice(VoiceBase):
