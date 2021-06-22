@@ -164,8 +164,9 @@ class SequiturGraphemeToPhonemeTranslator(GraphemeToPhonemeTranslatorBase):
             lang: self._read_lexicon(path) for lang, path in lexicon_paths.items()
         }
 
-    def _read_lexicon(cls, lex_path: Path) -> Dict[str, PhoneSeq]:
-        """Read a Kaldi style lexicon"""
+    @staticmethod
+    def _read_lexicon(lex_path: Path) -> Dict[str, PhoneSeq]:
+        """Read a Kaldi style lexicon."""
         # TODO(rkjaran): Support pronunciation variants, possibly with POS info
         lexicon: Dict[str, PhoneSeq] = dict()
         lex_has_probs = None
@@ -174,11 +175,9 @@ class SequiturGraphemeToPhonemeTranslator(GraphemeToPhonemeTranslatorBase):
                 fields = line.strip().split()
                 # Probe first line for syntax
                 if lex_has_probs is None:
-                    lex_has_probs = re.match("[0-1]\.[0-9]+", fields[1]) is not None
+                    lex_has_probs = re.match(r"[0-1]\.[0-9]+", fields[1]) is not None
                 word = fields[0]
-                prob = 1.0
                 if lex_has_probs:
-                    prob = float(fields[1])
                     pron = fields[2:]
                 else:
                     pron = fields[1:]
