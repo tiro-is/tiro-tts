@@ -27,12 +27,13 @@ import resampy
 from . import VoiceBase, VoiceProperties, OutputFormat
 import ffmpeg
 
+from .grapheme_to_phoneme import SequiturGraphemeToPhonemeTranslator
+from .lexicon import LangID
 from .phonemes import (
     XSAMPA_IPA_MAP,
     IPA_XSAMPA_MAP,
-    LangID,
-    SequiturGraphemeToPhonemeTranslator,
 )
+
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../lib/fastspeech"))
 if True:  # noqa: E402
