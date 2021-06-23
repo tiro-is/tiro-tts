@@ -85,15 +85,18 @@ def handle_error(err):
     json_parameters = messages.get("json", {})
     query_parameters = messages.get("query", {})
 
-    parameter_errors = {**json_parameters, **query_parameters}
-
     message = "Invalid request."
-    if parameter_errors:
-        message = "Validation failure for the following fields: {}".format(
-            ", ".join(
-                "{}: {}".format(field, err) for field, err in parameter_errors.items()
+    if not (isinstance(json_parameters, dict) and isinstance(query_parameters, dict)):
+        message = "Malformed body or query parameters."
+    else:
+        parameter_errors = {**json_parameters, **query_parameters}
+        if parameter_errors:
+            message = "Validation failure for the following fields: {}".format(
+                ", ".join(
+                    "{}: {}".format(field, err)
+                    for field, err in parameter_errors.items()
+                )
             )
-        )
 
     if headers:
         return jsonify({"message": message}), err.code, headers
