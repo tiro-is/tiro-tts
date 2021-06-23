@@ -226,7 +226,7 @@ class SequiturGraphemeToPhonemeTranslator(GraphemeToPhonemeTranslatorBase):
                     w_lower = w.lower()
                     phones = self._lookup_lexica.get(lang, {}).get(w, [])
                     if not phones:
-                        self._lookup_lexica.get(lang, {}).get(w_lower, [])
+                        phones = self._lookup_lexica.get(lang, {}).get(w_lower, [])
                     if not phones:
                         try:
                             phones = translator(w_lower)
