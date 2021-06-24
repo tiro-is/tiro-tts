@@ -12,21 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-from flask import (
-    Flask,
-    jsonify,
-    render_template,
-    Response,
-    stream_with_context,
-)
-from flask_cors import CORS
-from webargs.flaskparser import FlaskParser, abort
-from flask_apispec import use_kwargs, marshal_with, FlaskApiSpec, doc
+
 from apispec import APISpec, BasePlugin
 from apispec.ext.marshmallow import MarshmallowPlugin
-from config import EnvvarConfig
+from flask import Flask, Response, jsonify, render_template, stream_with_context
+from flask_apispec import FlaskApiSpec, doc, marshal_with, use_kwargs
+from flask_cors import CORS
+from webargs.flaskparser import FlaskParser, abort
 from werkzeug.middleware.proxy_fix import ProxyFix
 
+import schemas
+from config import EnvvarConfig
 
 app = Flask(__name__)
 app.config["JSON_AS_ASCII"] = False
@@ -45,8 +41,9 @@ cors = CORS(app)
 # Give everyone access to current_app
 app.app_context().push()
 
-from voices import OutputFormat, VoiceManager
-import schemas
+# This requires the Flask app context to be initialized. Should probably be refactored a
+# bit.
+from voices import OutputFormat, VoiceManager  # noqa:E402 isort:skip
 
 g_synthesizers = VoiceManager()
 
@@ -75,6 +72,8 @@ docs = FlaskApiSpec(app)
 FlaskParser.DEFAULT_VALIDATION_STATUS = 400
 
 # Return validation errors as JSON
+
+
 @app.errorhandler(422)
 @app.errorhandler(400)
 def handle_error(err):

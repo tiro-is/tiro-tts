@@ -11,29 +11,27 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-import sys
 import json
+import os
 import re
-import typing
 import string
-from pathlib import Path
-import torch
-import numpy as np
-import tokenizer
-from flask import current_app
+import sys
+import typing
 from html.parser import HTMLParser
+from pathlib import Path
+
+import numpy as np
 import resampy
-from . import VoiceBase, VoiceProperties, OutputFormat
+import tokenizer
+import torch
+from flask import current_app
+
 import ffmpeg
 
 from .grapheme_to_phoneme import SequiturGraphemeToPhonemeTranslator
 from .lexicon import LangID
-from .phonemes import (
-    XSAMPA_IPA_MAP,
-    IPA_XSAMPA_MAP,
-)
-
+from .phonemes import IPA_XSAMPA_MAP, XSAMPA_IPA_MAP
+from .voice_base import OutputFormat, VoiceBase, VoiceProperties
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../lib/fastspeech"))
 if True:  # noqa: E402
@@ -363,7 +361,8 @@ class FastSpeech2Synthesizer:
                 (
                     mel,
                     mel_postnet,
-                    log_duration_output,  # Duration of each phoneme in log(millisec)
+                    # Duration of each phoneme in log(millisec)
+                    log_duration_output,
                     f0_output,
                     energy_output,
                     src_mask,
@@ -386,7 +385,8 @@ class FastSpeech2Synthesizer:
                     offset = 0
                     for count in phone_counts:
                         word_durations.append(
-                            sum(phone_durations[offset : offset + count])  # type: ignore
+                            # type: ignore
+                            sum(phone_durations[offset : offset + count])
                         )
                         offset += count
 

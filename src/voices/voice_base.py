@@ -12,14 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC, abstractmethod
-from typing import (
-    Union,
-    TextIO,
-    Literal,
-    Iterable,
-    Optional,
-    List,
-)
+from typing import Iterable, List, Literal, Optional, TextIO, Union
 
 
 class OutputFormat:

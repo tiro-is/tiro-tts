@@ -13,7 +13,6 @@
 # limitations under the License.
 import subprocess as sp
 
-
 _FFMPEG_ARGS = [
     "ffmpeg",
     "-hide_banner",
@@ -53,7 +52,15 @@ def to_ogg_vorbis(
     ogg_vorbis_content = sp.check_output(
         _FFMPEG_ARGS
         + input_args
-        + ["-acodec", "libvorbis", "-ar", sample_rate, "-f", "ogg", "-",],
+        + [
+            "-acodec",
+            "libvorbis",
+            "-ar",
+            sample_rate,
+            "-f",
+            "ogg",
+            "-",
+        ],
         input=audio_content,
     )
     return ogg_vorbis_content
@@ -87,7 +94,15 @@ def to_mp3(
         "-",
     ]
     mp3_content = sp.check_output(
-        _FFMPEG_ARGS + input_args + ["-ar", sample_rate, "-f", "mp3", "-",],
+        _FFMPEG_ARGS
+        + input_args
+        + [
+            "-ar",
+            sample_rate,
+            "-f",
+            "mp3",
+            "-",
+        ],
         input=audio_content,
     )
     return mp3_content

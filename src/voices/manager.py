@@ -12,13 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import typing
-from . import VoiceBase
-from .aws import PollyVoice, VOICES as POLLY_VOICES
-from .fastspeech import (
-    FastSpeech2Synthesizer,
-    FastSpeech2Voice,
-    VOICES as FASTSPEECH_VOICES,
-)
+
+from .aws import VOICES as POLLY_VOICES
+from .aws import PollyVoice
+from .fastspeech import VOICES as FASTSPEECH_VOICES
+from .fastspeech import FastSpeech2Synthesizer, FastSpeech2Voice
+from .voice_base import VoiceBase
 
 
 class VoiceManager:
