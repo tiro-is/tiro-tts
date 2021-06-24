@@ -21,7 +21,7 @@ import sequitur
 
 from lib.fastspeech.align_phonemes import Aligner
 
-from .lexicon import LangID, read_kaldi_lexicon
+from .lexicon import LangID, LexiconBase, read_kaldi_lexicon
 from .phonemes import PhoneSeq
 
 
@@ -78,12 +78,12 @@ class SequiturOptions(dict):
 class SequiturGraphemeToPhonemeTranslator(GraphemeToPhonemeTranslatorBase):
     # TODO(rkjaran): Implement a DB backed version of this
     _lang_models: Dict[str, sequitur.ModelTemplate]
-    _lookup_lexica: Dict[LangID, Dict[str, PhoneSeq]]
+    _lookup_lexica: Dict[LangID, LexiconBase]
 
     def __init__(
         self,
         lang_model_paths: Dict[LangID, Path],
-        lexicon_paths: Optional[Dict[LangID, Path]] = None,
+        lexica: Optional[Dict[LangID, LexiconBase]] = None,
     ):
         self._lang_models = {
             lang: g2p.SequiturTool.procureModel(
@@ -92,13 +92,10 @@ class SequiturGraphemeToPhonemeTranslator(GraphemeToPhonemeTranslatorBase):
             for lang, path in lang_model_paths.items()
         }
 
-        if not lexicon_paths:
-            lexicon_paths = {}
-
-        # TODO(rkjaran): Validate phone set
-        self._lookup_lexica = {
-            lang: read_kaldi_lexicon(path) for lang, path in lexicon_paths.items()
-        }
+        if not lexica:
+            lexica = {}
+        else:
+            self._lookup_lexica = lexica
 
     def translate(
         self, text: str, lang: LangID, failure_langs: Optional[Iterable[LangID]] = None
@@ -139,23 +136,24 @@ class SequiturGraphemeToPhonemeTranslator(GraphemeToPhonemeTranslatorBase):
                 elif w in [".", ","]:
                     phone.append("sp")
                 else:
+                    phones: PhoneSeq = []
                     w_lower = w.lower()
-                    phones = self._lookup_lexica.get(lang, {}).get(w, [])
-                    if not phones:
-                        phones = self._lookup_lexica.get(lang, {}).get(w_lower, [])
+                    lexicon = self._lookup_lexica.get(lang)
+                    if lexicon:
+                        phones = lexicon.get(w, [])
+                        if not phones:
+                            phones = lexicon.get(w_lower, [])
                     if not phones:
                         try:
                             phones = translator(w_lower)
                         except g2p.Translator.TranslationFailure:
                             for t in fail_translators:
                                 try:
-                                    phones = self._lookup_lexica.get(t["lang"], {}).get(
-                                        w, []
-                                    )
-                                    if not phones:
-                                        phones = self._lookup_lexica.get(
-                                            t["lang"], {}
-                                        ).get(w_lower, [])
+                                    fail_lexicon = self._lookup_lexica.get(t["lang"])
+                                    if fail_lexicon:
+                                        phones = fail_lexicon.get(w, [])
+                                        if not phones:
+                                            phones = fail_lexicon.get(w_lower, [])
                                     if not phones:
                                         phones = t["translator"](w_lower)
                                     if phones:

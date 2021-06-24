@@ -29,7 +29,7 @@ from flask import current_app
 import ffmpeg
 
 from .grapheme_to_phoneme import SequiturGraphemeToPhonemeTranslator
-from .lexicon import LangID
+from .lexicon import LangID, SimpleInMemoryLexicon
 from .phonemes import IPA_XSAMPA_MAP, XSAMPA_IPA_MAP
 from .voice_base import OutputFormat, VoiceBase, VoiceProperties
 
@@ -156,6 +156,8 @@ WORD_SENTENCE_SEPARATOR = Word()
 
 
 class FastSpeech2Synthesizer:
+    """A synthesizer wrapper around Fastspeech2 using MelGAN as a vocoder."""
+
     def __init__(
         self,
         melgan_vocoder_path: str = MELGAN_VOCODER_PATH,
@@ -165,6 +167,28 @@ class FastSpeech2Synthesizer:
         sequitur_fail_en_model_path: str = SEQUITUR_FAIL_EN_MODEL_PATH,
         language_code: str = "is-IS",
     ):
+        """Initialize a FastSpeech2Synthesizer.
+
+        Args:
+          melgan_vocoder_path: Path to the MelGAN vocoder for this voice.
+              See https://github.com/seungwonpark/melgan.
+
+          fastspeech_model_path: Path to the fastspeech model for this.
+              See https://github.com/cadia-lvl/FastSpeech2.
+
+          sequitur_model_path: Path to a Sequitur G2P model that uses the correct
+              phoneset (see `lib.fastspeech.text.cmudict.valid_symbols`).
+
+          lexicon_path: Path to a pronuncation lexicon for looking up symbols prior to
+              performing G2P. *NOTE*: This is currently assumed to be in X-SAMPA
+              compatible with the Sequitur phoneset (see `voices.phonemes`).
+
+          sequitur_fail_en_model_path: Path to a sequitur G2P model using the
+              same phoneset as `sequitur_model_path`. This is assumed to be en-US
+              and used when both the lexicon lookup and primary G2P translation fail.
+
+          language_code: The primary language code for the voice.
+        """
         self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self._melgan_model = utils.get_melgan(full_path=melgan_vocoder_path)
         self._melgan_model.to(self._device)
@@ -180,7 +204,11 @@ class FastSpeech2Synthesizer:
             )
         self._phonetisizer = SequiturGraphemeToPhonemeTranslator(
             lang_model_paths=lang_model_paths,
-            lexicon_paths={LangID(language_code): Path(lexicon_path)}
+            lexica={
+                LangID(language_code): SimpleInMemoryLexicon(
+                    Path(lexicon_path), alphabet="x-sampa"
+                )
+            }
             if lexicon_path
             else {},
         )
