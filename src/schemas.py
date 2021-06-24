@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import textwrap
-from marshmallow import validate, Schema
+
+from marshmallow import Schema, validate
 from webargs import fields
 
 # TODO(rkjaran): Get this list from the voice manager
@@ -60,7 +61,8 @@ class SynthesizeSpeechRequest(Schema):
         example="22050",
     )
     SpeechMarkTypes = fields.List(
-        fields.Str(validate=validate.OneOf(["word"])),  # "sentence", "ssml", "viseme",
+        # "sentence", "ssml", "viseme",
+        fields.Str(validate=validate.OneOf(["word"])),
         required=False,
         description=textwrap.dedent(
             """\

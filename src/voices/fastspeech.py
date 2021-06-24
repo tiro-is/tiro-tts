@@ -11,28 +11,27 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-import sys
 import json
+import os
 import re
-import typing
 import string
-from pathlib import Path
-import torch
-import numpy as np
-import tokenizer
-from flask import current_app
+import sys
+import typing
 from html.parser import HTMLParser
+from pathlib import Path
+
+import numpy as np
 import resampy
-from . import VoiceBase, VoiceProperties, OutputFormat
+import tokenizer
+import torch
+from flask import current_app
+
 import ffmpeg
 
-from .phonemes import (
-    XSAMPA_IPA_MAP,
-    IPA_XSAMPA_MAP,
-    LangID,
-    SequiturGraphemeToPhonemeTranslator,
-)
+from .grapheme_to_phoneme import SequiturGraphemeToPhonemeTranslator
+from .lexicon import LangID, SimpleInMemoryLexicon
+from .phonemes import IPA_XSAMPA_MAP, XSAMPA_IPA_MAP
+from .voice_base import OutputFormat, VoiceBase, VoiceProperties
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../lib/fastspeech"))
 if True:  # noqa: E402
@@ -157,6 +156,8 @@ WORD_SENTENCE_SEPARATOR = Word()
 
 
 class FastSpeech2Synthesizer:
+    """A synthesizer wrapper around Fastspeech2 using MelGAN as a vocoder."""
+
     def __init__(
         self,
         melgan_vocoder_path: str = MELGAN_VOCODER_PATH,
@@ -166,6 +167,28 @@ class FastSpeech2Synthesizer:
         sequitur_fail_en_model_path: str = SEQUITUR_FAIL_EN_MODEL_PATH,
         language_code: str = "is-IS",
     ):
+        """Initialize a FastSpeech2Synthesizer.
+
+        Args:
+          melgan_vocoder_path: Path to the MelGAN vocoder for this voice.
+              See https://github.com/seungwonpark/melgan.
+
+          fastspeech_model_path: Path to the fastspeech model for this.
+              See https://github.com/cadia-lvl/FastSpeech2.
+
+          sequitur_model_path: Path to a Sequitur G2P model that uses the correct
+              phoneset (see `lib.fastspeech.text.cmudict.valid_symbols`).
+
+          lexicon_path: Path to a pronuncation lexicon for looking up symbols prior to
+              performing G2P. *NOTE*: This is currently assumed to be in X-SAMPA
+              compatible with the Sequitur phoneset (see `voices.phonemes`).
+
+          sequitur_fail_en_model_path: Path to a sequitur G2P model using the
+              same phoneset as `sequitur_model_path`. This is assumed to be en-US
+              and used when both the lexicon lookup and primary G2P translation fail.
+
+          language_code: The primary language code for the voice.
+        """
         self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self._melgan_model = utils.get_melgan(full_path=melgan_vocoder_path)
         self._melgan_model.to(self._device)
@@ -181,7 +204,11 @@ class FastSpeech2Synthesizer:
             )
         self._phonetisizer = SequiturGraphemeToPhonemeTranslator(
             lang_model_paths=lang_model_paths,
-            lexicon_paths={LangID(language_code): Path(lexicon_path)}
+            lexica={
+                LangID(language_code): SimpleInMemoryLexicon(
+                    Path(lexicon_path), alphabet="x-sampa"
+                )
+            }
             if lexicon_path
             else {},
         )
@@ -362,7 +389,8 @@ class FastSpeech2Synthesizer:
                 (
                     mel,
                     mel_postnet,
-                    log_duration_output,  # Duration of each phoneme in log(millisec)
+                    # Duration of each phoneme in log(millisec)
+                    log_duration_output,
                     f0_output,
                     energy_output,
                     src_mask,
@@ -385,7 +413,8 @@ class FastSpeech2Synthesizer:
                     offset = 0
                     for count in phone_counts:
                         word_durations.append(
-                            sum(phone_durations[offset : offset + count])  # type: ignore
+                            # type: ignore
+                            sum(phone_durations[offset : offset + count])
                         )
                         offset += count
 
