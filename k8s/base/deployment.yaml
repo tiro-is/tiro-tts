@@ -31,7 +31,7 @@ spec:
           MELGAN=gs://models-talgreinir-is/tts/fastspeech2/v2021-01-01/vocoder_aca5990_3350.pt
           SEQUITUR=gs://models-talgreinir-is/g2p/is-IS.ipd_clean_slt2018.mdl
 
-          LEXICON=gs://models-talgreinir-is/g2p/iceprondict/version_21.06/ice_pron_dict_standard_clear.csv
+          LEXICON=gs://models-talgreinir-is/g2p/iceprondict/version_21.06/ice_pron_dict_standard_clear.csv#1624979739994321
 
           SEQUITUR_FAIL_EN=gs://models-talgreinir-is/g2p/en-IS.cmudict_frobv1.20200305.mdl
 
