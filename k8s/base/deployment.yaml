@@ -17,6 +17,9 @@ spec:
       volumes:
       - name: models
         emptyDir: {}
+      - name: gcs-creds
+        secret:
+          secretName: gcs-read-service-account-secret
       initContainers:
       - name: fetch-models
         image: google/cloud-sdk:latest
@@ -26,6 +29,7 @@ spec:
         - -c
         - |
           mkdir -p /models/
+          gcloud auth activate-service-account --key-file=/creds/keyfile.json
 
           FASTSPEECH=gs://models-talgreinir-is/tts/fastspeech2/v2021-01-01/checkpoint_490000.pth.tar
           MELGAN=gs://models-talgreinir-is/tts/fastspeech2/v2021-01-01/vocoder_aca5990_3350.pt
@@ -46,6 +50,9 @@ spec:
         - name: models
           mountPath: /models
           readOnly: false
+        - name: gcs-creds
+          mountPath: /creds
+          readOnly: true
       containers:
       - name: tiro-tts
         image: tiro-tts
@@ -60,7 +67,7 @@ spec:
         resources:
           requests:
             memory: "800Mi"
-            cpu: "100m"
+            cpu: "1000m"
         env:
         - name: TIRO_TTS_AWS_ACCESS_KEY_ID
           valueFrom:

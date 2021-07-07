@@ -1,5 +1,8 @@
 bases:
 - ../../base
+namePrefix: "dev-"
+commonLabels:
+  environment: dev
 images:
 - name: tiro-tts
   newName: eu.gcr.io/talgreining-is/tiro-tts

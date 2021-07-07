@@ -1,0 +1,6 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tiro-tts-configmap
+data:
+  INGRESS_HOST: "tts.tiro.is"

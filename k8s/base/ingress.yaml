@@ -6,7 +6,7 @@ metadata:
     kubernetes.io/ingress.class: traefik
 spec:
   rules:
-  - host: tts.tiro.is
+  - host: $(INGRESS_HOST)
     http:
       paths:
       - path: /
