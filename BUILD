@@ -6,6 +6,7 @@ load(
     "@io_bazel_rules_docker//container:container.bzl",
     "container_image",
 )
+load("//tools/py:py_repl.bzl", "py_repl2")
 
 py_library(
     name = "app_lib",
@@ -21,6 +22,18 @@ py_binary(
     python_version = "PY3",
     deps = [":app_lib"],
 )
+
+# Defines a runnable REPL with the same environment as :app
+# Something like:
+#   echo "import os; print(os.environ['PYTHONPATH'])" | bazel run //:repl
+# will return the PYTHONPATH to allow for integration with most
+# editors/tools/IDEs
+py_repl2(
+    name = "repl",
+    python_version = "PY3",
+    deps = [":app_lib"],
+)
+
 
 container_image(
     name = "py3_8_image",
