@@ -303,15 +303,17 @@ class FastSpeech2Synthesizer:
                 )
             yield word
 
-    def _do_vocoder_pass(self, mel_postnet: torch.Tensor):  # -> NDArray[np.int16]
+    def _do_vocoder_pass(self, mel_postnet: torch.Tensor) -> torch.Tensor:
         """Perform a vocoder pass, returning int16 samples at 22050 Hz."""
         mel_postnet_torch = mel_postnet.transpose(1, 2).detach()
         with torch.no_grad():
-            wav = self._melgan_model.inference(mel_postnet_torch).cpu().numpy()
-        return (wav * (20000 / np.max(np.abs(wav)))).astype("int16")
+            wav = self._melgan_model.inference(mel_postnet_torch).cpu()
+            return (wav * (20000 / torch.max(torch.abs(wav)))).to(torch.int16)
 
     @staticmethod
-    def _wavarray_to_pcm(array, src_sample_rate=22050, dst_sample_rate=22050) -> bytes:
+    def _wavarray_to_pcm(
+        array: np.array, src_sample_rate=22050, dst_sample_rate=22050
+    ) -> bytes:
         """Convert a NDArray (int16) to a PCM byte chunk, resampling if necessary."""
 
         def to_pcm_bytes(array1d):
@@ -377,14 +379,12 @@ class FastSpeech2Synthesizer:
                     # rest
                     continue
 
-                sequence = np.array(
-                    text_to_sequence("{%s}" % " ".join(phone_seq), hp.text_cleaners)
+                text_seq = torch.tensor(
+                    [text_to_sequence("{%s}" % " ".join(phone_seq), hp.text_cleaners)],
+                    dtype=torch.int64,
+                    device=self._device,
                 )
-                sequence = np.stack([sequence])
-                text_seq = torch.from_numpy(sequence).long().to(self._device)
-                src_len = torch.from_numpy(np.array([text_seq.shape[1]])).to(
-                    self._device
-                )
+                src_len = torch.tensor([text_seq.shape[1]], device=self._device)
 
                 (
                     mel,
@@ -406,9 +406,10 @@ class FastSpeech2Synthesizer:
 
                 if emit_speech_marks:
                     # The model uses 10 ms as the unit (or, technically, log(dur*10ms))
-                    phone_durations = 10 * np.exp(
-                        log_duration_output.detach().numpy()[0]
-                    )
+                    phone_durations = (
+                        10
+                        * torch.exp(log_duration_output.detach()[0].to(torch.float32))
+                    ).tolist()
                     word_durations = []
                     offset = 0
                     for count in phone_counts:
@@ -418,7 +419,7 @@ class FastSpeech2Synthesizer:
                         )
                         offset += count
 
-                    segment_duration_time_offset = duration_time_offset
+                    segment_duration_time_offset: int = duration_time_offset
                     for idx, dur in enumerate(word_durations):
                         segment_words[
                             idx
@@ -431,7 +432,7 @@ class FastSpeech2Synthesizer:
                     duration_time_offset += segment_duration_time_offset
                 else:
                     # 22050 Hz 16 bit linear PCM chunks
-                    wav = self._do_vocoder_pass(mel_postnet)
+                    wav = self._do_vocoder_pass(mel_postnet).numpy()
                     yield FastSpeech2Synthesizer._wavarray_to_pcm(
                         wav, src_sample_rate=22050, dst_sample_rate=sample_rate
                     )
