@@ -81,8 +81,11 @@ def handle_error(err):
     headers = err.data.get("headers", None)
     messages = err.data.get("messages", ["Invalid request."])
 
-    json_parameters = messages.get("json", {})
-    query_parameters = messages.get("query", {})
+    json_parameters = None
+    query_parameters = None
+    if isinstance(messages, dict):
+        json_parameters = messages.get("json", {})
+        query_parameters = messages.get("query", {})
 
     message = "Invalid request."
     if not (isinstance(json_parameters, dict) and isinstance(query_parameters, dict)):
