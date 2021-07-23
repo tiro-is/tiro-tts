@@ -511,16 +511,6 @@ _SUPPORTED_OUTPUT_FORMATS = [
 
 # List of all available fastspeech voices
 VOICES = [
-    # TODO: Bjartur is actually Álfur, remove once all callers have stopped using
-    #       Bjartur
-    VoiceProperties(
-        voice_id="Bjartur",
-        name="Bjartur",
-        gender="Male",
-        language_code="is-IS",
-        language_name="Íslenska",
-        supported_output_formats=_SUPPORTED_OUTPUT_FORMATS,
-    ),
     VoiceProperties(
         voice_id="Alfur",
         name="Álfur",

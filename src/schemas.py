@@ -17,7 +17,7 @@ from marshmallow import Schema, validate
 from webargs import fields
 
 # TODO(rkjaran): Get this list from the voice manager
-SUPPORTED_VOICE_IDS = ["Dora", "Karl", "Alfur", "Bjartur", "Joanna"]
+SUPPORTED_VOICE_IDS = ["Dora", "Karl", "Alfur", "Joanna"]
 
 
 class SynthesizeSpeechRequest(Schema):
