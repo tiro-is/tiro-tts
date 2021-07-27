@@ -11,39 +11,145 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import typing
+from pathlib import Path
+from typing import Dict, List, Literal, Optional, TextIO, Union
 
-from .aws import VOICES as POLLY_VOICES
+import google.protobuf.text_format
+
+from proto.tiro.tts import voice_pb2
+
+from . import aws, fastspeech
 from .aws import PollyVoice
-from .fastspeech import VOICES as FASTSPEECH_VOICES
 from .fastspeech import FastSpeech2Synthesizer, FastSpeech2Voice
-from .voice_base import VoiceBase
+from .grapheme_to_phoneme import (
+    ComposedTranslator,
+    GraphemeToPhonemeTranslatorBase,
+    LangID,
+    LexiconGraphemeToPhonemeTranslator,
+    SequiturGraphemeToPhonemeTranslator,
+)
+from .lexicon import SimpleInMemoryLexicon
+from .voice_base import VoiceBase, VoiceProperties
 
 
 class VoiceManager:
-    _synthesizers: typing.Dict[str, VoiceBase]
-    _voices: typing.Dict[str, VoiceBase]
-    _fastspeech_backend: FastSpeech2Synthesizer
+    _synthesizers: Dict[str, VoiceBase]
+    _phonetizers: Dict[str, GraphemeToPhonemeTranslatorBase]
 
-    def __init__(self, synthesizers: typing.Dict[str, VoiceBase] = {}):
-        if not synthesizers:
-            # TODO(rkjaran): Remove this initialization here once we get rid of "Other"
-            fastspeech_backend = FastSpeech2Synthesizer()
-            self._synthesizers = {}
-            self._synthesizers.update(
-                {
-                    voice.voice_id: FastSpeech2Voice(voice, backend=fastspeech_backend)
-                    for voice in FASTSPEECH_VOICES
-                }
+    def __init__(
+        self,
+        synthesizers: Dict[str, VoiceBase],
+        phonetizers: Dict[str, GraphemeToPhonemeTranslatorBase],
+    ):
+        self._phonetizers = phonetizers
+        self._synthesizers = synthesizers
+
+    @staticmethod
+    def from_pbtxt(pbtxt_path: Path) -> "VoiceManager":
+        with pbtxt_path.open("rt") as pb_obj:
+            synthesis_set: voice_pb2.SynthesisSet = google.protobuf.text_format.Parse(
+                pb_obj.read(), voice_pb2.SynthesisSet()
             )
-            self._synthesizers.update(
-                {voice.voice_id: PollyVoice(voice) for voice in POLLY_VOICES}
+
+        phonetizers: Dict[str, GraphemeToPhonemeTranslatorBase] = {}
+        for phonetizer in synthesis_set.phonetizers:
+            phonetizers[phonetizer.name] = ComposedTranslator(
+                *(
+                    _translator_from_pb(translator, phonetizer.language_code)
+                    for translator in phonetizer.translators
+                )
             )
-        else:
-            self._synthesizers = synthesizers
+
+        synthesizers: Dict[str, VoiceBase] = {}
+        for voice in synthesis_set.voices:
+            props = VoiceProperties(
+                voice_id=voice.voice_id,
+                name=voice.display_name,
+                gender=_gender_pb_as_str(voice.gender),
+                language_code=voice.language_code,
+            )
+            backend_name = voice.WhichOneof("backend")
+            if backend_name == "fs2melgan":
+                props.supported_output_formats = fastspeech.SUPPORTED_OUTPUT_FORMATS
+                fs = FastSpeech2Voice(
+                    properties=props,
+                    backend=FastSpeech2Synthesizer(
+                        melgan_vocoder_path=_parse_uri(voice.fs2melgan.melgan_uri),
+                        fastspeech_model_path=_parse_uri(
+                            voice.fs2melgan.fastspeech2_uri
+                        ),
+                        phonetizer=phonetizers[voice.fs2melgan.phonetizer_name],
+                    ),
+                )
+                synthesizers[props.voice_id] = fs
+            elif backend_name == "polly":
+                props.supported_output_formats = aws.SUPPORTED_OUTPUT_FORMATS
+                synthesizers[props.voice_id] = PollyVoice(properties=props)
+            else:
+                raise ValueError("Unsupported backend {}".format(backend_name))
+
+        return VoiceManager(synthesizers=synthesizers, phonetizers=phonetizers)
 
     def __getitem__(self, key: str) -> VoiceBase:
         return self._synthesizers[key]
 
     def voices(self):
         return self._synthesizers.items()
+
+
+def _gender_pb_as_str(
+    gender_pb: voice_pb2.Voice.Gender,
+) -> Optional[Literal["Male", "Female"]]:
+    if gender_pb == voice_pb2.Voice.MALE:
+        return "Male"
+    elif gender_pb == voice_pb2.Voice.FEMALE:
+        return "Female"
+    else:
+        return None
+
+
+def _alphabet_pb_as_str(alphabet_pb: voice_pb2.Alphabet) -> Literal["x-sampa", "ipa"]:
+    """Convert voice_pb2.Alphabet enum to string, defaulting to x-sampa
+
+    Raises:
+      ValueError on unsupported enum value
+    """
+    if alphabet_pb == voice_pb2.Alphabet.IPA:
+        return "ipa"
+    elif (
+        alphabet_pb == voice_pb2.Alphabet.XSAMPA
+        or alphabet_pb == voice_pb2.Alphabet.UNSPECIFIED_ALPHABET
+    ):
+        return "x-sampa"
+    else:
+        raise ValueError("Unsupported alphabet")
+
+
+def _parse_uri(uri: str) -> Path:
+    if uri[0:7] != "file://":
+        raise ValueError("Only file:// URIs are (currently) supported.")
+    return Path(uri[7:])
+
+
+def _translator_from_pb(
+    pb: voice_pb2.Phonetizer.Translator,
+    language_code: str,
+) -> GraphemeToPhonemeTranslatorBase:
+    model_kind = pb.WhichOneof("model_kind")
+    if model_kind == "lexicon":
+        return LexiconGraphemeToPhonemeTranslator(
+            {
+                LangID(language_code): SimpleInMemoryLexicon(
+                    lex_path=_parse_uri(pb.lexicon.uri),
+                    alphabet=_alphabet_pb_as_str(pb.lexicon.alphabet),
+                )
+            }
+        )
+    elif model_kind == "sequitur":
+        return SequiturGraphemeToPhonemeTranslator(
+            lang_model_paths={
+                LangID(pb.sequitur.language_code): _parse_uri(pb.sequitur.uri)
+            }
+        )
+    else:
+        raise ValueError("Unsupported translator type.")

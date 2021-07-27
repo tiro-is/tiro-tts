@@ -16,9 +16,6 @@ import textwrap
 from marshmallow import Schema, validate
 from webargs import fields
 
-# TODO(rkjaran): Get this list from the voice manager
-SUPPORTED_VOICE_IDS = ["Dora", "Karl", "Alfur", "Joanna"]
-
 
 class SynthesizeSpeechRequest(Schema):
     Engine = fields.Str(
@@ -114,7 +111,6 @@ class SynthesizeSpeechRequest(Schema):
     VoiceId = fields.Str(
         required=True,
         description="Voice ID to use for the synthesis",
-        validate=validate.OneOf(SUPPORTED_VOICE_IDS),
         example="Other",
     )
 

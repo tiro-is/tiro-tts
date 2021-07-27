@@ -8,12 +8,11 @@ def maybe(repo_rule, name, **kwargs):
         print("Repository {} already declared.".format(name))
 
 def tiro_tts_repositories():
-    if not native.existing_rule("rules_python"):
-        rules_python()
-    if not native.existing_rule("io_bazel_rules_docker"):
-        io_bazel_rules_docker()
-    if not native.existing_rule("com_adobe_rules_gitops"):
-        com_adobe_rules_gitops()
+    rules_python()
+    rules_proto()
+    rules_proto_grpc()
+    io_bazel_rules_docker()
+    com_adobe_rules_gitops()
 
 def rules_python():
     RULES_PYTHON_VERSION = "0.2.0"
@@ -44,6 +43,30 @@ def io_bazel_rules_docker():
     )
 
 
+def rules_proto():
+    RULES_PROTO_VERSION = "af6481970a34554c6942d993e194a9aed7987780"
+    RULES_PROTO_SHA256 = "bc12122a5ae4b517fa423ea03a8d82ea6352d5127ea48cb54bc324e8ab78493c"
+    maybe(
+        http_archive,
+        name = "rules_proto",
+        sha256 = RULES_PROTO_SHA256,
+        strip_prefix = "rules_proto-{}".format(RULES_PROTO_VERSION),
+        urls = ["https://github.com/bazelbuild/rules_proto/archive/{}.tar.gz".format(RULES_PROTO_VERSION)],
+    )
+
+
+def rules_proto_grpc():
+    RULES_PROTO_GRPC_VERSION = "3.1.1"
+    RULES_PROTO_GRPC_SHA256 = "7954abbb6898830cd10ac9714fbcacf092299fda00ed2baf781172f545120419"
+    maybe(
+        http_archive,
+        name = "rules_proto_grpc",
+        sha256 = RULES_PROTO_GRPC_SHA256,
+        strip_prefix = "rules_proto_grpc-{}".format(RULES_PROTO_GRPC_VERSION),
+        urls = ["https://github.com/rules-proto-grpc/rules_proto_grpc/archive/{}.tar.gz".format(RULES_PROTO_GRPC_VERSION)],
+    )
+
+
 ########################################
 # rules_gitops needed for k8s deployment
 def com_adobe_rules_gitops():
@@ -56,7 +79,6 @@ def com_adobe_rules_gitops():
         strip_prefix = "rules_gitops-{}".format(RULES_GITOPS_VERSION),
         urls = ["https://github.com/adobe/rules_gitops/archive/{}.zip".format(RULES_GITOPS_VERSION)],
     )
-
 
 # def pytorch(use_local = False):
 #     if not use_local:

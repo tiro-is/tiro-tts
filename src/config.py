@@ -24,12 +24,7 @@ class EnvvarConfig(metaclass=flask_env.MetaFlaskEnv):
     AWS_SECRET_ACCESS_KEY = None
     AWS_REGION = "eu-west-1"
 
-    # For FastSpeech2
-    MELGAN_VOCODER_PATH = None
-    FASTSPEECH_MODEL_PATH = None
-    SEQUITUR_MODEL_PATH = None
-    LEXICON_PATH = None
-    SEQUITUR_FAIL_EN_MODEL_PATH = None
+    SYNTHESIS_SET_PB = "conf/synthesis_set.pbtxt"
 
     # Features flags
 

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import re
-from abc import ABC
+from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Dict, Iterable, List, Literal, NewType, Optional
 
@@ -22,10 +22,11 @@ import sequitur
 from lib.fastspeech.align_phonemes import Aligner
 
 from .lexicon import LangID, LexiconBase, read_kaldi_lexicon
-from .phonemes import PhoneSeq
+from .phonemes import SHORT_PAUSE, PhoneSeq
 
 
 class GraphemeToPhonemeTranslatorBase(ABC):
+    @abstractmethod
     def translate(
         self, text: str, lang: LangID, failure_langs: Optional[Iterable[LangID]] = None
     ) -> PhoneSeq:
@@ -45,6 +46,34 @@ class GraphemeToPhonemeTranslatorBase(ABC):
 
         """
         return NotImplemented
+
+
+class ComposedTranslator(GraphemeToPhonemeTranslatorBase):
+    """ComposedTranslator
+
+    Group together one or more translators which are used in sequence until the text is
+    successfully translated (or we run out of translators).
+
+    Example:
+      >>> ComposedTranslator(LexiconGraphemeToPhonemeTranslator(...), SequiturGraphemeToPhonemeTranslator(...))
+    """
+
+    _translators: List[GraphemeToPhonemeTranslatorBase]
+
+    def __init__(self, *translators):
+        if len(translators) < 1:
+            raise ValueError("Needs at least 1 argument.")
+        self._translators = list(translators)
+
+    def translate(
+        self, text: str, lang: LangID, failure_langs: Optional[Iterable[LangID]] = None
+    ) -> PhoneSeq:
+        phone = []
+        for t in self._translators:
+            phone = t.translate(text, lang, failure_langs)
+            if phone:
+                break
+        return phone
 
 
 class SequiturOptions(dict):
@@ -75,6 +104,65 @@ class SequiturOptions(dict):
         self[name] = value
 
 
+class LexiconGraphemeToPhonemeTranslator(GraphemeToPhonemeTranslatorBase):
+    _lookup_lexica: Dict[LangID, LexiconBase]
+
+    def __init__(self, lexica: Dict[LangID, LexiconBase]):
+        self._lookup_lexica = lexica
+
+    def translate(
+        self, text: str, lang: LangID, failure_langs: Optional[Iterable[LangID]] = None
+    ) -> PhoneSeq:
+        if not failure_langs:
+            failure_langs = []
+        # TODO(rkjaran): Currently, this has special handling for phoneme strings
+        #                embedded with enclosing curly brackets {}. This should be
+        #                handled at a higher level.  Even more annoyingly it is
+        #                replicated in Lexicon* and Sequitur*
+        text = text.replace(",", " ,")
+        text = text.replace(".", " .")
+
+        phone = []
+        phoneme_str_open = False
+        aligner = Aligner()
+        for w in text.split(" "):
+            if phoneme_str_open:
+                if w.endswith("}"):
+                    phone.append(w.replace("}", ""))
+                    phoneme_str_open = False
+                else:
+                    phone.append(w)
+            elif not phoneme_str_open:
+                if w.startswith("{") and w.endswith("}"):
+                    phone.extend(
+                        aligner.align(w.replace("{", "").replace("}", "")).split(" ")
+                    )
+                elif w.startswith("{"):
+                    phone.append(w.replace("{", ""))
+                    phoneme_str_open = True
+                elif w in [".", ","]:
+                    phone.append(SHORT_PAUSE)
+                else:
+                    phones: PhoneSeq = []
+                    w_lower = w.lower()
+                    lexicon = self._lookup_lexica.get(lang)
+                    if lexicon:
+                        phones = lexicon.get(w, [])
+                        if not phones:
+                            phones = lexicon.get(w_lower, [])
+                    if not phones:
+                        for lang in failure_langs:
+                            fail_lexicon = self._lookup_lexica.get(lang)
+                            if fail_lexicon:
+                                phones = fail_lexicon.get(w, [])
+                                if not phones:
+                                    phones = fail_lexicon.get(w_lower, [])
+                            if phones:
+                                break
+                    phone.extend(phones)
+        return phone
+
+
 class SequiturGraphemeToPhonemeTranslator(GraphemeToPhonemeTranslatorBase):
     # TODO(rkjaran): Implement a DB backed version of this
     _lang_models: Dict[str, sequitur.ModelTemplate]
@@ -92,14 +180,14 @@ class SequiturGraphemeToPhonemeTranslator(GraphemeToPhonemeTranslatorBase):
             for lang, path in lang_model_paths.items()
         }
 
-        if not lexica:
-            lexica = {}
-        else:
-            self._lookup_lexica = lexica
+        self._lookup_lexica = lexica if lexica else {}
 
     def translate(
         self, text: str, lang: LangID, failure_langs: Optional[Iterable[LangID]] = None
     ) -> PhoneSeq:
+        if not failure_langs:
+            failure_langs = []
+
         # TODO(rkjaran): Currently, this has special handling for phoneme strings
         #                embedded with enclosing curly brackets {}. This should be
         #                handled at a higher level.

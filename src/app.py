@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+from pathlib import Path
 
 from apispec import APISpec, BasePlugin
 from apispec.ext.marshmallow import MarshmallowPlugin
@@ -45,7 +46,7 @@ app.app_context().push()
 # bit.
 from voices import OutputFormat, VoiceManager  # noqa:E402 isort:skip
 
-g_synthesizers = VoiceManager()
+g_synthesizers = VoiceManager.from_pbtxt(Path(app.config["SYNTHESIS_SET_PB"]))
 
 
 class DisableOptionsOperationPlugin(BasePlugin):
