@@ -27,19 +27,21 @@ import torch
 from flask import current_app
 
 import ffmpeg
+from proto.tiro.tts import voice_pb2
 
-from .grapheme_to_phoneme import SequiturGraphemeToPhonemeTranslator
+from .grapheme_to_phoneme import GraphemeToPhonemeTranslatorBase
 from .lexicon import LangID, SimpleInMemoryLexicon
 from .phonemes import IPA_XSAMPA_MAP, XSAMPA_IPA_MAP
 from .voice_base import OutputFormat, VoiceBase, VoiceProperties
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../lib/fastspeech"))
 if True:  # noqa: E402
-    from lib.fastspeech.synthesize import get_FastSpeech2
-    from lib.fastspeech.g2p_is import translate as g2p
-    from lib.fastspeech import utils, hparams as hp
-    from lib.fastspeech.text import text_to_sequence
+    from lib.fastspeech import hparams as hp
+    from lib.fastspeech import utils
     from lib.fastspeech.align_phonemes import Aligner
+    from lib.fastspeech.g2p_is import translate as g2p
+    from lib.fastspeech.synthesize import get_FastSpeech2
+    from lib.fastspeech.text import text_to_sequence
 
 
 def _align_ipa_from_xsampa(phoneme_string: str):
@@ -111,13 +113,6 @@ class SSMLParser(HTMLParser):
         return " ".join(self._prepared_fastspeech_strings)
 
 
-MELGAN_VOCODER_PATH = current_app.config["MELGAN_VOCODER_PATH"]
-FASTSPEECH_MODEL_PATH = current_app.config["FASTSPEECH_MODEL_PATH"]
-SEQUITUR_MODEL_PATH = current_app.config["SEQUITUR_MODEL_PATH"]
-LEXICON_PATH = current_app.config["LEXICON_PATH"]
-SEQUITUR_FAIL_EN_MODEL_PATH = current_app.config["SEQUITUR_FAIL_EN_MODEL_PATH"]
-
-
 class Word:
     """A wrapper for individual symbol and its metadata."""
 
@@ -158,14 +153,16 @@ WORD_SENTENCE_SEPARATOR = Word()
 class FastSpeech2Synthesizer:
     """A synthesizer wrapper around Fastspeech2 using MelGAN as a vocoder."""
 
+    _device: torch.device
+    _melgan_model: torch.nn.Module
+    _fs_model: torch.nn.Module
+    _phonetizer: GraphemeToPhonemeTranslatorBase
+
     def __init__(
         self,
-        melgan_vocoder_path: str = MELGAN_VOCODER_PATH,
-        fastspeech_model_path: str = FASTSPEECH_MODEL_PATH,
-        sequitur_model_path: str = SEQUITUR_MODEL_PATH,
-        lexicon_path: str = LEXICON_PATH,
-        sequitur_fail_en_model_path: str = SEQUITUR_FAIL_EN_MODEL_PATH,
-        language_code: str = "is-IS",
+        melgan_vocoder_path: os.PathLike,
+        fastspeech_model_path: os.PathLike,
+        phonetizer: GraphemeToPhonemeTranslatorBase,
     ):
         """Initialize a FastSpeech2Synthesizer.
 
@@ -176,43 +173,14 @@ class FastSpeech2Synthesizer:
           fastspeech_model_path: Path to the fastspeech model for this.
               See https://github.com/cadia-lvl/FastSpeech2.
 
-          sequitur_model_path: Path to a Sequitur G2P model that uses the correct
-              phoneset (see `lib.fastspeech.text.cmudict.valid_symbols`).
-
-          lexicon_path: Path to a pronuncation lexicon for looking up symbols prior to
-              performing G2P. *NOTE*: This is currently assumed to be in X-SAMPA
-              compatible with the Sequitur phoneset (see `voices.phonemes`).
-
-          sequitur_fail_en_model_path: Path to a sequitur G2P model using the
-              same phoneset as `sequitur_model_path`. This is assumed to be en-US
-              and used when both the lexicon lookup and primary G2P translation fail.
-
-          language_code: The primary language code for the voice.
+          phonetizer: A GraphemeToPhonemeTranslator to use for the input text.
         """
         self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self._melgan_model = utils.get_melgan(full_path=melgan_vocoder_path)
         self._melgan_model.to(self._device)
         self._fs_model = get_FastSpeech2(None, full_path=fastspeech_model_path)
         self._fs_model.to(self._device)
-
-        # TODO(rkjaran): Move the lang codes to a parameter, possibly when we define a
-        #                proper config structure
-        lang_model_paths = {LangID(language_code): Path(sequitur_model_path)}
-        if sequitur_fail_en_model_path:
-            lang_model_paths.update(
-                {LangID("en-IS"): Path(sequitur_fail_en_model_path)}
-            )
-        self._phonetisizer = SequiturGraphemeToPhonemeTranslator(
-            lang_model_paths=lang_model_paths,
-            lexica={
-                LangID(language_code): SimpleInMemoryLexicon(
-                    Path(lexicon_path), alphabet="x-sampa"
-                )
-            }
-            if lexicon_path
-            else {},
-        )
-
+        self._phonetizer = phonetizer
         self._max_words_per_segment = 30
 
     def _tokenize(self, text: str) -> typing.Iterable[Word]:
@@ -298,8 +266,10 @@ class FastSpeech2Synthesizer:
             if not word == WORD_SENTENCE_SEPARATOR:
                 punctuation = re.sub(r"[{}\[\]]", "", string.punctuation)
                 g2p_word = re.sub(r"([{}])".format(punctuation), r" \1 ", word.symbol)
-                word.phone_sequence = self._phonetisizer.translate(
-                    g2p_word, LangID("is-IS"), failure_langs=(LangID("en-IS"),)
+                # TODO(rkjaran): The language code shouldn't be hardcoded here. Should
+                #                it be here at all?
+                word.phone_sequence = self._phonetizer.translate(
+                    g2p_word, LangID("is-IS")
                 )
             yield word
 
@@ -500,23 +470,11 @@ class FastSpeech2Voice(VoiceBase):
 _OGG_VORBIS_SAMPLE_RATES = ["8000", "16000", "22050", "24000"]
 _MP3_SAMPLE_RATES = ["8000", "16000", "22050", "24000"]
 _PCM_SAMPLE_RATES = ["8000", "16000", "22050"]
-_SUPPORTED_OUTPUT_FORMATS = [
+SUPPORTED_OUTPUT_FORMATS = [
     OutputFormat(output_format="pcm", supported_sample_rates=_PCM_SAMPLE_RATES),
     OutputFormat(
         output_format="ogg_vorbis", supported_sample_rates=_OGG_VORBIS_SAMPLE_RATES
     ),
     OutputFormat(output_format="mp3", supported_sample_rates=_MP3_SAMPLE_RATES),
     OutputFormat(output_format="json", supported_sample_rates=[]),
-]
-
-# List of all available fastspeech voices
-VOICES = [
-    VoiceProperties(
-        voice_id="Alfur",
-        name="Álfur",
-        gender="Male",
-        language_code="is-IS",
-        language_name="Íslenska",
-        supported_output_formats=_SUPPORTED_OUTPUT_FORMATS,
-    ),
 ]

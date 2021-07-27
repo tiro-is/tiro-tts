@@ -61,14 +61,13 @@ class VoiceProperties:
         name: Optional[str] = None,
         gender: Optional[Literal["Female", "Male"]] = None,
         language_code: Optional[str] = None,
-        language_name: Optional[str] = None,
         supported_output_formats=[],
     ):
         self.voice_id = voice_id
         self.name = name
         self.gender = gender
         self.language_code = language_code
-        self.language_name = language_name
+        self.language_name = _LANGUAGE_NAMES[language_code] if language_code else None
         self.supported_output_formats = supported_output_formats
 
 
@@ -85,3 +84,9 @@ class VoiceBase(ABC):
     @abstractmethod
     def properties(self) -> VoiceProperties:
         return NotImplemented
+
+
+_LANGUAGE_NAMES = {
+    "is-IS": "Íslenska (Icelandic)",
+    "en-US": "English",
+}

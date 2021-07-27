@@ -11,9 +11,9 @@ load("//tools/py:py_repl.bzl", "py_repl2")
 py_library(
     name = "app_lib",
     srcs = glob(["src/**/*.py"], exclude=["src/app.py"]),
-    data = glob(["src/templates/*.dhtml"]),
+    data = glob(["src/templates/*.dhtml"]) + glob(["conf/*.pbtxt"]),
     srcs_version = "PY3",
-    deps = all_requirements,
+    deps = all_requirements + ["//proto/tiro/tts:voice_python_proto"],
 )
 
 py_binary(

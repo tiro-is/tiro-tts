@@ -1,0 +1,63 @@
+voices {
+  voice_id: "Dilja"
+  display_name: "Diljá"
+  gender: FEMALE
+  language_code: "is-IS"
+  fs2melgan {
+      alphabet: IPA
+      fastspeech2_uri: "file://../models/dilja/fastspeech.pth.tar"
+      melgan_uri: "file://../models/dilja/melgan.pt"
+      phonetizer_name: "phonetizer/is-IS/2021-07-26"
+  }
+}
+voices {
+  voice_id: "Alfur"
+  display_name: "Álfur"
+  gender: MALE
+  language_code: "is-IS"
+  fs2melgan {
+      alphabet: IPA
+      fastspeech2_uri: "file://../models/alfur/fastspeech.pth.tar"
+      melgan_uri: "file://../models/alfur/melgan.pt"
+      phonetizer_name: "phonetizer/is-IS/2021-07-26"
+  }
+}
+voices {
+  voice_id: "Karl"
+  display_name: "Karl"
+  gender: MALE
+  language_code: "is-IS"
+  polly { }
+}
+voices {
+  voice_id: "Dora"
+  display_name: "Dóra"
+  gender: MALE
+  language_code: "is-IS"
+  polly { }
+}
+phonetizers {
+  name: "phonetizer/is-IS/2021-07-26"
+  language_code: "is-IS"
+  translators {
+    lexicon {
+      language_code: "is-IS"
+      alphabet: XSAMPA
+      uri: "file://../models/lexicon.txt"
+    }
+  }
+  translators {
+    sequitur {
+      language_code: "is-IS"
+      alphabet: IPA
+      uri: "file://../models/sequitur.mdl"
+    }
+  }
+  translators {
+    sequitur {
+      language_code: "is-IS"
+      alphabet: IPA
+      uri: "file://../models/sequitur_fail_en.mdl"
+    }
+  }
+}

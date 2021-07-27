@@ -1,0 +1,117 @@
+// Copyright 2021 Tiro ehf.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+syntax = "proto3";
+
+package tiro.tts;
+
+message SynthesisSet {
+  // Voices for the voice manager to load and serve
+  repeated Voice voices = 1;
+
+  // Shared phonetizers referenced in `voices`
+  repeated Phonetizer phonetizers = 2;
+}
+
+message Voice {
+  enum Gender {
+    UNSPECIFIED_GENDER = 0;
+    FEMALE = 1;
+    MALE = 2;
+    OTHER = 3;
+  }
+  string voice_id = 1;
+  string display_name = 2;
+  Gender gender = 3;
+  string language_code = 4;
+
+  oneof backend {
+    Fastspeech2MelganBackend fs2melgan = 5;
+    PollyBackend polly = 6;
+  }
+}
+
+message Fastspeech2MelganBackend {
+  // *optional* The BCP-47 language code
+  string language_code = 1;
+
+  // The pronunciation alphabet used for the models output
+  Alphabet alphabet = 2;
+
+  // URI pointing to a Fastspeech model checkpoint.  This can be a file:// URI
+  // or gs:// that the server has access to.
+  string fastspeech2_uri = 3;
+
+  // URI pointing to a MelGAN model checkpoint.  This can be a file:// URI or
+  // gs:// that the server has access to.
+  string melgan_uri = 4;
+
+  string phonetizer_name = 5;
+}
+
+// The Polly backend has no config, auth info is supplied with environment
+// variables.
+message PollyBackend { }
+
+enum Alphabet {
+  UNSPECIFIED_ALPHABET = 0;
+  IPA = 1;
+  XSAMPA = 2;
+}
+
+message Phonetizer {
+  message Translator {
+    oneof model_kind {
+      Lexicon lexicon = 1;
+      SequiturTranslator sequitur = 2;
+    }
+  }
+
+  // Resource name for this phonetizer, to be referenced by models.
+  // E.g.: "phonetizer/is-IS/2021-07-26"
+  string name = 1;
+
+  // The pronunciation alphabet used for the models output
+  string language_code = 2;
+
+  // A list of "translators" that map from graphemes to phonemes.  The list is
+  // ordered, meaning the first one is tried first, then the second and so on.
+  // Typically this would only contain two entries: a lexicon and a automatic
+  // g2p translator as a backoff.
+  repeated Translator translators = 3;
+}
+
+message SequiturTranslator {
+  // The BCP-47 language code
+  string language_code = 1;
+
+  // The pronunciation alphabet used for the models output
+  Alphabet alphabet = 2;
+
+  // URI pointing to a Sequitur model.  This can be a file:// URI or gs:// that
+  // the server has access to.
+  string uri = 3;
+}
+
+
+message Lexicon {
+  // The BCP-47 language code
+  string language_code = 1;
+
+  // The pronunciation alphabet used in the lexicon
+  Alphabet alphabet = 2;
+
+  // URI pointing to a Sequitur model.  This can be a file:// URI or gs:// that
+  // the server has access to.
+  string uri = 3;
+}

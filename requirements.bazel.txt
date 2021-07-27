@@ -23,7 +23,7 @@ scipy==1.5.0
 setuptools==44.0.0
 six==1.15.0
 tgt==1.4.4
-torch==1.9.0
+torch @ https://download.pytorch.org/whl/cpu/torch-1.9.0%2Bcpu-cp38-cp38-linux_x86_64.whl
 typing-extensions==3.7.4.3
 Unidecode==1.1.1
 urllib3==1.26.4
@@ -34,3 +34,4 @@ llvmlite==0.36.0
 numba==0.53.1
 resampy==0.2.2
 tokenizer==3.1.2
+protobuf==3.17.3

@@ -31,16 +31,24 @@ spec:
           mkdir -p /models/
           gcloud auth activate-service-account --key-file=/creds/keyfile.json
 
-          FASTSPEECH=gs://models-talgreinir-is/tts/fastspeech2/v2021-01-01/checkpoint_490000.pth.tar
-          MELGAN=gs://models-talgreinir-is/tts/fastspeech2/v2021-01-01/vocoder_aca5990_3350.pt
+          ALFUR_FASTSPEECH=gs://models-talgreinir-is/tts/fastspeech2/v2021-01-01/checkpoint_490000.pth.tar
+          ALFUR_MELGAN=gs://models-talgreinir-is/tts/fastspeech2/v2021-01-01/vocoder_aca5990_3350.pt
+
+          DILJA_FASTSPEECH=gs://models-talgreinir-is/tts/fastspeech2/dilja/v2021-07-26/checkpoint_380000.pth.tar
+          DILJA_MELGAN=gs://models-talgreinir-is/tts/fastspeech2/dilja/v2021-07-26/checkpoint_380000.pth.tar
+
           SEQUITUR=gs://models-talgreinir-is/g2p/is-IS.ipd_clean_slt2018.mdl
 
           LEXICON=gs://models-talgreinir-is/g2p/iceprondict/version_21.06/ice_pron_dict_standard_clear.csv#1624979739994321
 
           SEQUITUR_FAIL_EN=gs://models-talgreinir-is/g2p/en-IS.cmudict_frobv1.20200305.mdl
 
-          gsutil cp $FASTSPEECH /models/fastspeech.pth.tar
-          gsutil cp $MELGAN /models/melgan.pt
+          gsutil cp $ALFUR_FASTSPEECH /models/alfur/fastspeech.pth.tar
+          gsutil cp $ALFUR_MELGAN /models/alfur/melgan.pt
+
+          gsutil cp $DILJA_FASTSPEECH /models/dilja/fastspeech.pth.tar
+          gsutil cp $DILJA_MELGAN /models/dilja/melgan.pt
+
           gsutil cp $SEQUITUR /models/sequitur.mdl
           gsutil cp $LEXICON /models/lexicon.txt
           gsutil cp $SEQUITUR_FAIL_EN /models/sequitur_fail_en.mdl
@@ -79,14 +87,5 @@ spec:
             secretKeyRef:
               name: dev-aws-secret
               key: aws_secret_access_key
-        - name: TIRO_TTS_FASTSPEECH_MODEL_PATH
-          value: /models/fastspeech.pth.tar
-        - name: TIRO_TTS_MELGAN_VOCODER_PATH
-          value: /models/melgan.pt
-        - name: TIRO_TTS_SEQUITUR_MODEL_PATH
-          value: /models/sequitur.mdl
-        - name: TIRO_TTS_LEXICON_PATH
-          value: /models/lexicon.txt
-        - name: TIRO_TTS_SEQUITUR_FAIL_EN_MODEL_PATH
-          value: /models/sequitur_fail_en.mdl
-          
+        - name: TIRO_TTS_SYNTHESIS_SET_PB
+          value: conf/synthesis_set.pbtxt
