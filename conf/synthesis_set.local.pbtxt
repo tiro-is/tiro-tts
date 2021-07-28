@@ -32,7 +32,7 @@ voices {
 voices {
   voice_id: "Dora"
   display_name: "Dóra"
-  gender: MALE
+  gender: FEMALE
   language_code: "is-IS"
   polly { }
 }
