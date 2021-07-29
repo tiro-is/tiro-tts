@@ -1,0 +1,22 @@
+default:
+  image:
+    name: debian:10
+    entrypoint: [""]
+  cache:
+    paths:
+      - bazel-output_base
+stages:
+  - build
+  - test
+  - deploy
+  
+build:
+  stage: build
+  script:
+    - tools/bazel --output_base=bazel-output_base build --keep_going //...
+
+# There are no tests, so this would fail :)
+# test:
+#   stage: test
+#   script:
+#     - tools/bazel --output_base=bazel-output_base test //...
