@@ -29,7 +29,7 @@ Unidecode==1.1.1
 urllib3==1.26.4
 webargs==8.0.0
 Werkzeug==1.0.1
-sequitur @ git+https://github.com/rkjaran/sequitur-g2p.git@62c7da8389498d443d62753b6ffb6d98676c759d
+sequitur @ https://github.com/rkjaran/sequitur-g2p/releases/download/v1.0a2/sequitur-1.0a2-cp38-cp38-manylinux_2_12_x86_64.manylinux2010_x86_64.whl
 llvmlite==0.36.0
 numba==0.53.1
 resampy==0.2.2
