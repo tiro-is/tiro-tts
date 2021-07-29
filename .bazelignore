@@ -2,3 +2,4 @@
 .venv/
 .mypy_cache/
 __pycache__/
+bazel-output_base

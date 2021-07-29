@@ -113,12 +113,10 @@ def py_repl2(name, deps, **kwargs):
     import os
     import sys
 
-    PYTHON_BINARY = "bazel_tools/tools/python/py3wrapper.sh"
-
     if __name__ == '__main__':
-        python_program = os.path.abspath(os.path.join("external", PYTHON_BINARY))
-        os.execv(python_program, sys.argv)
+        os.execv(sys.executable, [sys.executable] + sys.argv[1:])
     """)
+
     _write_file(
         name = name + "_py_gen",
         out = name + ".py",
