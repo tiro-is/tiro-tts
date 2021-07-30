@@ -14,7 +14,7 @@ stages:
 build:
   stage: build
   script:
-    - tools/bazel --output_base=bazel-output_base build --keep_going //...
+    - tools/bazel --output_base=bazel-output_base build //...
 
 # There are no tests, so this would fail :)
 # test:

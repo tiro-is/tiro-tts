@@ -66,7 +66,7 @@ py3_image(
     srcs = ["src/gunicorn_runner.py"],
     layers = [
         ":app_deps_image_layer",
-        requirement("gunicorn")
+        requirement("gunicorn"),
         ":app_lib",
     ],
     base = ":py3_8_image",
