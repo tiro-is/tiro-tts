@@ -1,6 +1,7 @@
 default:
   image:
-    name: debian:10
+    # gcc:9-buster 
+    name: gcc@sha256:f7a6e098b77a363b2ac86d36c09e7464839e8ac5d99545f4cf899a8e2b90e3c2
     entrypoint: [""]
   cache:
     paths:
