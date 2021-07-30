@@ -13,6 +13,8 @@ def tiro_tts_repositories():
     rules_proto_grpc()
     io_bazel_rules_docker()
     com_adobe_rules_gitops()
+    rules_pkg()
+    ffmpeg()
 
 def rules_python():
     RULES_PYTHON_VERSION = "0.2.0"
@@ -64,6 +66,43 @@ def rules_proto_grpc():
         sha256 = RULES_PROTO_GRPC_SHA256,
         strip_prefix = "rules_proto_grpc-{}".format(RULES_PROTO_GRPC_VERSION),
         urls = ["https://github.com/rules-proto-grpc/rules_proto_grpc/archive/{}.tar.gz".format(RULES_PROTO_GRPC_VERSION)],
+    )
+
+
+def rules_pkg():
+    RULES_PKG_VERSION = "0.5.0"
+    RULES_PKG_SHA256 = "353b20e8b093d42dd16889c7f918750fb8701c485ac6cceb69a5236500507c27"
+    maybe(
+        http_archive,
+        name = "rules_pkg",
+        urls = [
+            "https://mirror.bazel.build/github.com/bazelbuild/rules_pkg/releases/download/{v}/rules_pkg-{v}.tar.gz".format(v = RULES_PKG_VERSION),
+            "https://github.com/bazelbuild/rules_pkg/releases/download/{v}/rules_pkg-{v}.tar.gz".format(v = RULES_PKG_VERSION),
+        ],
+        sha256 = RULES_PKG_SHA256,
+    )
+
+
+def ffmpeg():
+    """Precompiled static ffmpeg"""
+    maybe(
+        http_archive,
+        name = "ffmpeg",
+        strip_prefix = "ffmpeg-4.2.2-amd64-static",
+        urls = ["https://www.johnvansickle.com/ffmpeg/old-releases/ffmpeg-4.2.2-amd64-static.tar.xz"],
+        sha256 = "c1c7ec5180523db214a7f6f59ea737e8e582570cb884c3ab0c583da4f5165e27",
+        build_file_content = """
+load("@rules_pkg//:pkg.bzl", "pkg_tar")
+
+pkg_tar(
+  name = "cli_pkg",
+  strip_prefix = "external/ffmpeg",
+  package_dir = "/usr/bin",
+  mode = "0755",
+  srcs = ["ffmpeg"],
+  visibility = ["//visibility:public"],
+)
+"""
     )
 
 

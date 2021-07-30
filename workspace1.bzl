@@ -1,3 +1,4 @@
+load("@rules_pkg//:deps.bzl", "rules_pkg_dependencies")
 load("@rules_python//python:pip.bzl", "pip_parse")
 load("@rules_proto//proto:repositories.bzl", "rules_proto_dependencies", "rules_proto_toolchains")
 load("@rules_proto_grpc//:repositories.bzl", "rules_proto_grpc_toolchains", "rules_proto_grpc_repos")
@@ -24,6 +25,7 @@ def tiro_tts_workspace():
     rules_proto_dependencies()
     rules_proto_toolchains()
     rules_proto_grpc_python_repos()
+    rules_pkg_dependencies()
 
 
 def setup_mostly_hermetic_python_toolchain():

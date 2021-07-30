@@ -1,7 +1,7 @@
 load("@rules_python//python:defs.bzl", "py_binary", "py_library")
 load("@io_bazel_rules_docker//python:image.bzl", "py_layer")
 load("@io_bazel_rules_docker//python3:image.bzl", "py3_image")
-load("@pip_deps//:requirements.bzl", "all_requirements")
+load("@pip_deps//:requirements.bzl", "all_requirements", "requirement")
 load(
     "@io_bazel_rules_docker//container:container.bzl",
     "container_image",
@@ -10,7 +10,7 @@ load("//tools/py:py_repl.bzl", "py_repl2")
 
 py_library(
     name = "app_lib",
-    srcs = glob(["src/**/*.py"], exclude=["src/app.py"]),
+    srcs = glob(["src/**/*.py"]),
     data = glob(["src/templates/*.dhtml"]) + glob(["conf/*.pbtxt"]),
     srcs_version = "PY3",
     deps = all_requirements + ["//proto/tiro/tts:voice_python_proto"],
@@ -23,6 +23,18 @@ py_binary(
     deps = [":app_lib"],
 )
 
+py_binary(
+    name = "gunicorn_runner",
+    srcs = ["src/gunicorn_runner.py"],
+    python_version = "PY3",
+    deps = [
+        ":app_lib",
+        # Technically this is included in ``all_requirements``, but let's be
+        # explicit
+        requirement("gunicorn"),
+    ],
+)
+
 # Defines a runnable REPL with the same environment as :app
 # Something like:
 #   echo "import os; print(os.environ['PYTHONPATH'])" | bazel run //:repl
@@ -33,7 +45,6 @@ py_repl2(
     python_version = "PY3",
     deps = [":app_lib"],
 )
-
 
 container_image(
     name = "py3_8_image",
@@ -51,11 +62,33 @@ py_layer(
 
 py3_image(
     name = "app_image",
-    main = "src/app.py",
-    srcs = ["src/app.py"],
+    main = "src/gunicorn_runner.py",
+    srcs = ["src/gunicorn_runner.py"],
     layers = [
         ":app_deps_image_layer",
-        ":app_lib"
+        requirement("gunicorn")
+        ":app_lib",
     ],
     base = ":py3_8_image",
+)
+
+container_image(
+    name = "tiro-tts",
+    base = ":app_image",
+    labels = {
+        "maintainer": "Tiro <tiro@tiro.is>",
+        "description": "Runtime image for the Tiro TTS service",
+    },
+    tars = [
+        "@ffmpeg//:cli_pkg",
+    ],
+    ports = ["8000"],
+    volumes = ["/models"],
+    cmd = [
+        "--bind", "0.0.0.0:8000",
+        "--access-logfile", "-",
+        "--error-logfile", "-",
+        "app:app",
+    ],
+    visibility = ["//visibility:public"],
 )
