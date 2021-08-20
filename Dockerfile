@@ -19,5 +19,7 @@ FROM build as runtime-prod
 EXPOSE 8000
 VOLUME /app/generated
 
-ENTRYPOINT ["gunicorn", "--bind", "0.0.0.0:8000", "--access-logfile", "-", "--error-logfile", "-"]
+ENTRYPOINT ["gunicorn", "--bind", "0.0.0.0:8000", "--access-logfile", "-", \
+    "--error-logfile", "-", \
+    "--access-logformat", "%(l)s %(u)s %(t)s \"%(r)s\" %(s)s %(b)s \"%(f)s\" \"%(a)s\""]
 CMD ["app:app"]
