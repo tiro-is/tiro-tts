@@ -45,6 +45,7 @@ app.app_context().push()
 # This requires the Flask app context to be initialized. Should probably be refactored a
 # bit.
 from voices import OutputFormat, VoiceManager  # noqa:E402 isort:skip
+from logging_utils import clean_request
 
 g_synthesizers = VoiceManager.from_pbtxt(Path(app.config["SYNTHESIS_SET_PB"]))
 
@@ -142,7 +143,7 @@ def handle_internal_error(err):
 @marshal_with(schemas.Error, code=400, description="Bad request")
 @marshal_with(schemas.Error, code=500, description="Service error")
 def route_synthesize_speech(**kwargs):
-    app.logger.info("Got request: %s", kwargs)
+    app.logger.info("Got request: %s", clean_request(kwargs))
 
     if "Engine" not in kwargs:
         kwargs["Engine"] = "standard"
@@ -205,7 +206,7 @@ docs.register(route_synthesize_speech)
 @marshal_with(schemas.Error, code=400, description="Bad request")
 @marshal_with(schemas.Error, code=500, description="Service error")
 def route_describe_voices(**kwargs):
-    app.logger.info("Got request: %s", kwargs)
+    app.logger.info("Got request: %s", clean_request(kwargs))
 
     def query_filter(elem):
         if "LanguageCode" in kwargs and kwargs["LanguageCode"]:
