@@ -28,5 +28,8 @@ class EnvvarConfig(metaclass=flask_env.MetaFlaskEnv):
 
     # Features flags
 
+    # Strip the text content from all logged requests
+    STRIP_TEXT = True
+
     # Enable to use ffmpeg executable to encode ogg_vorbis/mp3
     USE_FFMPEG = True
