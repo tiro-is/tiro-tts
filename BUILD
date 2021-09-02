@@ -13,7 +13,10 @@ py_library(
     srcs = glob(["src/**/*.py"]),
     data = glob(["src/templates/*.dhtml"]) + glob(["conf/*.pbtxt"]),
     srcs_version = "PY3",
-    deps = all_requirements + ["//proto/tiro/tts:voice_python_proto"],
+    deps = all_requirements + [
+        "//proto/tiro/tts:voice_python_proto",
+        "@com_github_grammatek_tts_frontend_api//:tts_frontend_service_python_grpc",
+    ],
 )
 
 py_binary(
