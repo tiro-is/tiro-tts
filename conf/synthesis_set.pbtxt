@@ -55,7 +55,7 @@ phonetizers {
   }
   translators {
     sequitur {
-      language_code: "en-IS"
+      language_code: "is-IS"
       alphabet: IPA
       uri: "file:///models/sequitur_fail_en.mdl"
     }
