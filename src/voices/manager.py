@@ -17,18 +17,18 @@ from typing import Dict, List, Literal, Optional, TextIO, Union
 import google.protobuf.text_format
 
 from proto.tiro.tts import voice_pb2
-
-from . import aws, fastspeech
-from .aws import PollyVoice
-from .fastspeech import FastSpeech2Synthesizer, FastSpeech2Voice
-from .grapheme_to_phoneme import (
+from src.frontend.grapheme_to_phoneme import (
     ComposedTranslator,
     GraphemeToPhonemeTranslatorBase,
     LangID,
     LexiconGraphemeToPhonemeTranslator,
     SequiturGraphemeToPhonemeTranslator,
 )
-from .lexicon import SimpleInMemoryLexicon
+from src.frontend.lexicon import SimpleInMemoryLexicon
+
+from . import aws, fastspeech
+from .aws import PollyVoice
+from .fastspeech import FastSpeech2Synthesizer, FastSpeech2Voice
 from .voice_base import VoiceBase, VoiceProperties
 
 
