@@ -15,7 +15,7 @@ from typing import List
 
 PhoneSeq = List[str]
 
-SHORT_PAUSE = "ps"
+SHORT_PAUSE = "sp"
 
 IPA_XSAMPA_MAP = {
     "a": "a",
