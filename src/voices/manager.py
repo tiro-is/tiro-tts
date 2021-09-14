@@ -25,6 +25,11 @@ from src.frontend.grapheme_to_phoneme import (
     SequiturGraphemeToPhonemeTranslator,
 )
 from src.frontend.lexicon import SimpleInMemoryLexicon
+from src.frontend.normalization import (
+    BasicNormalizer,
+    GrammatekNormalizer,
+    NormalizerBase,
+)
 
 from . import aws, fastspeech
 from .aws import PollyVoice
@@ -60,6 +65,12 @@ class VoiceManager:
                 )
             )
 
+        normalizers: Dict[str, NormalizerBase] = {}
+        for normalizer in synthesis_set.normalizers:
+            normalizers[normalizer.name] = _normalizer_from_pb(normalizer)
+        if not normalizers:
+            normalizers["fallback"] = BasicNormalizer()
+
         synthesizers: Dict[str, VoiceBase] = {}
         for voice in synthesis_set.voices:
             props = VoiceProperties(
@@ -79,6 +90,9 @@ class VoiceManager:
                             voice.fs2melgan.fastspeech2_uri
                         ),
                         phonetizer=phonetizers[voice.fs2melgan.phonetizer_name],
+                        normalizer=normalizers[
+                            voice.fs2melgan.normalizer_name or "fallback"
+                        ],
                     ),
                 )
                 synthesizers[props.voice_id] = fs
@@ -153,3 +167,13 @@ def _translator_from_pb(
         )
     else:
         raise ValueError("Unsupported translator type.")
+
+
+def _normalizer_from_pb(pb: voice_pb2.Normalizer) -> NormalizerBase:
+    kind = pb.WhichOneof("kind")
+    if kind == "basic":
+        return BasicNormalizer()
+    elif kind == "grammatek":
+        return GrammatekNormalizer(address=pb.grammatek.address)
+    else:
+        raise ValueError("Unsupported normalizer type.")
