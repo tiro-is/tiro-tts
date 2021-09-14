@@ -246,7 +246,7 @@ class FastSpeech2Synthesizer:
 
     @staticmethod
     def _wavarray_to_pcm(
-        array: np.array, src_sample_rate=22050, dst_sample_rate=22050
+        array: np.ndarray, src_sample_rate=22050, dst_sample_rate=22050
     ) -> bytes:
         """Convert a NDArray (int16) to a PCM byte chunk, resampling if necessary."""
 
