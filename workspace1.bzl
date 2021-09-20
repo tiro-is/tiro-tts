@@ -7,6 +7,7 @@ load(
     "@io_bazel_rules_docker//repositories:repositories.bzl",
     container_repositories = "repositories",
 )
+load("@com_github_grpc_grpc//bazel:grpc_deps.bzl", "grpc_deps")
 load("//tools/py:defs.bzl", "python_interpreter")
 
 
@@ -19,6 +20,8 @@ def tiro_tts_workspace():
         python_interpreter_target = "@python_interpreter//:python_bin",
     )
     container_repositories()
+
+    grpc_deps()
 
     rules_proto_grpc_toolchains()
     rules_proto_grpc_repos()
@@ -33,4 +36,9 @@ def setup_mostly_hermetic_python_toolchain():
         name = "python_interpreter",
         py_version = "3.8.3",
         sha256 = "dfab5ec723c218082fe3d5d7ae17ecbdebffa9a1aea4d64aa3a2ecdd2e795864",
+    )
+
+    native.bind(
+        name = "python_headers",
+        actual = "@python_interpreter//:python_headers",
     )

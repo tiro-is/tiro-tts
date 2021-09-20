@@ -9,11 +9,12 @@ def maybe(repo_rule, name, **kwargs):
 
 def tiro_tts_repositories():
     rules_python()
+    rules_pkg()
     rules_proto()
+    com_github_grpc_grpc()
     rules_proto_grpc()
     io_bazel_rules_docker()
     com_adobe_rules_gitops()
-    rules_pkg()
     ffmpeg()
     com_github_grammatek_tts_frontend_api()
 
@@ -55,6 +56,24 @@ def rules_proto():
         sha256 = RULES_PROTO_SHA256,
         strip_prefix = "rules_proto-{}".format(RULES_PROTO_VERSION),
         urls = ["https://github.com/bazelbuild/rules_proto/archive/{}.tar.gz".format(RULES_PROTO_VERSION)],
+    )
+
+
+def com_github_grpc_grpc(
+        version = "1.40.0",
+        sha256 = "13e7c6460cd979726e5b3b129bb01c34532f115883ac696a75eb7f1d6a9765ed",
+):
+    maybe(
+        http_archive,
+        name = "com_github_grpc_grpc",
+        sha256 = sha256,
+        strip_prefix = "grpc-{}".format(version),
+        urls = ["https://github.com/grpc/grpc/archive/v{}.tar.gz".format(version)],
+        patches = [
+            "@//:patches/com_github_grpc_grpc/cython_library.bzl.patch",
+            "@//:patches/com_github_grpc_grpc/grpc_python_deps.bzl.patch",
+        ],
+        patch_args = ["-p1"],
     )
 
 
