@@ -21,6 +21,7 @@ deploy:
   only:
     - master
   script:
+    - base64 -d $GCR_KEY | docker login -u _json_key --password-stdin https://eu.gcr.io
     - tools/bazel --output_base=bazel-output_base run //k8s:prod.apply
 
 # There are no tests, so this would fail :)
