@@ -76,7 +76,7 @@ py3_image(
 )
 
 container_image(
-    name = "tiro-tts",
+    name = "tiro-tts_image",
     base = ":app_image",
     labels = {
         "maintainer": "Tiro <tiro@tiro.is>",
