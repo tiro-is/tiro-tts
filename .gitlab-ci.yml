@@ -16,6 +16,13 @@ build:
   script:
     - tools/bazel --output_base=bazel-output_base build //...
 
+deploy:
+  stage: deploy
+  only:
+    - master
+  script:
+    - tools/bazel --output_base=bazel-output_base run //k8s:prod.apply
+
 # There are no tests, so this would fail :)
 # test:
 #   stage: test

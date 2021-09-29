@@ -57,9 +57,6 @@ k8s_deploy(
         ["overlays/prod/**/*.yaml"],
         exclude = ["**/kustomization.yaml", "**/configmap.yaml"]
     ),
-    common_labels = {
-        "environment": "prod",
-    },
     user = PROD_USER,
     namespace = NAMESPACE,
     deployment_branch = "master",
