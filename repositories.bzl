@@ -9,12 +9,14 @@ def maybe(repo_rule, name, **kwargs):
 
 def tiro_tts_repositories():
     rules_python()
+    rules_pkg()
     rules_proto()
+    com_github_grpc_grpc()
     rules_proto_grpc()
     io_bazel_rules_docker()
     com_adobe_rules_gitops()
-    rules_pkg()
     ffmpeg()
+    com_github_grammatek_tts_frontend_api()
 
 def rules_python():
     RULES_PYTHON_VERSION = "0.2.0"
@@ -54,6 +56,24 @@ def rules_proto():
         sha256 = RULES_PROTO_SHA256,
         strip_prefix = "rules_proto-{}".format(RULES_PROTO_VERSION),
         urls = ["https://github.com/bazelbuild/rules_proto/archive/{}.tar.gz".format(RULES_PROTO_VERSION)],
+    )
+
+
+def com_github_grpc_grpc(
+        version = "1.40.0",
+        sha256 = "13e7c6460cd979726e5b3b129bb01c34532f115883ac696a75eb7f1d6a9765ed",
+):
+    maybe(
+        http_archive,
+        name = "com_github_grpc_grpc",
+        sha256 = sha256,
+        strip_prefix = "grpc-{}".format(version),
+        urls = ["https://github.com/grpc/grpc/archive/v{}.tar.gz".format(version)],
+        patches = [
+            "@//:patches/com_github_grpc_grpc/cython_library.bzl.patch",
+            "@//:patches/com_github_grpc_grpc/grpc_python_deps.bzl.patch",
+        ],
+        patch_args = ["-p1"],
     )
 
 
@@ -101,6 +121,54 @@ pkg_tar(
   mode = "0755",
   srcs = ["ffmpeg"],
   visibility = ["//visibility:public"],
+)
+"""
+    )
+
+
+def com_github_grammatek_tts_frontend_api(
+        version = "54ae2943375dd368ea94e5d869f71bdcc671a3cd",
+        sha256 = "42cf22c44398077b496ea866f3dace0f7ab0fc03c84b6e19cfeb3ab01cf2fee2",
+):
+    maybe(
+        http_archive,
+        name = "com_github_grammatek_tts_frontend_api",
+        sha256 = sha256,
+        strip_prefix = "tts-frontend-api-{}".format(version),
+        urls = ["https://github.com/grammatek/tts-frontend-api/archive/{}.zip".format(version)],
+        build_file_content = """\
+package(default_visibility = ["//visibility:public"])
+
+load("@rules_proto//proto:defs.bzl", "proto_library")
+load("@rules_proto_grpc//python:defs.bzl", "python_proto_library", "python_grpc_library")
+
+proto_library(
+    name = "tts_frontend_message_proto",
+    srcs = ["messages/tts_frontend_message.proto"],
+)
+
+proto_library(
+    name = "tts_frontend_service_proto",
+    srcs = ["services/tts_frontend_service.proto"],
+    deps = [
+        ":tts_frontend_message_proto",
+        "@com_google_protobuf//:empty_proto",
+    ],
+)
+
+python_proto_library(
+   name = "tts_frontend_messages_python_proto",
+   protos = [":tts_frontend_message_proto"],
+)
+
+python_grpc_library(
+   name = "tts_frontend_service_python_grpc",
+   protos = [
+       ":tts_frontend_service_proto",
+   ],
+   deps = [
+       ":tts_frontend_messages_python_proto",
+   ],
 )
 """
     )

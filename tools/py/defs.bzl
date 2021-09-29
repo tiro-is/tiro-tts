@@ -61,5 +61,12 @@ filegroup(
     srcs = glob(["bazel_install/**"], exclude = ["**/* *"]),
     visibility = ["//visibility:public"],
 )
+
+cc_library(
+   name = "python_headers",
+   hdrs = glob(["bazel_install/include/python3.8/**/*.h"]),
+   strip_include_prefix = "bazel_install/include/python3.8",
+   visibility = ["//visibility:public"],
+)
 """,
     )

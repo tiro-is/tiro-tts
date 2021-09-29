@@ -1,4 +1,6 @@
 load("@pip_deps//:requirements.bzl", install_pip_requirements = "install_deps")
+load("@rules_python//python:pip.bzl", "pip_install")
+load("@com_github_grpc_grpc//bazel:grpc_deps.bzl", "grpc_deps")
 load("@io_bazel_rules_docker//repositories:deps.bzl", container_deps = "deps")
 load(
     "@io_bazel_rules_docker//container:container.bzl",
@@ -24,5 +26,7 @@ def tiro_tts_workspace():
         # digest = "sha256:80a90be7e33b931284194ba32c3af8fd8745017cfee18ba22c8269ae286f16f8",
     )
     _py3_image_repos()
+
+    grpc_deps()
 
     native.register_toolchains("//tools/py:py_toolchain")

@@ -8,6 +8,7 @@ voices {
       fastspeech2_uri: "file:///models/dilja/fastspeech.pth.tar"
       melgan_uri: "file:///models/dilja/melgan.pt"
       phonetizer_name: "phonetizer/is-IS/2021-07-26"
+      normalizer_name: "default"
   }
 }
 voices {
@@ -20,6 +21,7 @@ voices {
       fastspeech2_uri: "file:///models/alfur/fastspeech.pth.tar"
       melgan_uri: "file:///models/alfur/melgan.pt"
       phonetizer_name: "phonetizer/is-IS/2021-07-26"
+      normalizer_name: "default"
   }
 }
 voices {
@@ -60,4 +62,14 @@ phonetizers {
       uri: "file:///models/sequitur_fail_en.mdl"
     }
   }
+}
+normalizers {
+  name: "default"
+  grammatek {
+    address: "grpc://tts-frontend-service:8080"
+  }
+}
+normalizers {
+  name: "basic"
+  basic { }
 }

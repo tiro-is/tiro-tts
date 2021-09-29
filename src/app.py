@@ -119,6 +119,8 @@ def handle_method_not_allowed(err):
 @app.errorhandler(Exception)
 def handle_internal_error(err):
     """Handle unknown/internal server errors."""
+    if isinstance(err, Exception):
+        app.logger.exception("Hit unhandled internal error", exc_info=err)
     response_body = jsonify(
         {"message": "An unknown conditon has caused a service failure."}
     )

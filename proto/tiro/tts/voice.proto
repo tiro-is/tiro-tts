@@ -21,6 +21,9 @@ message SynthesisSet {
 
   // Shared phonetizers referenced in `voices`
   repeated Phonetizer phonetizers = 2;
+
+  // Shared normalizers referenced in `voices`
+  repeated Normalizer normalizers = 3;
 }
 
 message Voice {
@@ -56,7 +59,13 @@ message Fastspeech2MelganBackend {
   // gs:// that the server has access to.
   string melgan_uri = 4;
 
+  // Name of the phonetizer to use from SynthesisSet.phonetizers
+  // E.g.: "phonetizer/is-IS/2021-07-26
   string phonetizer_name = 5;
+
+  // Name of the normalizer to use from SynthesisSet.normalizers
+  // E.g.: "normalizer/is-IS/2021-09-13
+  string normalizer_name = 6;
 }
 
 // The Polly backend has no config, auth info is supplied with environment
@@ -81,7 +90,7 @@ message Phonetizer {
   // E.g.: "phonetizer/is-IS/2021-07-26"
   string name = 1;
 
-  // The pronunciation alphabet used for the models output
+  // The BCP-47 language code of this phonetizer
   string language_code = 2;
 
   // A list of "translators" that map from graphemes to phonemes.  The list is
@@ -114,4 +123,25 @@ message Lexicon {
   // URI pointing to a Sequitur model.  This can be a file:// URI or gs:// that
   // the server has access to.
   string uri = 3;
+}
+
+message Normalizer {
+  // The most basic normalizer, does nothing except filter out the most common
+  // punctuation
+  message BasicNormalizer {}
+
+  // The Grammatek/SÍM normalizer service
+  message GrammatekNormalizer {
+    // Address of normalizer, e.g. grpc://normalizer.example.com:8080
+    string address = 1;
+  }
+
+  // Resource name for this normalizer, to be referenced by models.
+  // E.g.: "normalizer/is-IS/2021-09-13
+  string name = 1;
+
+  oneof kind {
+    BasicNormalizer basic = 2;
+    GrammatekNormalizer grammatek = 3;
+  };
 }

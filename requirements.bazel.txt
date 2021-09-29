@@ -35,3 +35,8 @@ numba==0.53.1
 resampy==0.2.2
 tokenizer==3.1.2
 protobuf==3.17.3
+grpclib==0.4.2
+h2==4.0.0
+hpack==4.0.0
+hyperframe==6.0.0
+multidict==4.7.6

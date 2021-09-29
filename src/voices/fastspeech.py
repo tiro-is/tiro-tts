@@ -26,12 +26,18 @@ import tokenizer
 import torch
 from flask import current_app
 
-import ffmpeg
 from proto.tiro.tts import voice_pb2
+from src import ffmpeg
+from src.frontend.grapheme_to_phoneme import GraphemeToPhonemeTranslatorBase
+from src.frontend.lexicon import LangID, SimpleInMemoryLexicon
+from src.frontend.normalization import (
+    BasicNormalizer,
+    GrammatekNormalizer,
+    NormalizerBase,
+)
+from src.frontend.phonemes import IPA_XSAMPA_MAP, XSAMPA_IPA_MAP, align_ipa_from_xsampa
+from src.frontend.words import WORD_SENTENCE_SEPARATOR, Word
 
-from .grapheme_to_phoneme import GraphemeToPhonemeTranslatorBase
-from .lexicon import LangID, SimpleInMemoryLexicon
-from .phonemes import IPA_XSAMPA_MAP, XSAMPA_IPA_MAP
 from .voice_base import OutputFormat, VoiceBase, VoiceProperties
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../lib/fastspeech"))
@@ -42,24 +48,6 @@ if True:  # noqa: E402
     from lib.fastspeech.g2p_is import translate as g2p
     from lib.fastspeech.synthesize import get_FastSpeech2
     from lib.fastspeech.text import text_to_sequence
-
-
-def _align_ipa_from_xsampa(phoneme_string: str):
-    return " ".join(
-        XSAMPA_IPA_MAP[phn]
-        for phn in Aligner(phoneme_set=set(XSAMPA_IPA_MAP.keys()))
-        .align(phoneme_string.replace(" ", ""))
-        .split(" ")
-    )
-
-
-def _align_ipa(phoneme_string: str):
-    return " ".join(
-        phn
-        for phn in Aligner(phoneme_set=set(IPA_XSAMPA_MAP.keys()))
-        .align(phoneme_string.replace(" ", ""))
-        .split(" ")
-    )
 
 
 class SSMLParser(HTMLParser):
@@ -93,7 +81,7 @@ class SSMLParser(HTMLParser):
                     "'phoneme' tag has to have 'alphabet' and 'ph' attributes"
                 )
             self._prepared_fastspeech_strings.append(
-                "{%s}" % _align_ipa_from_xsampa(attrs_map["ph"])
+                "{%s}" % align_ipa_from_xsampa(attrs_map["ph"])
             )
         self._tags_queue.append(tag)
 
@@ -113,43 +101,6 @@ class SSMLParser(HTMLParser):
         return " ".join(self._prepared_fastspeech_strings)
 
 
-class Word:
-    """A wrapper for individual symbol and its metadata."""
-
-    def __init__(
-        self,
-        original_symbol: str = "",
-        symbol: str = "",
-        phone_sequence: typing.List[str] = [],
-        start_byte_offset: int = 0,
-        end_byte_offset: int = 0,
-        start_time_milli: int = 0,
-    ):
-        self.original_symbol = original_symbol
-        self.symbol = symbol
-        self.phone_sequence = phone_sequence
-        self.start_byte_offset = start_byte_offset
-        self.end_byte_offset = end_byte_offset
-        self.start_time_milli = start_time_milli
-
-    def to_json(self):
-        """Serialize Word to JSON."""
-        return json.dumps(
-            {
-                "time": round(self.start_time_milli),
-                "type": "word",
-                "start": self.start_byte_offset,
-                "end": self.end_byte_offset,
-                "value": self.original_symbol,
-            },
-            ensure_ascii=False,
-        )
-
-
-# Use an empty initialized word as a sentence separator
-WORD_SENTENCE_SEPARATOR = Word()
-
-
 class FastSpeech2Synthesizer:
     """A synthesizer wrapper around Fastspeech2 using MelGAN as a vocoder."""
 
@@ -157,12 +108,14 @@ class FastSpeech2Synthesizer:
     _melgan_model: torch.nn.Module
     _fs_model: torch.nn.Module
     _phonetizer: GraphemeToPhonemeTranslatorBase
+    _normalizer: NormalizerBase
 
     def __init__(
         self,
         melgan_vocoder_path: os.PathLike,
         fastspeech_model_path: os.PathLike,
         phonetizer: GraphemeToPhonemeTranslatorBase,
+        normalizer: NormalizerBase,
     ):
         """Initialize a FastSpeech2Synthesizer.
 
@@ -174,6 +127,9 @@ class FastSpeech2Synthesizer:
               See https://github.com/cadia-lvl/FastSpeech2.
 
           phonetizer: A GraphemeToPhonemeTranslator to use for the input text.
+
+          normalizer: A Normalizer used to normalize the input text prior to synthesis
+
         """
         self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self._melgan_model = utils.get_melgan(full_path=melgan_vocoder_path)
@@ -181,89 +137,13 @@ class FastSpeech2Synthesizer:
         self._fs_model = get_FastSpeech2(None, full_path=fastspeech_model_path)
         self._fs_model.to(self._device)
         self._phonetizer = phonetizer
+        self._normalizer = normalizer
         self._max_words_per_segment = 30
-
-    def _tokenize(self, text: str) -> typing.Iterable[Word]:
-        """Split input into spoken tokens.
-
-        Args:
-          text: Input text to be tokenized.
-
-        Yields:
-          Word: spoken word symbols, including their *byte* offsets in `text`.  A
-            default initialized Word represents a sentence boundary.
-
-        """
-        # TODO(rkjaran): This doesn't handle embedded phonemes properly, but the
-        #                previous version didn't either.
-        tokens = list(tokenizer.tokenize_without_annotation(text))
-
-        def utf8_byte_length(string: str) -> int:
-            return len(string.encode("utf-8"))
-
-        def is_token_spoken(
-            token: tokenizer.Tok,
-        ) -> bool:
-            return token.kind != tokenizer.TOK.PUNCTUATION or not token.original
-
-        def add_token_offsets(
-            tokens: typing.Iterable[tokenizer.Tok],
-        ) -> typing.List[typing.Tuple[tokenizer.Tok, int, int]]:
-            # can't throw away sentence end/start info
-            n_bytes_consumed: int = 0
-            byte_offsets: typing.List[typing.Tuple[tokenizer.Tok, int, int]] = []
-            for tok in tokens:
-                if tok.kind == tokenizer.TOK.S_END:
-                    byte_offsets.append((tok, 0, 0))
-                    continue
-                if not tok.origin_spans or not tok.original:
-                    continue
-                if is_token_spoken(tok):
-                    start_offset = n_bytes_consumed + utf8_byte_length(
-                        tok.original[: tok.origin_spans[0]]
-                    )
-                    end_offset = start_offset + utf8_byte_length(
-                        tok.original[tok.origin_spans[0] : tok.origin_spans[-1] + 1]
-                    )
-
-                    byte_offsets.append((tok, start_offset, end_offset))
-                n_bytes_consumed += utf8_byte_length(tok.original)
-            return byte_offsets
-
-        current_word_segments = []
-        phoneme_str_open = False
-        for tok, start_byte_offset, end_byte_offset in add_token_offsets(tokens):
-            if tok.kind == tokenizer.TOK.S_END:
-                yield WORD_SENTENCE_SEPARATOR
-                continue
-
-            w = typing.cast(str, tok.original).strip()
-            if phoneme_str_open:
-                current_word_segments.append(w)
-                if w.endswith("}"):
-                    yield Word(
-                        original_symbol="".join(current_word_segments),
-                        symbol="".join(current_word_segments),
-                        start_byte_offset=start_byte_offset,
-                        end_byte_offset=end_byte_offset,
-                    )
-                    phoneme_str_open = False
-                    current_word_segments = []
-            elif not phoneme_str_open:
-                if w.startswith("{") and not w.endswith("}"):
-                    current_word_segments.append(w)
-                    phoneme_str_open = True
-                else:
-                    yield Word(
-                        original_symbol=w,
-                        symbol=w,
-                        start_byte_offset=start_byte_offset,
-                        end_byte_offset=end_byte_offset,
-                    )
 
     def _add_phonemes(self, words: typing.Iterable[Word]) -> typing.Iterable[Word]:
         for word in words:
             if not word == WORD_SENTENCE_SEPARATOR:
+                # TODO(rkjaran): Cover more punctuation (Unicode)
                 punctuation = re.sub(r"[{}\[\]]", "", string.punctuation)
                 g2p_word = re.sub(r"([{}])".format(punctuation), r" \1 ", word.symbol)
                 # TODO(rkjaran): The language code shouldn't be hardcoded here. Should
@@ -282,7 +162,7 @@ class FastSpeech2Synthesizer:
 
     @staticmethod
     def _wavarray_to_pcm(
-        array: np.array, src_sample_rate=22050, dst_sample_rate=22050
+        array: np.ndarray, src_sample_rate=22050, dst_sample_rate=22050
     ) -> bytes:
         """Convert a NDArray (int16) to a PCM byte chunk, resampling if necessary."""
 
@@ -300,7 +180,13 @@ class FastSpeech2Synthesizer:
         )
 
     def synthesize(
-        self, text_string: str, emit_speech_marks=False, sample_rate=22050
+        self,
+        text_string: str,
+        emit_speech_marks=False,
+        sample_rate=22050,
+        # TODO(rkjaran): remove once we support normalization with SSML in a generic
+        #   way. Also remove it from FastSpeech2Voice
+        handle_embedded_phonemes=False,
     ) -> typing.Iterable[bytes]:
         """Synthesize 16 bit PCM samples or a stream of JSON speech marks.
 
@@ -319,10 +205,14 @@ class FastSpeech2Synthesizer:
         pitch_control = 1.0
         energy_control = 1.0
 
-        # Keep track of the phonemes in each word so we'll be able to map the
-        # phoneme durations to word time alignment
-        words = list(self._add_phonemes(self._tokenize(text_string)))
-
+        # TODO(rkjaran): remove conditional once we remove the
+        #   `handle_embedded_phonemes` argument
+        normalize_fn = (
+            self._normalizer.normalize
+            if not handle_embedded_phonemes
+            else BasicNormalizer().normalize
+        )
+        words = list(self._add_phonemes(normalize_fn(text_string)))
         sentences: typing.List[typing.List[Word]] = [[]]
         for idx, word in enumerate(words):
             if word == WORD_SENTENCE_SEPARATOR:
@@ -397,7 +287,8 @@ class FastSpeech2Synthesizer:
                         segment_duration_time_offset += dur
 
                     for word in segment_words:
-                        yield word.to_json().encode("utf-8") + b"\n"
+                        if word.is_spoken():
+                            yield word.to_json().encode("utf-8") + b"\n"
 
                     duration_time_offset += segment_duration_time_offset
                 else:
@@ -412,9 +303,9 @@ class FastSpeech2Voice(VoiceBase):
     _backend: FastSpeech2Synthesizer
     _properties: VoiceProperties
 
-    def __init__(self, properties: VoiceProperties, backend=None):
+    def __init__(self, properties: VoiceProperties, backend):
         """Initialize a fixed voice with a FastSpeech2 backend."""
-        self._backend = backend if backend else FastSpeech2Synthesizer()
+        self._backend = backend
         self._properties = properties
 
     def _is_valid(self, **kwargs) -> bool:
@@ -428,8 +319,9 @@ class FastSpeech2Voice(VoiceBase):
         except KeyError:
             return False
 
-    def synthesize(self, text: str, **kwargs) -> typing.Iterable[bytes]:
-        """Synthesize audio from a string of characters."""
+    def _synthesize(
+        self, text: str, handle_embedded_phonemes=False, **kwargs
+    ) -> typing.Iterable[bytes]:
         if not self._is_valid(**kwargs):
             raise ValueError("Synthesize request not valid")
 
@@ -437,6 +329,7 @@ class FastSpeech2Voice(VoiceBase):
             text,
             emit_speech_marks=kwargs["OutputFormat"] == "json",
             sample_rate=int(kwargs["SampleRate"]),
+            handle_embedded_phonemes=handle_embedded_phonemes,
         ):
             if current_app.config["USE_FFMPEG"]:
                 if kwargs["OutputFormat"] == "ogg_vorbis":
@@ -454,13 +347,18 @@ class FastSpeech2Voice(VoiceBase):
             if kwargs["OutputFormat"] in ("pcm", "json"):
                 yield chunk
 
+    def synthesize(self, text: str, **kwargs) -> typing.Iterable[bytes]:
+        """Synthesize audio from a string of characters."""
+        return self._synthesize(text, **kwargs)
+
     def synthesize_from_ssml(self, ssml: str, **kwargs) -> typing.Iterable[bytes]:
         """Synthesize audio from SSML markup."""
+        # TODO(rkjaran): Move SSML parser out of here and make it more general
         parser = SSMLParser()
         parser.feed(ssml)
         text = parser.get_fastspeech_string()
         parser.close()
-        return self.synthesize(text=text, **kwargs)
+        return self._synthesize(text=text, handle_embedded_phonemes=True, **kwargs)
 
     @property
     def properties(self) -> VoiceProperties:

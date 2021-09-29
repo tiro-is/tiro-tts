@@ -1,3 +1,5 @@
+build --incompatible_default_to_explicit_init_py
+
 build --incompatible_restrict_string_escapes=false
 query --incompatible_restrict_string_escapes=false
 

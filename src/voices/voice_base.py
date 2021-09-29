@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from abc import ABC, abstractmethod
+from abc import ABC, abstractmethod, abstractproperty
 from typing import Iterable, List, Literal, Optional, TextIO, Union
 
 
@@ -80,8 +80,7 @@ class VoiceBase(ABC):
     def synthesize_from_ssml(self, ssml: str, **kwargs) -> Iterable[bytes]:
         return NotImplemented
 
-    @property
-    @abstractmethod
+    @abstractproperty
     def properties(self) -> VoiceProperties:
         return NotImplemented
 
