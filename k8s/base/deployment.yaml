@@ -63,6 +63,11 @@ spec:
           mountPath: /creds
           readOnly: true
       containers:
+      - name: tts-frontend-service
+        image: eu.gcr.io/talgreining-is/tts-frontend-service:git4200a63
+        ports:
+        - containerPort: 8080
+          protocol: TCP
       - name: tiro-tts
         image: tiro-tts
         imagePullPolicy: Always

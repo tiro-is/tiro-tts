@@ -35,7 +35,7 @@ from src.frontend.normalization import (
     GrammatekNormalizer,
     NormalizerBase,
 )
-from src.frontend.phonemes import IPA_XSAMPA_MAP, XSAMPA_IPA_MAP
+from src.frontend.phonemes import IPA_XSAMPA_MAP, XSAMPA_IPA_MAP, align_ipa_from_xsampa
 from src.frontend.words import WORD_SENTENCE_SEPARATOR, Word
 
 from .voice_base import OutputFormat, VoiceBase, VoiceProperties
@@ -48,24 +48,6 @@ if True:  # noqa: E402
     from lib.fastspeech.g2p_is import translate as g2p
     from lib.fastspeech.synthesize import get_FastSpeech2
     from lib.fastspeech.text import text_to_sequence
-
-
-def _align_ipa_from_xsampa(phoneme_string: str):
-    return " ".join(
-        XSAMPA_IPA_MAP[phn]
-        for phn in Aligner(phoneme_set=set(XSAMPA_IPA_MAP.keys()))
-        .align(phoneme_string.replace(" ", ""))
-        .split(" ")
-    )
-
-
-def _align_ipa(phoneme_string: str):
-    return " ".join(
-        phn
-        for phn in Aligner(phoneme_set=set(IPA_XSAMPA_MAP.keys()))
-        .align(phoneme_string.replace(" ", ""))
-        .split(" ")
-    )
 
 
 class SSMLParser(HTMLParser):
@@ -99,7 +81,7 @@ class SSMLParser(HTMLParser):
                     "'phoneme' tag has to have 'alphabet' and 'ph' attributes"
                 )
             self._prepared_fastspeech_strings.append(
-                "{%s}" % _align_ipa_from_xsampa(attrs_map["ph"])
+                "{%s}" % align_ipa_from_xsampa(attrs_map["ph"])
             )
         self._tags_queue.append(tag)
 

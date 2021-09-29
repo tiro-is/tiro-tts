@@ -23,6 +23,7 @@ import tokenizer
 from messages import tts_frontend_message_pb2
 from services import tts_frontend_service_pb2, tts_frontend_service_pb2_grpc
 
+from src.frontend.common import consume_whitespace, utf8_byte_length
 from src.frontend.words import WORD_SENTENCE_SEPARATOR, Word
 
 
@@ -30,26 +31,6 @@ class NormalizerBase(ABC):
     @abstractmethod
     def normalize(self, text: str) -> Iterable[Word]:
         return NotImplemented
-
-
-def _utf8_byte_length(text: str) -> int:
-    return len(text.encode("utf-8"))
-
-
-_WHITESPACE_REGEX = re.compile(r"^\s+", re.UNICODE)
-
-
-def _consume_whitespace(text: str) -> Tuple[int, int]:
-    """Consume whitespace prefix
-
-    Returns:
-      A tuple of the number of characters consumed, and the number of bytes consumed.
-
-    """
-    m = re.match(_WHITESPACE_REGEX, text)
-    if m:
-        return len(m.group()), _utf8_byte_length(m.group())
-    return 0, 0
 
 
 def add_token_offsets(
@@ -73,15 +54,15 @@ def add_token_offsets(
         if not tok.origin_spans or not tok.original:
             continue
         # if is_token_spoken(tok):
-        start_offset = n_bytes_consumed + _utf8_byte_length(
+        start_offset = n_bytes_consumed + utf8_byte_length(
             tok.original[: tok.origin_spans[0]]
         )
-        end_offset = start_offset + _utf8_byte_length(
+        end_offset = start_offset + utf8_byte_length(
             tok.original[tok.origin_spans[0] : tok.origin_spans[-1] + 1]
         )
 
         byte_offsets.append((tok, start_offset, end_offset))
-        n_bytes_consumed += _utf8_byte_length(tok.original)
+        n_bytes_consumed += utf8_byte_length(tok.original)
     return byte_offsets
 
 
@@ -150,6 +131,8 @@ class GrammatekNormalizer(NormalizerBase):
         self._stub = tts_frontend_service_pb2_grpc.TTSFrontendStub(self._channel)
 
     def normalize(self, text):
+        # TODO(rkjaran): Should SSML parsing be done here? Or should we add a normalizer
+        #   for Iterable[Word] ?
         response: tts_frontend_message_pb2.TokenBasedNormalizedResponse = (
             self._stub.NormalizeTokenwise(
                 tts_frontend_message_pb2.NormalizeRequest(content=text)
@@ -170,9 +153,9 @@ class GrammatekNormalizer(NormalizerBase):
         text_view = text
         for sent in sentences_with_pairs:
             for original, normalized in sent:
-                n_chars_whitespace, n_bytes_whitespace = _consume_whitespace(text_view)
+                n_chars_whitespace, n_bytes_whitespace = consume_whitespace(text_view)
                 n_bytes_consumed += n_bytes_whitespace
-                token_byte_len = _utf8_byte_length(original)
+                token_byte_len = utf8_byte_length(original)
 
                 yield Word(
                     original_symbol=original,

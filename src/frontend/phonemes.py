@@ -11,7 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
+import sys
 from typing import List
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../lib/fastspeech"))
+if True:  # noqa: E402
+    from lib.fastspeech.align_phonemes import Aligner
 
 PhoneSeq = List[str]
 
@@ -81,6 +87,9 @@ IPA_XSAMPA_MAP = {
 
 XSAMPA_IPA_MAP = {val: key for key, val in IPA_XSAMPA_MAP.items()}
 
+ALIGNER_IPA = Aligner(phoneme_set=set(IPA_XSAMPA_MAP.keys()))
+ALIGNER_XSAMPA = Aligner(phoneme_set=set(XSAMPA_IPA_MAP.keys()))
+
 
 def convert_ipa_to_xsampa(phoneme: PhoneSeq) -> PhoneSeq:
     return [IPA_XSAMPA_MAP[ph] for ph in phoneme]
@@ -88,3 +97,16 @@ def convert_ipa_to_xsampa(phoneme: PhoneSeq) -> PhoneSeq:
 
 def convert_xsampa_to_ipa(phoneme: PhoneSeq) -> PhoneSeq:
     return [XSAMPA_IPA_MAP[ph] for ph in phoneme]
+
+
+def align_ipa_from_xsampa(phoneme_string: str) -> str:
+    return " ".join(
+        XSAMPA_IPA_MAP[phn]
+        for phn in ALIGNER_XSAMPA.align(phoneme_string.replace(" ", "")).split(" ")
+    )
+
+
+def _align_ipa(phoneme_string: str):
+    return " ".join(
+        phn for phn in ALIGNER_IPA.align(phoneme_string.replace(" ", "")).split(" ")
+    )
