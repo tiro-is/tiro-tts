@@ -40,14 +40,14 @@ from src.frontend.words import WORD_SENTENCE_SEPARATOR, Word
 
 from .voice_base import OutputFormat, VoiceBase, VoiceProperties
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../lib/fastspeech"))
 if True:  # noqa: E402
-    from lib.fastspeech import hparams as hp
-    from lib.fastspeech import utils
-    from lib.fastspeech.align_phonemes import Aligner
-    from lib.fastspeech.g2p_is import translate as g2p
-    from lib.fastspeech.synthesize import get_FastSpeech2
-    from lib.fastspeech.text import text_to_sequence
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../lib/fastspeech"))
+    from src.lib.fastspeech import hparams as hp
+    from src.lib.fastspeech import utils
+    from src.lib.fastspeech.align_phonemes import Aligner
+    from src.lib.fastspeech.g2p_is import translate as g2p
+    from src.lib.fastspeech.synthesize import get_FastSpeech2
+    from src.lib.fastspeech.text import text_to_sequence
 
 
 class SSMLParser(HTMLParser):

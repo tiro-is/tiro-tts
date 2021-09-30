@@ -19,7 +19,7 @@ from typing import Dict, Iterable, List, Literal, NewType, Optional
 import g2p  # from sequitur
 import sequitur
 
-from lib.fastspeech.align_phonemes import Aligner
+from src.lib.fastspeech.align_phonemes import Aligner
 
 from .lexicon import LangID, LexiconBase, read_kaldi_lexicon
 from .phonemes import SHORT_PAUSE, PhoneSeq

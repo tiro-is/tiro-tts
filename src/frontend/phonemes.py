@@ -16,8 +16,7 @@ import sys
 from typing import List
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../lib/fastspeech"))
-if True:  # noqa: E402
-    from lib.fastspeech.align_phonemes import Aligner
+from src.lib.fastspeech.align_phonemes import Aligner
 
 PhoneSeq = List[str]
 

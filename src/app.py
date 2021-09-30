@@ -22,8 +22,8 @@ from flask_cors import CORS
 from webargs.flaskparser import FlaskParser, abort
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-import schemas
-from config import EnvvarConfig
+import src.schemas
+from src.config import EnvvarConfig
 
 app = Flask(__name__)
 app.config["JSON_AS_ASCII"] = False
@@ -44,8 +44,8 @@ app.app_context().push()
 
 # This requires the Flask app context to be initialized. Should probably be refactored a
 # bit.
-from voices import OutputFormat, VoiceManager  # noqa:E402 isort:skip
-from logging_utils import clean_request
+from src.voices import OutputFormat, VoiceManager  # noqa:E402 isort:skip
+from src.logging_utils import clean_request
 
 g_synthesizers = VoiceManager.from_pbtxt(Path(app.config["SYNTHESIS_SET_PB"]))
 
