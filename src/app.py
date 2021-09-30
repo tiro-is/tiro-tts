@@ -22,7 +22,7 @@ from flask_cors import CORS
 from webargs.flaskparser import FlaskParser, abort
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-import src.schemas
+from src import schemas
 from src.config import EnvvarConfig
 
 app = Flask(__name__)

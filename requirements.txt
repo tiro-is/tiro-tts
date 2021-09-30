@@ -17,3 +17,4 @@ numba==0.53.1
 resampy==0.2.2
 tokenizer>=3.0.0,<4.0.0
 protobuf
+grpcio==1.40.0
