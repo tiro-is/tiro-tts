@@ -66,7 +66,7 @@ phonetizers {
 normalizers {
   name: "default"
   grammatek {
-    address: "grpc://tts-frontend-service:8080"
+    address: "grpc://localhost:8080"
   }
 }
 normalizers {
