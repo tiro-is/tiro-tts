@@ -64,7 +64,7 @@ spec:
           readOnly: true
       containers:
       - name: tts-frontend-service
-        image: eu.gcr.io/talgreining-is/tts-frontend-service:git4200a63
+        image: eu.gcr.io/talgreining-is/tts-frontend-service:git05add43
         ports:
         - containerPort: 8080
           protocol: TCP
