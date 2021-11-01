@@ -36,7 +36,7 @@ k8s_deploy(
 )
 
 
-PROD_CLUSTER = "gke_talgreining-is_europe-west1-b_talgreinir-is-cluster"
+PROD_CLUSTER = "gitlab-deploy"
 PROD_USER = PROD_CLUSTER
 k8s_deploy(
     name = "prod",

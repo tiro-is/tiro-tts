@@ -18,6 +18,11 @@ build:
 
 deploy:
   stage: deploy
+  environment:
+    name: production
+    kubernetes:
+      namespace: default
+  stage: deploy
   only:
     - master
   before_script:
