@@ -34,12 +34,20 @@ class TestUtf8ByteLength:
         assert utf8_byte_length("1001") == 4
 
     def test_eleven_incorrect_arg_int(self):
-        with raises(TypeError):
-            consume_whitespace(1337)
+        with raises(AttributeError):
+            utf8_byte_length(1337)
 
     def test_twelve_incorrect_arg_dict(self):
+        with raises(AttributeError):
+            utf8_byte_length({'meaning': 42})
+
+    def test_thirteen_no_arg(self):
         with raises(TypeError):
-            consume_whitespace({'meaning': 42})
+            utf8_byte_length()
+
+    def test_fourteen_extra_arg(self):
+        with raises(TypeError):
+            utf8_byte_length(" Marcus", "\tTullius")
     
 class TestConsumeWhitespace():
     def test_one_empty_string(self):
@@ -80,5 +88,14 @@ class TestConsumeWhitespace():
         with raises(TypeError):
             consume_whitespace({'meaning': 42})
 
-def test_consume_whitespace_bytes():
-    assert True
+    def test_thirteen_no_arg(self):
+        with raises(TypeError):
+            consume_whitespace()
+
+    def test_fourteen_extra_arg(self):
+        with raises(TypeError):
+            consume_whitespace(" Marcus", "\tTullius")
+
+class TestConsumeWhitespaceBytes:
+    def test_one_empty(self):
+        assert consume_whitespace_bytes(b"") == 0
