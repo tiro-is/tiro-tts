@@ -19,8 +19,8 @@ def tiro_tts_workspace():
         registry = "docker.io",
         repository = "library/python",
 
-        # Python 3.8.9-slim
-        digest = "sha256:9a88d644ef19ab2b16061d4aa8ea5cb140a5fd2e76e6b858b0f139e68f40f984",
+        # Python 3.8-slim-bullseye 2021-11-09
+        digest = "sha256:7b81bfd796e2786baf4af3319f305dd22d6cafbf64cef97a393deab99ebf9336",
 
         # distroless 3.7
         # digest = "sha256:80a90be7e33b931284194ba32c3af8fd8745017cfee18ba22c8269ae286f16f8",
