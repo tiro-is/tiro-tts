@@ -18,13 +18,44 @@ compile_pip_requirements(
 )
 
 py_library(
+    name = "melgan",
+    srcs = glob(["src/lib/fastspeech/melgan/**/*.py"]),
+    imports = ["src/lib/fastspeech/melgan"],
+    srcs_version = "PY3",
+    deps = [
+        requirement("torch"),
+        requirement("pyyaml"),
+        requirement("numpy"),
+    ],
+)
+
+py_library(
+    name = "fastspeech",
+    srcs = glob(["src/lib/fastspeech/**/*.py"], exclude=["src/lib/fastspeech/melgan"]),
+    imports = ["src/lib/fastspeech"],
+    srcs_version = "PY3",
+    deps = [
+        requirement("torch"),
+        requirement("pyyaml"),
+        requirement("numpy"),
+        requirement("tgt"),
+        requirement("scipy"),
+        requirement("numba"),
+        requirement("inflect"),
+        requirement("unidecode"),
+        ":melgan",
+    ],
+)
+
+py_library(
     name = "app_lib",
-    srcs = glob(["src/**/*.py"]),
+    srcs = glob(["src/**/*.py"], exclude=["src/lib"]),
     data = glob(["src/templates/*.dhtml"]) + glob(["conf/*.pbtxt"]),
     srcs_version = "PY3",
     deps = all_requirements + [
         "//proto/tiro/tts:voice_python_proto",
         "@com_github_grammatek_tts_frontend_api//:tts_frontend_service_python_grpc",
+        ":fastspeech",
     ],
 )
 
