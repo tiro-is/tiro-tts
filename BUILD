@@ -1,4 +1,5 @@
 load("@rules_python//python:defs.bzl", "py_binary", "py_library")
+load("@rules_python//python:pip.bzl", "compile_pip_requirements")
 load("@io_bazel_rules_docker//python:image.bzl", "py_layer")
 load("@io_bazel_rules_docker//python3:image.bzl", "py3_image")
 load("@pip_deps//:requirements.bzl", "all_requirements", "requirement")
@@ -7,6 +8,14 @@ load(
     "container_image",
 )
 load("//tools/py:py_repl.bzl", "py_repl2")
+
+# Use bazel run //:pip_compile.update to update requirements.bazel.txt
+compile_pip_requirements(
+    name = "pip_compile",
+    requirements_in = "requirements.bazel.in",
+    requirements_txt = "requirements.bazel.txt",
+    extra_args = ["--allow-unsafe"],  # for setuptools
+)
 
 py_library(
     name = "app_lib",
