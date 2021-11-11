@@ -1,5 +1,10 @@
 load("@rules_python//python:defs.bzl", "py_runtime_pair")
 
+exports_files([
+    "defs.bzl",
+    "py_pytest_test.bzl",
+])
+
 py_runtime(
     name = "python3_runtime",
     files = ["@python_interpreter//:files"],
@@ -18,4 +23,10 @@ toolchain(
     name = "py_toolchain",
     toolchain = ":py_runtime_pair",
     toolchain_type = "@bazel_tools//tools/python:toolchain_type",
+)
+
+py_library(
+    name = "pytest_helper",
+    srcs = ["pytest_helper.py"],
+    visibility = ["//visibility:public"],
 )
