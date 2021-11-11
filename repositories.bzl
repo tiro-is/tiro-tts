@@ -19,8 +19,8 @@ def tiro_tts_repositories():
     com_github_grammatek_tts_frontend_api()
 
 def rules_python():
-    RULES_PYTHON_VERSION = "0.2.0"
-    RULES_PYTHON_SHA256 = "778197e26c5fbeb07ac2a2c5ae405b30f6cb7ad1f5510ea6fdac03bded96cc6f"
+    RULES_PYTHON_VERSION = "0.5.0"
+    RULES_PYTHON_SHA256 = "cd6730ed53a002c56ce4e2f396ba3b3be262fd7cb68339f0377a45e8227fe332"
     maybe(
         http_archive,
         name = "rules_python",
