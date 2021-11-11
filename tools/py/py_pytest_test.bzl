@@ -16,6 +16,16 @@ def py_pytest_test(
         name: A unique name for this rule.
         pytest_args: a list of arguments passed to pytest
         **kwargs: are passed to py_test, with srcs and deps attrs modified
+
+    Example:
+
+        load("//tools/py:py_pytest_test.bzl", "py_pytest_test")
+        py_pytest_test(
+            name = "my_test",
+            srcs = ["test.py"],
+            deps = [":my_app_lib"]
+        )
+
     """
 
     if "main" in kwargs:
