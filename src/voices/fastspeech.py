@@ -105,7 +105,7 @@ class FastSpeech2Synthesizer:
     """A synthesizer wrapper around Fastspeech2 using MelGAN as a vocoder."""
 
     _device: torch.device
-    _melgan_model: torch.nn.Module
+    _melgan_model: torch.jit.RecursiveScriptModule
     _fs_model: torch.nn.Module
     _phonetizer: GraphemeToPhonemeTranslatorBase
     _normalizer: NormalizerBase
@@ -120,7 +120,7 @@ class FastSpeech2Synthesizer:
         """Initialize a FastSpeech2Synthesizer.
 
         Args:
-          melgan_vocoder_path: Path to the MelGAN vocoder for this voice.
+          melgan_vocoder_path: Path to the TorchScript MelGAN vocoder for this voice.
               See https://github.com/seungwonpark/melgan.
 
           fastspeech_model_path: Path to the fastspeech model for this.
@@ -132,7 +132,7 @@ class FastSpeech2Synthesizer:
 
         """
         self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self._melgan_model = utils.get_melgan(full_path=melgan_vocoder_path)
+        self._melgan_model = torch.jit.load(melgan_vocoder_path)
         self._melgan_model.to(self._device)
         self._fs_model = get_FastSpeech2(None, full_path=fastspeech_model_path)
         self._fs_model.to(self._device)
@@ -153,11 +153,32 @@ class FastSpeech2Synthesizer:
                 )
             yield word
 
+    def _melgan_inference(self, mel: torch.Tensor) -> torch.Tensor:
+        hop_length = 256
+        n_mel_channels = (
+            80  # this number (from hparams) is hardcoded for now, unlikely to change
+        )
+        max_wav_value = 32768.0
+
+        # pad input mel with zeros to cut artifact
+        # see https://github.com/seungwonpark/melgan/issues/8
+        zero = torch.full((1, n_mel_channels, 10), -11.5129).to(mel.device)
+        mel = torch.cat((mel, zero), dim=2)
+
+        audio = self._melgan_model(mel)
+        audio = audio.squeeze()  # collapse all dimension except time axis
+        audio = audio[: -(hop_length * 10)]
+        audio = max_wav_value * audio
+        audio = audio.clamp(min=-max_wav_value, max=max_wav_value - 1)
+        audio = audio.short()
+
+        return audio
+
     def _do_vocoder_pass(self, mel_postnet: torch.Tensor) -> torch.Tensor:
         """Perform a vocoder pass, returning int16 samples at 22050 Hz."""
         mel_postnet_torch = mel_postnet.transpose(1, 2).detach()
         with torch.no_grad():
-            wav = self._melgan_model.inference(mel_postnet_torch).cpu()
+            wav = self._melgan_inference(mel_postnet_torch).cpu()
             return (wav * (20000 / torch.max(torch.abs(wav)))).to(torch.int16)
 
     @staticmethod
