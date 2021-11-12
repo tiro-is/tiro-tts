@@ -29,6 +29,25 @@ py_library(
     ],
 )
 
+# Convert PyTorch MelGAN model to TorchScript
+py_binary(
+    name = "melgan_convert",
+    srcs = ["src/scripts/melgan_convert.py"],
+    python_version = "PY3",
+    deps = [":melgan"],
+)
+
+# Preprocess WAV files, i.e. convert to mel. Necessary for :melgan_convert.
+py_binary(
+    name = "melgan_preprocess",
+    srcs = ["src/lib/fastspeech/melgan/preprocess.py"],
+    main = "src/lib/fastspeech/melgan/preprocess.py",
+    deps = [
+        ":melgan",
+        requirement("librosa"),
+    ],
+)
+
 py_library(
     name = "fastspeech",
     srcs = glob(["src/lib/fastspeech/**/*.py"], exclude=["src/lib/fastspeech/melgan"]),
