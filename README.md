@@ -27,6 +27,41 @@ such as [grammatek/tts-frontend-service](https://github.com/grammatek/tts-fronte
 
 To build and run a local development server use the script run.sh.
 
+## Model preparation
+
+The backend [`tiro.tts.Fastspeech2MelganBackend`](proto/tiro/tts/voice.proto)
+uses models created with
+[cadia-lvl/FastSpeech2](https://github.com/cadia-lvl/FastSpeech2/tree/080603e6707ae4b8eae6832db7220116e4b4df3b)
+and a vocoder created with
+[seungwonpark/melgan](https://github.com/seungwonpark/melgan) that has been
+converted to a TorchScript model. To convert the vocoder to TorchScript you have
+to have access to the trained model and the audio files used to train it. There
+are two scripts necessary for the conversion
+[//:melgan\_preprocess](src/lib/fastspeech/melgan/preprocess.py) and
+[//:melgan\_convert](src/scripts/melgan_convert.py).
+
+For the Diljá voice models from Reykjavik University (yet to be published) the
+steps to prepare the TorchScript MelGAN vocoder are:
+
+Download the recordings:
+
+    mkdir wav
+    wget https://repository.clarin.is/repository/xmlui/bitstream/handle/20.500.12537/104/dilja.zip
+    unzip dilja.zip -d wav
+
+Generate the input features:
+
+    bazel run :melgan_preprocess -- -c $PWD/src/lib/fastspeech/melgan/config/default.yaml -d $PWD/wav/c
+
+Convert the vocoder model:
+
+    bazel run :melgan_convert -- -p $PATH_TO_ORIGNAL_MODEL -o $PWD/melgan_jit.pt -i $PWD/wav/c/audio
+
+And then set `melgan_uri`
+[conf/synthesis_set.local.pbtxt](conf/synthesis_set.local.pbtxt) in to the path
+to `melgan_jit.pt`.
+
+
 ## License
 
 Tiro TTS is licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for more details. Some individual files may be licensed under different licenses, according to their headers.

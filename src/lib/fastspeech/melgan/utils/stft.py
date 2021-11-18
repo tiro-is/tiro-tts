@@ -91,10 +91,13 @@ class STFT(torch.nn.Module):
 
         # https://github.com/NVIDIA/tacotron2/issues/125
         forward_transform = F.conv1d(
-            input_data.cuda(),
-            Variable(self.forward_basis, requires_grad=False).cuda(),
+            input_data.cuda() if torch.cuda.is_available() else input_data.cpu(),
+            Variable(self.forward_basis, requires_grad=False).cuda()
+            if torch.cuda.is_available()
+            else Variable(self.forward_basis, requires_grad=False).cpu(),
             stride=self.hop_length,
-            padding=0).cpu()
+            padding=0,
+        ).cpu()
 
         cutoff = int((self.filter_length / 2) + 1)
         real_part = forward_transform[:, :cutoff, :]

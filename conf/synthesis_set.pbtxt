@@ -6,7 +6,7 @@ voices {
   fs2melgan {
       alphabet: IPA
       fastspeech2_uri: "file:///models/dilja/fastspeech.pth.tar"
-      melgan_uri: "file:///models/dilja/melgan.pt"
+      melgan_uri: "file:///models/dilja/melgan_jit.pt"
       phonetizer_name: "phonetizer/is-IS/2021-07-26"
       normalizer_name: "default"
   }
@@ -19,7 +19,7 @@ voices {
   fs2melgan {
       alphabet: IPA
       fastspeech2_uri: "file:///models/alfur/fastspeech.pth.tar"
-      melgan_uri: "file:///models/alfur/melgan.pt"
+      melgan_uri: "file:///models/alfur/melgan_jit.pt"
       phonetizer_name: "phonetizer/is-IS/2021-07-26"
       normalizer_name: "default"
   }

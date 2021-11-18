@@ -55,7 +55,7 @@ message Fastspeech2MelganBackend {
   // or gs:// that the server has access to.
   string fastspeech2_uri = 3;
 
-  // URI pointing to a MelGAN model checkpoint.  This can be a file:// URI or
+  // URI pointing to a MelGAN TorchScript model.  This can be a file:// URI or
   // gs:// that the server has access to.
   string melgan_uri = 4;
 
