@@ -5,7 +5,7 @@ metadata:
   labels:
     app: tiro-tts
 spec:
-  replicas: 2
+  replicas: 3
   selector:
     matchLabels:
       app: tiro-tts
@@ -80,7 +80,7 @@ spec:
           readOnly: true
         resources:
           requests:
-            memory: "800Mi"
+            memory: "2000Mi"
             cpu: "1000m"
         env:
         - name: TIRO_TTS_AWS_ACCESS_KEY_ID
