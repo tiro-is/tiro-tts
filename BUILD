@@ -66,6 +66,17 @@ py_library(
     ],
 )
 
+# Convert PyTorch Fastspeech2 model to TorchScript
+py_binary(
+    name = "fastspeech_convert",
+    srcs = ["src/scripts/fastspeech_convert.py"],
+    python_version = "PY3",
+    deps = [
+        ":fastspeech",
+        requirement("sequitur"),
+    ],
+)
+
 py_library(
     name = "app_lib",
     srcs = glob(["src/**/*.py"], exclude=["src/lib"]),
