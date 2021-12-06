@@ -7,6 +7,7 @@ import torch
 
 # From melgan:
 from model.generator import Generator
+from torch.utils.mobile_optimizer import optimize_for_mobile
 from utils.hparams import HParam, load_hparam_str
 
 
@@ -30,7 +31,14 @@ def main(args: argparse.Namespace):
         mel = mel.cpu()
 
         traced_model = torch.jit.trace(model, mel)
-        torch.jit.save(traced_model, args.output_path)
+
+        if args.for_mobile:
+            optimized_model = optimize_for_mobile(traced_model)
+            optimized_model._save_for_lite_interpreter(args.output_path)
+        else:
+            frozen_model = torch.jit.freeze(traced_model)
+            optimized_model = torch.jit.optimize_for_inference(frozen_model)
+            torch.jit.save(optimized_model, args.output_path)
 
 
 if __name__ == "__main__":
@@ -62,6 +70,11 @@ if __name__ == "__main__":
         type=str,
         required=True,
         help="directory of mel-spectrograms to invert into raw audio. ",
+    )
+    parser.add_argument(
+        "--for-mobile",
+        action="store_true",
+        help="Should the output be optimized for mobile? And saved for the 'lite' interpreter?",
     )
     args = parser.parse_args()
 
