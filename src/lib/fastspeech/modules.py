@@ -94,7 +94,7 @@ class LengthRegulator(nn.Module):
     def __init__(self):
         super(LengthRegulator, self).__init__()
 
-    def LR(self, x, duration: torch.Tensor, max_len: Optional[int]):
+    def LR(self, x, duration: torch.Tensor, max_len: Optional[int] = None):
         output: List[torch.Tensor] = list()
         mel_len: List[int] = list()
         for batch, expand_target in zip(x, duration):
