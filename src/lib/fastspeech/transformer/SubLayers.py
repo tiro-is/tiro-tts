@@ -1,3 +1,6 @@
+from typing import Optional
+
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
@@ -28,7 +31,7 @@ class MultiHeadAttention(nn.Module):
 
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, q, k, v, mask=None):
+    def forward(self, q, k, v, mask: torch.Tensor):
 
         d_k, d_v, n_head = self.d_k, self.d_v, self.n_head
 
