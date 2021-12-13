@@ -9,6 +9,7 @@ def py_pytest_test(
             ".",
             "-p",
             "no:cacheprovider",
+            "-s"
         ],
         **kwargs):
         

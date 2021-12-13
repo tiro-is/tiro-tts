@@ -81,7 +81,7 @@ py_binary(
 
 py_library(
     name = "app_lib",
-    srcs = glob(["src/**/*.py"], exclude=["src/lib"]),
+    srcs = glob(["src/**/*.py"], exclude=["src/lib", "src/**/tests"]),
     data = glob(["src/templates/*.dhtml"]) + glob(["conf/*.pbtxt"]),
     srcs_version = "PY3",
     deps = all_requirements + [
@@ -111,8 +111,10 @@ py_binary(
 )
 
 py_pytest_test(
-    name = "unit_test",
-    deps = [":app_lib"]
+    name = "test_frontend",
+    srcs = glob(["src/frontend/tests/test_*.py"]),
+    deps = [":app_lib"],
+    data = ["@sequitur_model//file"]
 )
 
 # Defines a runnable REPL with the same environment as :app
