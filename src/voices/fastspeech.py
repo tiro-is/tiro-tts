@@ -106,7 +106,7 @@ class FastSpeech2Synthesizer:
 
     _device: torch.device
     _melgan_model: torch.jit.RecursiveScriptModule
-    _fs_model: torch.nn.Module
+    _fs_model: torch.jit.RecursiveScriptModule
     _phonetizer: GraphemeToPhonemeTranslatorBase
     _normalizer: NormalizerBase
 
@@ -121,10 +121,12 @@ class FastSpeech2Synthesizer:
 
         Args:
           melgan_vocoder_path: Path to the TorchScript MelGAN vocoder for this voice.
-              See https://github.com/seungwonpark/melgan.
+              See https://github.com/seungwonpark/melgan and the script
+              melgan_convert.py.
 
-          fastspeech_model_path: Path to the fastspeech model for this.
-              See https://github.com/cadia-lvl/FastSpeech2.
+          fastspeech_model_path: Path to the TorchScript fastspeech model for this.
+              See https://github.com/cadia-lvl/FastSpeech2 and the script
+              fastspeech_convert.py.
 
           phonetizer: A GraphemeToPhonemeTranslator to use for the input text.
 
@@ -132,10 +134,14 @@ class FastSpeech2Synthesizer:
 
         """
         self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self._melgan_model = torch.jit.load(melgan_vocoder_path)
-        self._melgan_model.to(self._device)
-        self._fs_model = get_FastSpeech2(None, full_path=fastspeech_model_path)
-        self._fs_model.to(self._device)
+        self._melgan_model = torch.jit.load(
+            melgan_vocoder_path,
+            map_location=self._device
+        )
+        self._fs_model = torch.jit.load(
+            fastspeech_model_path,
+            map_location=self._device
+        )
         self._phonetizer = phonetizer
         self._normalizer = normalizer
         self._max_words_per_segment = 30

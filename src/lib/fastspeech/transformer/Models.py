@@ -1,3 +1,5 @@
+from typing import Optional
+
 import torch
 import torch.nn as nn
 import numpy as np
@@ -8,26 +10,26 @@ from text.symbols import symbols
 import hparams as hp
 
 
-def get_sinusoid_encoding_table(n_position, d_hid, padding_idx=None):
+def cal_angle(position: int, hid_idx: int, d_hid: int):
+    return position / pow(10000, 2 * (hid_idx // 2) / d_hid)
+
+def get_posi_angle_vec(position: int, d_hid: int):
+    return [cal_angle(position, hid_j, d_hid) for hid_j in range(d_hid)]
+
+def get_sinusoid_encoding_table(n_position: int, d_hid: int, padding_idx: Optional[int] = None) -> torch.Tensor:
     ''' Sinusoid position encoding table '''
 
-    def cal_angle(position, hid_idx):
-        return position / np.power(10000, 2 * (hid_idx // 2) / d_hid)
+    sinusoid_table = torch.tensor([get_posi_angle_vec(pos_i, d_hid)
+                                   for pos_i in range(n_position)])
 
-    def get_posi_angle_vec(position):
-        return [cal_angle(position, hid_j) for hid_j in range(d_hid)]
-
-    sinusoid_table = np.array([get_posi_angle_vec(pos_i)
-                               for pos_i in range(n_position)])
-
-    sinusoid_table[:, 0::2] = np.sin(sinusoid_table[:, 0::2])  # dim 2i
-    sinusoid_table[:, 1::2] = np.cos(sinusoid_table[:, 1::2])  # dim 2i+1
+    sinusoid_table[:, 0::2] = torch.sin(sinusoid_table[:, 0::2])  # dim 2i
+    sinusoid_table[:, 1::2] = torch.cos(sinusoid_table[:, 1::2])  # dim 2i+1
 
     if padding_idx is not None:
         # zero vector for padding dimension
         sinusoid_table[padding_idx] = 0.
 
-    return torch.FloatTensor(sinusoid_table)
+    return sinusoid_table
 
 
 class Encoder(nn.Module):
@@ -57,7 +59,13 @@ class Encoder(nn.Module):
         self.layer_stack = nn.ModuleList([FFTBlock(
             d_model, d_inner, n_head, d_k, d_v, dropout=dropout) for _ in range(n_layers)])
 
-    def forward(self, src_seq, mask, return_attns=False):
+    def forward(
+            self,
+            src_seq:
+            torch.Tensor,
+            mask: torch.Tensor,
+            return_attns: bool = False,
+    ):
 
         enc_slf_attn_list = []
         batch_size, max_len = src_seq.shape[0], src_seq.shape[1]
@@ -108,7 +116,12 @@ class Decoder(nn.Module):
         self.layer_stack = nn.ModuleList([FFTBlock(
             d_model, d_inner, n_head, d_k, d_v, dropout=dropout) for _ in range(n_layers)])
 
-    def forward(self, enc_seq, mask, return_attns=False):
+    def forward(
+            self,
+            enc_seq: torch.Tensor,
+            mask: torch.Tensor,
+            return_attns: bool = False,
+    ):
 
         dec_slf_attn_list = []
         batch_size, max_len = enc_seq.shape[0], enc_seq.shape[1]

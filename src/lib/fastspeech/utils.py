@@ -1,4 +1,5 @@
 import os
+from typing import List, Optional
 
 # import matplotlib
 import numpy as np
@@ -107,13 +108,13 @@ def get_param_num(model):
 #     plt.close()
 
 
-def get_mask_from_lengths(lengths, max_len=None):
+def get_mask_from_lengths(lengths, max_len: Optional[int] = None):
     batch_size = lengths.shape[0]
     if max_len is None:
         max_len = torch.max(lengths).item()
 
     ids = torch.arange(0, max_len).unsqueeze(
-        0).expand(batch_size, -1).to(device)
+        0).expand(batch_size, -1)
     mask = (ids >= lengths.unsqueeze(1).expand(-1, max_len))
 
     return mask
@@ -209,8 +210,8 @@ def pad_2D(inputs, maxlen=None):
     return output
 
 
-def pad(input_ele, mel_max_length=None):
-    if mel_max_length:
+def pad(input_ele: List[torch.Tensor], mel_max_length: Optional[int] = None):
+    if mel_max_length is not None:
         max_len = mel_max_length
     else:
         max_len = max([input_ele[i].size(0)for i in range(len(input_ele))])
@@ -220,7 +221,7 @@ def pad(input_ele, mel_max_length=None):
         if len(batch.shape) == 1:
             one_batch_padded = F.pad(
                 batch, (0, max_len-batch.size(0)), "constant", 0.0)
-        elif len(batch.shape) == 2:
+        else: # elif len(batch.shape) == 2:
             one_batch_padded = F.pad(
                 batch, (0, 0, 0, max_len-batch.size(0)), "constant", 0.0)
         out_list.append(one_batch_padded)

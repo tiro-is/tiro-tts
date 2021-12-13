@@ -1,10 +1,10 @@
 # Tiro talgervill / Tiro TTS
 
-Tiro TTS is a text-to-speech API server which works with various TTS backends. By default it expectes a FastSpeech2+Melgan+Sequitur backand. See the [cadia-lvl/FastSpeech2](https://github.com/cadia-lvl/FastSpeech2/tree/080603e6707ae4b8eae6832db7220116e4b4df3b) repo. 
+Tiro TTS is a text-to-speech API server which works with various TTS backends. By default it expects a FastSpeech2+Melgan+Sequitur backend. See the [cadia-lvl/FastSpeech2](https://github.com/cadia-lvl/FastSpeech2/tree/080603e6707ae4b8eae6832db7220116e4b4df3b) repo. 
 
 The service can accept either unnormalized text or a [SSML](https://www.w3.org/TR/speech-synthesis11/) document and respond with audio (MP3, Ogg Vorbis or raw 16 bit PCM) or speech marks, indicating the byte and time offset of each synthesized word in the request. At the moment the SSML support is limited to the <phoneme> tag where the caller can use a subset of X-SAMPA to control the pronunciation of individual words or phrases in the request.
 
-The full API documentation is avalible on [tts.tiro.is](https://tts.tiro.is/).
+The full API documentation is available on [tts.tiro.is](https://tts.tiro.is/).
 
 ## Voices
 
@@ -15,7 +15,7 @@ There are currently four voices accessible at [tts.tiro.is](https://tts.tiro.is/
 - Diljá: Female voice developed by Reykjavík University.
 - Álfur: Male voice developed by Reykjavík University. 
 - Karl: Male voice on Amazon Polly.
-- Dóra: Femal voice on Amazon Polly.
+- Dóra: Female voice on Amazon Polly.
 
 ## Normalization
 
@@ -23,7 +23,7 @@ There are two types of normalization referenced in [voice.proto](proto/tiro/tts/
 `GrammatekNormalizer`.  `BasicNormalizer` is local and only handles stripping punctuation but the `GrammatekNormalizer` is a gRPC service that implements [`com.grammatek.tts_frontent.TTSFrontend`](https://github.com/grammatek/tts-frontend-api/blob/54ae2943375dd368ea94e5d869f71bdcc671a3cd/services/tts_frontend_service.proto),
 such as [grammatek/tts-frontend-service](https://github.com/grammatek/tts-frontend-service).
 
-## Bulding 
+## Building
 
 To build and run a local development server use the script run.sh.
 
@@ -33,12 +33,16 @@ The backend [`tiro.tts.Fastspeech2MelganBackend`](proto/tiro/tts/voice.proto)
 uses models created with
 [cadia-lvl/FastSpeech2](https://github.com/cadia-lvl/FastSpeech2/tree/080603e6707ae4b8eae6832db7220116e4b4df3b)
 and a vocoder created with
-[seungwonpark/melgan](https://github.com/seungwonpark/melgan) that has been
-converted to a TorchScript model. To convert the vocoder to TorchScript you have
-to have access to the trained model and the audio files used to train it. There
-are two scripts necessary for the conversion
-[//:melgan\_preprocess](src/lib/fastspeech/melgan/preprocess.py) and
-[//:melgan\_convert](src/scripts/melgan_convert.py).
+[seungwonpark/melgan](https://github.com/seungwonpark/melgan). Both the
+FastSpeech2 and MelGAN models have to be converted to TorchScript models before
+use. 
+
+### Converting the MelGAN vocoder
+
+To convert the vocoder to TorchScript you have to have access to the trained
+model and the audio files used to train it. There are two scripts necessary for
+the conversion [//:melgan\_preprocess](src/lib/fastspeech/melgan/preprocess.py)
+and [//:melgan\_convert](src/scripts/melgan_convert.py).
 
 For the Diljá voice models from Reykjavik University (yet to be published) the
 steps to prepare the TorchScript MelGAN vocoder are:
@@ -57,15 +61,27 @@ Convert the vocoder model:
 
     bazel run :melgan_convert -- -p $PATH_TO_ORIGNAL_MODEL -o $PWD/melgan_jit.pt -i $PWD/wav/c/audio
 
-And then set `melgan_uri`
-[conf/synthesis_set.local.pbtxt](conf/synthesis_set.local.pbtxt) in to the path
-to `melgan_jit.pt`.
+And then set `melgan_uri` in
+[conf/synthesis\_set.local.pbtxt](conf/synthesis_set.local.pbtxt) to the path to
+`melgan_jit.pt`.
 
+### Converting the FastSpeech2 acoustic model
+
+The model is converted to TorchScript using scripting, so no recordings are
+necessary. The script
+[//:fastspeech\_convert](src/scripts/fastspeech_convert.py) can be used to
+convert the model:
+
+    bazel run :fastpeech_convert -- -p $PATH_TO_ORIGNAL_MODEL -o $PWD/fastspeech_jit.pt
+
+And then set `fastspeech2_uri` in
+[conf/synthesis\_set.local.pbtxt](conf/synthesis_set.local.pbtxt) to the path to
+`fastspeech_jit.pt`.
 
 ## License
 
 Tiro TTS is licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for more details. Some individual files may be licensed under different licenses, according to their headers.
 
-## Acknowledgements
+## Acknowledgments
 
 This project was funded by the Language Technology Programme for Icelandic 2019-2023. The programme, which is managed and coordinated by Almannarómur, is funded by the Icelandic Ministry of Education, Science and Culture.

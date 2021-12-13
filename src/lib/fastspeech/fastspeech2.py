@@ -1,3 +1,5 @@
+from typing import Optional
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -27,18 +29,32 @@ class FastSpeech2(nn.Module):
         if self.use_postnet:
             self.postnet = PostNet()
 
-    def forward(self, src_seq, src_len, mel_len=None, d_target=None, p_target=None, e_target=None, max_src_len=None, max_mel_len=None, d_control=1.0, p_control=1.0, e_control=1.0):
+    def forward(
+            self,
+            src_seq: torch.Tensor,
+            src_len: torch.Tensor,
+            mel_len: Optional[torch.Tensor] = None,
+            d_target: Optional[torch.Tensor] = None,
+            p_target: Optional[torch.Tensor] = None,
+            e_target: Optional[torch.Tensor] = None,
+            max_src_len: Optional[int] = None,
+            max_mel_len: Optional[int] = None,
+            d_control: float = 1.0,
+            p_control: float = 1.0,
+            e_control: float = 1.0,
+    ):
         src_mask = get_mask_from_lengths(src_len, max_src_len)
         mel_mask = get_mask_from_lengths(
             mel_len, max_mel_len) if mel_len is not None else None
 
         encoder_output = self.encoder(src_seq, src_mask)
-        if d_target is not None:
-            variance_adaptor_output, d_prediction, p_prediction, e_prediction, _, _ = self.variance_adaptor(
-                encoder_output, src_mask, mel_mask, d_target, p_target, e_target, max_mel_len, d_control, p_control, e_control)
-        else:
-            variance_adaptor_output, d_prediction, p_prediction, e_prediction, mel_len, mel_mask = self.variance_adaptor(
-                encoder_output, src_mask, mel_mask, d_target, p_target, e_target, max_mel_len, d_control, p_control, e_control)
+        # if d_target is not None:
+        #     # XXX: This branch is broken, self.decode.forward requires mel_mask to not be None
+        #     variance_adaptor_output, d_prediction, p_prediction, e_prediction, _, _ = self.variance_adaptor(
+        #         encoder_output, src_mask, mel_mask, d_target, p_target, e_target, max_mel_len, d_control, p_control, e_control)
+        # else:
+        variance_adaptor_output, d_prediction, p_prediction, e_prediction, mel_len, mel_mask = self.variance_adaptor(
+            encoder_output, src_mask, mel_mask, d_target, p_target, e_target, max_mel_len, d_control, p_control, e_control)
 
         decoder_output = self.decoder(variance_adaptor_output, mel_mask)
         mel_output = self.mel_linear(decoder_output)

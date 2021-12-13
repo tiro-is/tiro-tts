@@ -1,3 +1,5 @@
+from typing import Optional
+
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
@@ -23,7 +25,11 @@ class FFTBlock(torch.nn.Module):
         self.pos_ffn = PositionwiseFeedForward(
             d_model, d_inner, dropout=dropout)
 
-    def forward(self, enc_input, mask=None, slf_attn_mask=None):
+    def forward(
+            self,
+            enc_input, mask: torch.Tensor,
+            slf_attn_mask: torch.Tensor
+    ):
         enc_output, enc_slf_attn = self.slf_attn(
             enc_input, enc_input, enc_input, mask=slf_attn_mask)
         enc_output = enc_output.masked_fill(mask.unsqueeze(-1), 0)
@@ -121,10 +127,11 @@ class PostNet(nn.Module):
     def forward(self, x):
         x = x.contiguous().transpose(1, 2)
 
-        for i in range(len(self.convolutions) - 1):
-            x = F.dropout(torch.tanh(
-                self.convolutions[i](x)), 0.5, self.training)
-        x = F.dropout(self.convolutions[-1](x), 0.5, self.training)
+        for i, convolution in enumerate(self.convolutions):
+            if i == len(self.convolutions):
+                x = F.dropout(convolution(x), 0.5, self.training)
+            else:
+                x = F.dropout(torch.tanh(convolution(x)), 0.5, self.training)
 
         x = x.contiguous().transpose(1, 2)
         return x

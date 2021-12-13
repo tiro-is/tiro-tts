@@ -5,7 +5,7 @@ voices {
   language_code: "is-IS"
   fs2melgan {
       alphabet: IPA
-      fastspeech2_uri: "file://../models/dilja/fastspeech.pth.tar"
+      fastspeech2_uri: "file://../models/dilja/fastspeech_jit.pt"
       melgan_uri: "file://../models/dilja/melgan_jit.pt"
       phonetizer_name: "phonetizer/is-IS/2021-07-26"
       normalizer_name: "default"
@@ -18,7 +18,7 @@ voices {
   language_code: "is-IS"
   fs2melgan {
       alphabet: IPA
-      fastspeech2_uri: "file://../models/alfur/fastspeech.pth.tar"
+      fastspeech2_uri: "file://../models/alfur/fastspeech_jit.pt"
       melgan_uri: "file://../models/alfur/melgan_jit.pt"
       phonetizer_name: "phonetizer/is-IS/2021-07-26"
       normalizer_name: "default"
