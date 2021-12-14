@@ -6,22 +6,13 @@ def phoneseq_to_str(seq: "list[str]"):
     return "".join(seq)
 
 class TestSequiturGraphemeToPhonemeTranslator:
-    _model_path: Path
-    _language_code: str
-    _t: SequiturGraphemeToPhonemeTranslator
-
-    def __init__(
-        self,
-        model_path = Path("external/sequitur_model/file/sequitur.mdl"),
-        language_code = "is-IS",
-    ) -> None:
-        self._model_path = model_path
-        self._language_code = language_code
-        self._t = SequiturGraphemeToPhonemeTranslator(
-            lang_model_paths={ 
-                self._language_code: self._model_path
-            }
-        )
+    _model_path: Path = Path("external/sequitur_model/file/sequitur.mdl")
+    _language_code: str = "is-IS"
+    _t: SequiturGraphemeToPhonemeTranslator = SequiturGraphemeToPhonemeTranslator(
+        lang_model_paths={ 
+            _language_code: _model_path
+        }
+    )
 
     def translate_to_str(self, text: str):
         return phoneseq_to_str(self._t.translate(text, self._language_code))
