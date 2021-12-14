@@ -6,15 +6,26 @@ def phoneseq_to_str(seq: "list[str]"):
     return "".join(seq)
 
 class TestSequiturGraphemeToPhonemeTranslator:
-    def test_one_halló(self):
-        language_code: str = "is-IS"
-        model_path: str = Path("external/sequitur_model/file/sequitur.mdl")
-        text: str = "Halló heimur"
+    _model_path: Path
+    _language_code: str
+    _t: SequiturGraphemeToPhonemeTranslator
 
-        t = SequiturGraphemeToPhonemeTranslator(
+    def __init__(
+        self,
+        model_path = Path("external/sequitur_model/file/sequitur.mdl"),
+        language_code = "is-IS",
+    ) -> None:
+        self._model_path = model_path
+        self._language_code = language_code
+        self._t = SequiturGraphemeToPhonemeTranslator(
             lang_model_paths={ 
-                language_code: model_path
+                self._language_code: self._model_path
             }
         )
 
-        assert phoneseq_to_str(t.translate(text, language_code)) == "halouheiːmʏr"
+    def translate_to_str(self, text: str):
+        return phoneseq_to_str(self._t.translate(text, self._language_code))
+
+    def test_two_multiword_01(self):
+        text: str = "Halló heimur"
+        assert self.translate_to_str(text) == "halouheiːmʏr"
