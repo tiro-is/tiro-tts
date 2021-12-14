@@ -35,7 +35,7 @@ deploy:
 test:
   stage: test
   script:
-    - tools/bazel --output_base=bazel-output_base test :unit_test
+    - tools/bazel --output_base=bazel-output_base test :test_frontend
   after_script:
     - mkdir -p test-log
     - cp bazel-testlogs/unit_test/test.xml test-log/test.xml
