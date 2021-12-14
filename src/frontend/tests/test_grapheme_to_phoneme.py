@@ -1,4 +1,5 @@
 from pathlib import Path
+from pytest import raises
 
 from ..grapheme_to_phoneme import SequiturGraphemeToPhonemeTranslator
 
@@ -15,8 +16,35 @@ class TestSequiturGraphemeToPhonemeTranslator:
     )
 
     def translate_to_str(self, text: str):
-        return phoneseq_to_str(self._t.translate(text, self._language_code))
+        res: str = phoneseq_to_str(self._t.translate(text, self._language_code))
+        print(f"g2p: {res}")
+        return res
 
-    def test_two_multiword_01(self):
+    def test_one_empty(self):
+        text: str = ""
+        assert self.translate_to_str(text) == ""
+
+    def test_two_multiword(self):
         text: str = "Halló heimur"
         assert self.translate_to_str(text) == "halouheiːmʏr"
+
+    def test_three_incorrect_data_type(self):
+        text: int = 15
+        with raises(AttributeError):
+            self.translate_to_str(text)
+
+    def test_four_word_lower_case_01(self):
+        text = "kleprar"
+        assert self.translate_to_str(text) == "kʰlɛːprar"
+
+    def test_five_word_lower_case_02(self):
+        text = "blöðrupumpur"
+        assert self.translate_to_str(text) == "plœðrʏpʰʏm̥pʏr"
+
+    def test_six_word_capital_first(self):
+        text = "Blöðrupumpur"
+        assert self.translate_to_str(text) == "plœðrʏpʰʏm̥pʏr"
+
+    def test_seven_word_all_caps(self):
+        text = "FJANDSAMLEGUR"
+        assert self.translate_to_str(text) == "fjantsamlɛɣʏr"
