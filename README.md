@@ -72,7 +72,7 @@ necessary. The script
 [//:fastspeech\_convert](src/scripts/fastspeech_convert.py) can be used to
 convert the model:
 
-    bazel run :fastpeech_convert -- -p $PATH_TO_ORIGNAL_MODEL -o $PWD/fastspeech_jit.pt
+    bazel run :fastspeech_convert -- -p $PATH_TO_ORIGNAL_MODEL -o $PWD/fastspeech_jit.pt
 
 And then set `fastspeech2_uri` in
 [conf/synthesis\_set.local.pbtxt](conf/synthesis_set.local.pbtxt) to the path to
