@@ -114,7 +114,7 @@ py_pytest_test(
     name = "test_frontend",
     srcs = glob(["src/frontend/tests/test_*.py"]),
     deps = [":app_lib"],
-    data = ["@sequitur_model//file"]
+    data = ["@test_models//:models"]
 )
 
 # Defines a runnable REPL with the same environment as :app
