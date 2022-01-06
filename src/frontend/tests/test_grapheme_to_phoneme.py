@@ -41,9 +41,8 @@ class TestSequiturGraphemeToPhonemeTranslator:
         }
     )
 
-    def translate_to_str(self, text: str):
-        res: str = phoneseq_to_str(self._t.translate(text, self._language_code))
-        return res
+    def translate_to_str(self, text: str) -> str:
+        return phoneseq_to_str(self._t.translate(text, self._language_code))
 
     def test_one_empty(self):
         text: str = ""
@@ -58,11 +57,11 @@ class TestSequiturGraphemeToPhonemeTranslator:
         with raises(AttributeError):
             self.translate_to_str(text)
 
-    def test_four_word_lower_case_01(self):
+    def test_four_word_lower_01(self):
         text = "kleprar"
         assert self.translate_to_str(text) == "kʰlɛːprar"
 
-    def test_five_word_lower_case_02(self):
+    def test_five_word_lower_02(self):
         text = "blöðrupumpur"
         assert self.translate_to_str(text) == "plœðrʏpʰʏm̥pʏr"
 
@@ -73,3 +72,11 @@ class TestSequiturGraphemeToPhonemeTranslator:
     def test_seven_word_all_caps(self):
         text = "FJANDSAMLEGUR"
         assert self.translate_to_str(text) == "fjantsamlɛɣʏr"
+
+    def test_eight_foreign_char_01(self):
+        text = "Султан"
+        assert self.translate_to_str(text) == ""
+
+    def test_nine_foreign_char_02(self):
+        text = "дlvдrlegt"
+        assert self.translate_to_str(text) == ""
