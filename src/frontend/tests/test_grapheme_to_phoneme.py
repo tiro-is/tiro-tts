@@ -2,10 +2,78 @@ from pathlib import Path
 from pytest import raises
 
 from ..grapheme_to_phoneme import       \
+ComposedTranslator,                     \
 SequiturGraphemeToPhonemeTranslator,    \
 LexiconGraphemeToPhonemeTranslator
 
 from ..lexicon import SimpleInMemoryLexicon
+
+class TestComposedTranslator:
+    _language_code: str = "is-IS"
+    _alphabet: str = "x-sampa"
+    _lex_path: Path = Path("external/test_models/lexicon.txt")
+    _model_path: Path = Path("external/test_models/sequitur.mdl")
+
+    _lexiconGraphemeToPhonemeTranslator: LexiconGraphemeToPhonemeTranslator = LexiconGraphemeToPhonemeTranslator(
+        {
+            _language_code: SimpleInMemoryLexicon(
+                lex_path=_lex_path,
+                alphabet=_alphabet
+            )
+        }
+    )
+
+    _sequiturGraphemeToPhonemeTranslator: SequiturGraphemeToPhonemeTranslator = SequiturGraphemeToPhonemeTranslator(
+        lang_model_paths={ 
+            _language_code: _model_path
+        }
+    )
+
+    _t = ComposedTranslator(_lexiconGraphemeToPhonemeTranslator, _sequiturGraphemeToPhonemeTranslator)
+
+    def test_one_empty(self):
+        text: str = ""
+        assert self._t.translate(text, self._language_code) == []
+
+    def test_two_multiword(self):
+        text: str = "Halló heimur"
+        assert self._t.translate(text, self._language_code) == ['h', 'a', 't', 'l', 'ou', 'h', 'eiː', 'm', 'ʏ', 'r']
+
+    # LexiconGraphemeToPhonemeTranslator can not handle these test cases but SequiturGraphemeToPhonemeTranslator can,
+    # thus the latter should handle them.
+    def test_three_word_sequitur_01(self):
+        text = "kleprar"
+        assert self._t.translate(text, self._language_code) == ['kʰ', 'l', 'ɛː', 'p', 'r', 'a', 'r']
+
+    def test_four_word_sequitur_02(self):
+        text = "Blöðrupumpur"
+        assert self._t.translate(text, self._language_code) == ['p', 'l', 'œ', 'ð', 'r', 'ʏ', 'pʰ', 'ʏ', 'm̥', 'p', 'ʏ', 'r']
+
+    def test_five_word_sequitur_03(self):
+        text = "FJANDSAMLEGUR"
+        assert self._t.translate(text, self._language_code) == ['f', 'j', 'a', 'n', 't', 's', 'a', 'm', 'l', 'ɛ', 'ɣ', 'ʏ', 'r']
+
+    # These test cases can be handled by either LexiconGraphemeToPhonemeTranslator or SequiturGraphemeToPhonemeTranslator.
+    # In this case, they should be handled by the former as ComposedTranslator was instantiated with it as first argument. (line 32)
+    def test_six_word_lexicon_01(self):
+        text = "stormur"
+        assert self._t.translate(text, self._language_code) == ['s', 't', 'ɔ', 'r', 'm', 'ʏ', 'r']
+
+    def test_seven_word_lexicon_02(self):
+        text = "varnarmálaráðherra"
+        assert self._t.translate(text, self._language_code) \
+            == ['v', 'a', 'r', 't', 'n', 'a',
+                'r', 'm', 'au', 'l', 'a', 'r',
+                'au', 'θ', 'h', 'ɛ', 'r', 'a']
+
+    # Neither of the Translators in ComposedTranslator should be able to process these strings.
+    def test_eight_foreign_char_01(self):
+        text = "Султан"
+        assert self._t.translate(text, self._language_code) == []
+
+    def test_nine_foreign_char_02(self):
+        text = "дlvдrlegt"
+        assert self._t.translate(text, self._language_code) == []            
 
 class TestLexiconGraphemeToPhonemeTranslator:
     _language_code: str = "is-IS"
