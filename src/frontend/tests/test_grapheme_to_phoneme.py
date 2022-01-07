@@ -31,35 +31,35 @@ class TestComposedTranslator:
 
     _t = ComposedTranslator(_lexiconGraphemeToPhonemeTranslator, _sequiturGraphemeToPhonemeTranslator)
 
-    def test_one_empty(self):
+    def test_empty(self):
         text: str = ""
         assert self._t.translate(text, self._language_code) == []
 
-    def test_two_multiword(self):
+    def test_multiword(self):
         text: str = "Halló heimur"
         assert self._t.translate(text, self._language_code) == ['h', 'a', 't', 'l', 'ou', 'h', 'eiː', 'm', 'ʏ', 'r']
 
     # LexiconGraphemeToPhonemeTranslator can not handle these test cases but SequiturGraphemeToPhonemeTranslator can,
     # thus the latter should handle them.
-    def test_three_word_sequitur_01(self):
+    def test_word_sequitur_01(self):
         text = "kleprar"
         assert self._t.translate(text, self._language_code) == ['kʰ', 'l', 'ɛː', 'p', 'r', 'a', 'r']
 
-    def test_four_word_sequitur_02(self):
+    def test_word_sequitur_02(self):
         text = "Blöðrupumpur"
         assert self._t.translate(text, self._language_code) == ['p', 'l', 'œ', 'ð', 'r', 'ʏ', 'pʰ', 'ʏ', 'm̥', 'p', 'ʏ', 'r']
 
-    def test_five_word_sequitur_03(self):
+    def test_word_sequitur_03(self):
         text = "FJANDSAMLEGUR"
         assert self._t.translate(text, self._language_code) == ['f', 'j', 'a', 'n', 't', 's', 'a', 'm', 'l', 'ɛ', 'ɣ', 'ʏ', 'r']
 
     # These test cases can be handled by either LexiconGraphemeToPhonemeTranslator or SequiturGraphemeToPhonemeTranslator.
-    # In this case, they should be handled by the former as ComposedTranslator was instantiated with it as first argument. (line 32)
-    def test_six_word_lexicon_01(self):
+    # In this case, they should be handled by the former as ComposedTranslator was instantiated with it as first argument.
+    def test_word_lexicon_01(self):
         text = "stormur"
         assert self._t.translate(text, self._language_code) == ['s', 't', 'ɔ', 'r', 'm', 'ʏ', 'r']
 
-    def test_seven_word_lexicon_02(self):
+    def test_word_lexicon_02(self):
         text = "varnarmálaráðherra"
         assert self._t.translate(text, self._language_code) \
             == ['v', 'a', 'r', 't', 'n', 'a',
@@ -67,11 +67,11 @@ class TestComposedTranslator:
                 'au', 'θ', 'h', 'ɛ', 'r', 'a']
 
     # Neither of the Translators in ComposedTranslator should be able to process these strings.
-    def test_eight_foreign_char_01(self):
+    def test_foreign_char_01(self):
         text = "Султан"
         assert self._t.translate(text, self._language_code) == []
 
-    def test_nine_foreign_char_02(self):
+    def test_foreign_char_02(self):
         text = "дlvдrlegt"
         assert self._t.translate(text, self._language_code) == []            
 
@@ -88,47 +88,47 @@ class TestLexiconGraphemeToPhonemeTranslator:
         }
     )
 
-    def test_one_empty(self):
+    def test_empty(self):
         text: str = ""
         assert self._t.translate(text, self._language_code) == []
 
-    def test_two_multiword(self):
+    def test_multiword(self):
         text: str = "Halló heimur"
         assert self._t.translate(text, self._language_code) == ['h', 'a', 't', 'l', 'ou', 'h', 'eiː', 'm', 'ʏ', 'r']
 
-    def test_three_incorrect_data_type(self):
+    def test_incorrect_data_type(self):
         text: int = 15
         with raises(AttributeError):
             self._t.translate(text, self._language_code)
 
-    def test_four_word_lower_01(self):
+    def test_word_lower_01(self):
         text = "stormur"
         assert self._t.translate(text, self._language_code) == ['s', 't', 'ɔ', 'r', 'm', 'ʏ', 'r']
 
-    def test_five_word_lower_02(self):
+    def test_word_lower_02(self):
         text = "varnarmálaráðherra"
         assert self._t.translate(text, self._language_code) \
             == ['v', 'a', 'r', 't', 'n', 'a',
                 'r', 'm', 'au', 'l', 'a', 'r',
                 'au', 'θ', 'h', 'ɛ', 'r', 'a']
 
-    def test_six_word_nonexistant_01(self):
+    def test_word_nonexistant_01(self):
         text = "kleprar"
         assert self._t.translate(text, self._language_code) == []
 
-    def test_seven_word_nonexistant_02(self):
+    def test_word_nonexistant_02(self):
         text = "blöðrupumpur"
         assert self._t.translate(text, self._language_code) == []
 
-    def test_eight_foreign_char_01(self):
+    def test_foreign_char_01(self):
         text = "Султан"
         assert self._t.translate(text, self._language_code) == []
 
-    def test_nine_foreign_char_02(self):
+    def test_foreign_char_02(self):
         text = "дlvдrlegt"
         assert self._t.translate(text, self._language_code) == []
 
-    def test_ten_sentence(self):
+    def test_sentence(self):
         text = "ekki voru allir á sama máli um hvað ætti að gera við Vigfús"
         assert self._t.translate(text, self._language_code)   \
             == ['ɛ', 'h', 'c', 'ɪ', 'v', 'ɔː',
@@ -140,7 +140,7 @@ class TestLexiconGraphemeToPhonemeTranslator:
                 'ð', 'v', 'ɪ', 'x', 'f', 'u', 
                 's']
 
-    def test_eleven_sentence_punctuated(self):
+    def test_sentence_punctuated(self):
         text = "Flestum þótti Vigfús vera ómerkilegur, enda með eindæmum venjulegur í framkomu."
         assert self._t.translate(text, self._language_code)   \
             == ['f', 'l', 'ɛ', 's', 't', 'ʏ',
@@ -165,44 +165,44 @@ class TestSequiturGraphemeToPhonemeTranslator:
         }
     )
 
-    def test_one_empty(self):
+    def test_empty(self):
         text: str = ""
         assert self._t.translate(text, self._language_code) == []
 
-    def test_two_multiword(self):
+    def test_multiword(self):
         text: str = "Halló heimur"
         assert self._t.translate(text, self._language_code) == ['h', 'a', 'l', 'ou', 'h', 'eiː', 'm', 'ʏ', 'r']
 
-    def test_three_incorrect_data_type(self):
+    def test_incorrect_data_type(self):
         text: int = 15
         with raises(AttributeError):
             self._t.translate(text, self._language_code)
 
-    def test_four_word_lower_01(self):
+    def test_word_lower_01(self):
         text = "kleprar"
         assert self._t.translate(text, self._language_code) == ['kʰ', 'l', 'ɛː', 'p', 'r', 'a', 'r']
 
-    def test_five_word_lower_02(self):
+    def test_word_lower_02(self):
         text = "blöðrupumpur"
         assert self._t.translate(text, self._language_code) == ['p', 'l', 'œ', 'ð', 'r', 'ʏ', 'pʰ', 'ʏ', 'm̥', 'p', 'ʏ', 'r']
 
-    def test_six_word_capital_first(self):
+    def test_word_capital_first(self):
         text = "Blöðrupumpur"
         assert self._t.translate(text, self._language_code) == ['p', 'l', 'œ', 'ð', 'r', 'ʏ', 'pʰ', 'ʏ', 'm̥', 'p', 'ʏ', 'r']
 
-    def test_seven_word_all_caps(self):
+    def test_word_all_caps(self):
         text = "FJANDSAMLEGUR"
         assert self._t.translate(text, self._language_code) == ['f', 'j', 'a', 'n', 't', 's', 'a', 'm', 'l', 'ɛ', 'ɣ', 'ʏ', 'r']
 
-    def test_eight_foreign_char_01(self):
+    def test_foreign_char_01(self):
         text = "Султан"
         assert self._t.translate(text, self._language_code) == []
 
-    def test_nine_foreign_char_02(self):
+    def test_foreign_char_02(self):
         text = "дlvдrlegt"
         assert self._t.translate(text, self._language_code) == []
 
-    def test_ten_sentence(self):
+    def test_sentence(self):
         text = "ekki voru allir á sama máli um hvað ætti að gera við Vigfús"
         assert self._t.translate(text, self._language_code)  \
             == ['ɛ', 'h', 'c', 'ɪ', 'v', 'ɔː',
@@ -214,7 +214,7 @@ class TestSequiturGraphemeToPhonemeTranslator:
                 'r', 'a', 'v', 'ɪː', 'ð', 'v',
                 'ɪ', 'x', 'f', 'u', 's']
 
-    def test_eleven_sentence_punctuated(self):
+    def test_sentence_punctuated(self):
         text = "Flestum þótti Vigfús vera ómerkilegur, enda með eindæmum venjulegur í framkomu."
         assert self._t.translate(text, self._language_code)  \
             == ['f', 'l', 'ɛ', 's', 't', 'ʏ',
