@@ -1,5 +1,4 @@
 from pytest import raises
-
 from ..common import utf8_byte_length, consume_whitespace, consume_whitespace_bytes
 
 class TestUtf8ByteLength:

@@ -18,3 +18,5 @@ resampy==0.2.2
 tokenizer>=3.0.0,<4.0.0
 protobuf
 grpcio==1.40.0
+pytest==6.2.5
+hypothesis==6.24.2
