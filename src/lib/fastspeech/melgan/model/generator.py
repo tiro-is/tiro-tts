@@ -3,15 +3,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from .res_stack import ResStack
-# from res_stack import ResStack
-
-MAX_WAV_VALUE = 32768.0
 
 
 class Generator(nn.Module):
-    def __init__(self, mel_channel):
+    def __init__(self, mel_channel: int):
         super(Generator, self).__init__()
-        self.mel_channel = mel_channel
+        self.mel_channel: int = mel_channel
 
         self.generator = nn.Sequential(
             nn.ReflectionPad1d(3),
@@ -43,7 +40,7 @@ class Generator(nn.Module):
             nn.Tanh(),
         )
 
-    def forward(self, mel):
+    def forward(self, mel: torch.Tensor) -> torch.Tensor:
         mel = (mel + 5.0) / 5.0 # roughly normalize spectrogram
         return self.generator(mel)
 
@@ -62,19 +59,34 @@ class Generator(nn.Module):
                 except:
                     layer.remove_weight_norm()
 
-    def inference(self, mel):
-        hop_length = 256
+    @torch.jit.export
+    def inference(self, mel: torch.Tensor) -> torch.Tensor:
+        """Accepts the mel scale output from FastSpeech2 and returns a waveform in float.
+
+        The sample rate will depend on the the training data, but the default is
+        22050Hz. The caller is responsible for converting into int16.
+
+        """
+        mel = mel.transpose(1, 2)  # Necessary to handle output from FastSpeech2 module
+        max_wav_value: float = 32768.0
+        hop_length: int = 256
         # pad input mel with zeros to cut artifact
         # see https://github.com/seungwonpark/melgan/issues/8
-        zero = torch.full((1, self.mel_channel, 10), -11.5129).to(mel.device)
+        zero = torch.full((1, self.mel_channel, 10), -11.5129)
         mel = torch.cat((mel, zero), dim=2)
 
         audio = self.forward(mel)
         audio = audio.squeeze() # collapse all dimension except time axis
         audio = audio[:-(hop_length*10)]
-        audio = MAX_WAV_VALUE * audio
-        audio = audio.clamp(min=-MAX_WAV_VALUE, max=MAX_WAV_VALUE-1)
-        audio = audio.short()
+        audio = max_wav_value * audio
+        audio = audio.clamp(min=-max_wav_value, max=max_wav_value-1)
+        # XXX: For some reason PyTorch Mobile Android can't handle converting to int16,
+        #   converting to other types works:
+        #   "at::Tensor scalar type is not supported on java side"
+        #   So the caller has to handle it.
+        # audio = audio.to(torch.int16)
+
+        audio = audio * (20000 / torch.max(torch.abs(audio)))
 
         return audio
 

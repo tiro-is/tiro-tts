@@ -37,7 +37,9 @@ def main(args: argparse.Namespace):
     scripted_model = torch.jit.script(model)
 
     if args.for_mobile:
-        optimized_model = optimize_for_mobile(scripted_model)
+        optimized_model = optimize_for_mobile(
+            scripted_model, preserved_methods=["inference"]
+        )
         optimized_model._save_for_lite_interpreter(args.output_path)
     else:
         frozen_model = torch.jit.freeze(scripted_model)
@@ -72,7 +74,6 @@ if __name__ == "__main__":
         "-i",
         "--input_folder",
         type=str,
-        required=True,
         help="directory of mel-spectrograms to invert into raw audio. ",
     )
     parser.add_argument(
