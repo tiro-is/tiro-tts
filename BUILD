@@ -75,6 +75,7 @@ py_binary(
     deps = [
         ":fastspeech",
         requirement("sequitur"),
+        ":app_lib",
     ],
 )
 

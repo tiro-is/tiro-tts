@@ -3,7 +3,7 @@ import collections
 import logging
 import textwrap
 from pathlib import Path
-from typing import Iterable, Literal, NewType, Tuple
+from typing import Iterable, Literal, NewType, Tuple, Union
 
 import torch
 from torch.quantization import get_default_qconfig
@@ -18,9 +18,34 @@ from src.lib.fastspeech.text import text_to_sequence
 PronunciationAlphabet = Literal["x-sampa", "ipa"]
 
 
+def calibration_seqs_from_lex_for_mobile(
+    lexicon: Path,
+    native_alphabet: PronunciationAlphabet = "x-sampa",
+) -> Iterable[torch.Tensor]:
+    return calibration_seqs_from_lex(
+        lexicon,
+        native_alphabet,
+    )
+
+
+def calibration_seqs_from_lex_for_server(
+    lexicon: Path,
+    native_alphabet: PronunciationAlphabet = "x-sampa",
+) -> Iterable[Tuple[torch.Tensor, float, float, float]]:
+    duration_control = pitch_control = energy_control = 1.0
+    return (
+        (t, duration_control, pitch_control, energy_control)
+        for t in calibration_seqs_from_lex(
+            lexicon,
+            native_alphabet,
+        )
+    )
+
+
 def calibration_seqs_from_lex(
-    lexicon: Path, native_alphabet: PronunciationAlphabet = "x-sampa"
-) -> Iterable[Tuple[torch.Tensor, torch.Tensor, float, float, float]]:
+    lexicon: Path,
+    native_alphabet: PronunciationAlphabet = "x-sampa",
+) -> Union[Iterable[torch.Tensor], Iterable[Tuple[torch.Tensor, float, float, float]]]:
     """Load lexicon as calibration data input for FastSpeech2 model.
 
     Yields:
@@ -29,40 +54,38 @@ def calibration_seqs_from_lex(
     words = list(read_kaldi_lexicon(lexicon).keys())
     lookup_lexicon = SimpleInMemoryLexicon(lexicon, native_alphabet)
 
-    duration_control = 1.0
-    pitch_control = 1.0
-    energy_control = 1.0
-
     for word in words[:-1:20]:
         phone_seq = lookup_lexicon.get(word)
         text_seq = torch.tensor(
             [text_to_sequence("{%s}" % " ".join(phone_seq), hparams.text_cleaners)],
             dtype=torch.int64,
         )
-        src_len = torch.tensor([text_seq.shape[1]])
-        yield text_seq, src_len, duration_control, pitch_control, energy_control
+        yield text_seq
 
 
-def calibrate(
+def calibrate_for_server(
     model: torch.nn.Module,
-    inputs: Iterable[Tuple[torch.Tensor, torch.Tensor, float, float, float]],
+    inputs: Iterable[Tuple[torch.Tensor, float, float, float]],
 ) -> None:
     model.eval()
-    with torch.no_grad():
-        for (
+    for (text_seq, duration_control, pitch_control, energy_control) in inputs:
+        _ = model.inference(
             text_seq,
-            src_len,
-            duration_control,
-            pitch_control,
-            energy_control,
-        ) in inputs:
-            _ = model(
-                text_seq,
-                src_len,
-                d_control=duration_control,
-                p_control=pitch_control,
-                e_control=energy_control,
-            )
+            d_control=duration_control,
+            p_control=pitch_control,
+            e_control=energy_control,
+        )
+
+
+def calibrate_for_mobile(
+    model: torch.nn.Module,
+    inputs: Iterable[torch.Tensor],
+) -> None:
+    model.eval()
+    for text_seq in inputs:
+        _ = model.mobile_inference(
+            text_seq,
+        )
 
 
 def quantize(
@@ -101,9 +124,16 @@ def quantize(
         layer.slf_attn.layer_norm = prepare_fx(layer.slf_attn.layer_norm, qconfig_dict)
         layer.slf_attn.fc = prepare_fx(layer.slf_attn.fc, qconfig_dict)
 
-    calibrate(
-        float_model, calibration_seqs_from_lex(calibration_lexicon, lexicon_alphabet)
-    )
+    if engine == "qnnpack":
+        calibrate_for_mobile(
+            float_model,
+            calibration_seqs_from_lex_for_mobile(calibration_lexicon, lexicon_alphabet),
+        )
+    else:
+        calibrate_for_server(
+            float_model,
+            calibration_seqs_from_lex_for_server(calibration_lexicon, lexicon_alphabet),
+        )
 
     float_model.postnet = convert_fx(float_model.postnet)
     float_model.mel_linear = convert_fx(float_model.mel_linear)
@@ -157,10 +187,14 @@ def main(args: argparse.Namespace):
 
     scripted_model = torch.jit.script(model)
     if args.for_mobile:
-        optimized_model = optimize_for_mobile(scripted_model)
+        optimized_model = optimize_for_mobile(
+            scripted_model, preserved_methods=["mobile_inference"]
+        )
         optimized_model._save_for_lite_interpreter(args.output_path)
     else:
-        optimized_model = torch.jit.freeze(scripted_model)
+        optimized_model = torch.jit.freeze(
+            scripted_model, preserved_attrs=["inference"]
+        )
         # TODO(rkjaran): Use this once PyTorch actually supports its serialization
         # optimized_model = torch.jit.optimize_for_inference(optimized_model)
         torch.jit.save(optimized_model, args.output_path)
