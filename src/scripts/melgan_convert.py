@@ -1,5 +1,6 @@
 import argparse
 import glob
+import logging
 import os
 import textwrap
 
@@ -12,6 +13,8 @@ from utils.hparams import HParam, load_hparam_str
 
 
 def main(args: argparse.Namespace):
+    logging.basicConfig(level=args.log_level)
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     checkpoint = torch.load(
         args.checkpoint_path,
@@ -22,23 +25,24 @@ def main(args: argparse.Namespace):
     model = Generator(hp.audio.n_mel_channels).to(device)
     model.load_state_dict(checkpoint["model_g"])
     model.eval()
+    model.requires_grad = False
+    model.remove_weight_norm()
 
-    with torch.no_grad():
-        melpath = list(glob.glob(os.path.join(args.input_folder, "*.mel")))[0]
-        mel = torch.load(melpath)
-        if len(mel.shape) == 2:
-            mel = mel.unsqueeze(0)
-        mel = mel.cpu()
+    melpaths = list(glob.glob(os.path.join(args.input_folder, "*.mel")))
+    mel = torch.load(melpaths[0])
+    if len(mel.shape) == 2:
+        mel = mel.unsqueeze(0)
+    mel = mel.cpu()
 
-        traced_model = torch.jit.trace(model, mel)
+    scripted_model = torch.jit.script(model)
 
-        if args.for_mobile:
-            optimized_model = optimize_for_mobile(traced_model)
-            optimized_model._save_for_lite_interpreter(args.output_path)
-        else:
-            frozen_model = torch.jit.freeze(traced_model)
-            optimized_model = torch.jit.optimize_for_inference(frozen_model)
-            torch.jit.save(optimized_model, args.output_path)
+    if args.for_mobile:
+        optimized_model = optimize_for_mobile(scripted_model)
+        optimized_model._save_for_lite_interpreter(args.output_path)
+    else:
+        frozen_model = torch.jit.freeze(scripted_model)
+        # optimized_model = torch.jit.optimize_for_inference(frozen_model)
+        torch.jit.save(scripted_model, args.output_path)
 
 
 if __name__ == "__main__":
@@ -72,9 +76,12 @@ if __name__ == "__main__":
         help="directory of mel-spectrograms to invert into raw audio. ",
     )
     parser.add_argument(
-        "--for-mobile",
+        "--for_mobile",
         action="store_true",
         help="Should the output be optimized for mobile? And saved for the 'lite' interpreter?",
+    )
+    parser.add_argument(
+        "--log-level", choices=("DEBUG", "INFO", "WARNING", "ERROR"), default="INFO"
     )
     args = parser.parse_args()
 
