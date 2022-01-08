@@ -22,7 +22,6 @@ deploy:
     name: production
     kubernetes:
       namespace: default
-  stage: deploy
   only:
     - master
   before_script:
@@ -33,8 +32,15 @@ deploy:
   script:
     - tools/bazel --output_base=bazel-output_base run //k8s:prod.apply
 
-# There are no tests, so this would fail :)
-# test:
-#   stage: test
-#   script:
-#     - tools/bazel --output_base=bazel-output_base test //...
+test:
+  stage: test
+  script:
+    - tools/bazel --output_base=bazel-output_base test :unit_test
+  after_script:
+    - mkdir -p test-log
+    - cp bazel-testlogs/unit_test/test.xml test-log/test.xml
+  artifacts:
+    when: always
+    reports:
+      junit: test-log/test.xml
+      

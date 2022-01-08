@@ -1,4 +1,4 @@
-load("@rules_python//python:defs.bzl", "py_binary", "py_library")
+load("@rules_python//python:defs.bzl", "py_binary", "py_library") # "py_test"
 load("@rules_python//python:pip.bzl", "compile_pip_requirements")
 load("@io_bazel_rules_docker//python:image.bzl", "py_layer")
 load("@io_bazel_rules_docker//python3:image.bzl", "py3_image")
@@ -8,6 +8,7 @@ load(
     "container_image",
 )
 load("//tools/py:py_repl.bzl", "py_repl2")
+load("//tools/py:py_pytest_test.bzl", "py_pytest_test")
 
 # Use bazel run //:pip_compile.update to update requirements.bazel.txt
 compile_pip_requirements(
@@ -106,6 +107,11 @@ py_binary(
         # explicit
         requirement("gunicorn"),
     ],
+)
+
+py_pytest_test(
+    name = "unit_test",
+    deps = [":app_lib"]
 )
 
 # Defines a runnable REPL with the same environment as :app
