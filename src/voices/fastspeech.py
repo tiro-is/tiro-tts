@@ -271,21 +271,13 @@ class FastSpeech2Synthesizer:
                     dtype=torch.int64,
                     device=self._device,
                 )
-                src_len = torch.tensor([text_seq.shape[1]], device=self._device)
 
                 (
-                    mel,
                     mel_postnet,
                     # Duration of each phoneme in log(millisec)
-                    log_duration_output,
-                    f0_output,
-                    energy_output,
-                    src_mask,
-                    mel_mask,
-                    mel_len,
-                ) = self._fs_model(
+                    log_duration_output
+                ) = self._fs_model.inference(
                     text_seq,
-                    src_len,
                     d_control=duration_control,
                     p_control=pitch_control,
                     e_control=energy_control,
