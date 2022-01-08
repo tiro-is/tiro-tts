@@ -31,10 +31,10 @@ spec:
           mkdir -p /models/
           gcloud auth activate-service-account --key-file=/creds/keyfile.json
 
-          ALFUR_FASTSPEECH=gs://models-talgreinir-is/tts/fastspeech2/v2021-01-01/checkpoint_490000_jit_quant_fbgemm.pt
+          ALFUR_FASTSPEECH=gs://models-talgreinir-is/tts/fastspeech2/v2021-01-01/checkpoint_490000_jit_quant_fbgemm_v2.pt
           ALFUR_MELGAN=gs://models-talgreinir-is/tts/fastspeech2/v2021-01-01/vocoder_aca5990_3350_jit.pt
 
-          DILJA_FASTSPEECH=gs://models-talgreinir-is/tts/fastspeech2/dilja/v2021-07-26/checkpoint_380000_jit_quant_fbgemm.pt
+          DILJA_FASTSPEECH=gs://models-talgreinir-is/tts/fastspeech2/dilja/v2021-07-26/checkpoint_380000_jit_quant_fbgemm_v2.pt
           DILJA_MELGAN=gs://models-talgreinir-is/tts/fastspeech2/dilja/v2021-07-26/dilja_aca5990_4550_jit.pt
 
           SEQUITUR=gs://models-talgreinir-is/g2p/is-IS.ipd_clean_slt2018.mdl
