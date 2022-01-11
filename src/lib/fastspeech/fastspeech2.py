@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Tuple
 
 import torch
 import torch.nn as nn
@@ -42,7 +42,16 @@ class FastSpeech2(nn.Module):
             d_control: float = 1.0,
             p_control: float = 1.0,
             e_control: float = 1.0,
-    ):
+    ) -> Tuple[
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor
+    ]:
         src_mask = get_mask_from_lengths(src_len, max_src_len)
         mel_mask = get_mask_from_lengths(
             mel_len, max_mel_len) if mel_len is not None else None
@@ -65,6 +74,54 @@ class FastSpeech2(nn.Module):
             mel_output_postnet = mel_output
 
         return mel_output, mel_output_postnet, d_prediction, p_prediction, e_prediction, src_mask, mel_mask, mel_len
+
+    @torch.jit.export
+    def inference(
+        self,
+        src_seq: torch.Tensor,
+        d_control: float = 1.0,
+        p_control: float = 1.0,
+        e_control: float = 1.0,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Run inference using minimal inputs and outputs
+
+        Returns:
+          A tuple of tensors (mel_postnot, duration_prediction)
+        """
+        src_len = torch.tensor([src_seq.shape[1]])
+        mel_len: Optional[torch.Tensor] = None
+        d_target: Optional[torch.Tensor] = None
+        p_target: Optional[torch.Tensor] = None
+        e_target: Optional[torch.Tensor] = None
+        max_src_len: Optional[int] = None
+        max_mel_len: Optional[int] = None
+
+        _, mel_postnet, d_prediction, *_ = self.forward(
+            src_seq,
+            src_len,
+            mel_len,
+            d_target,
+            p_target,
+            e_target,
+            max_src_len,
+            max_mel_len,
+            d_control,
+            p_control,
+            e_control,
+        )
+
+        return mel_postnet, d_prediction
+
+    @torch.jit.export
+    def mobile_inference(
+        self,
+        src_seq: torch.Tensor,
+    ) -> torch.Tensor:
+        d_control: float = 1.0
+        p_control: float = 1.0
+        e_control: float = 1.0
+        mel_postnet, _ = self.inference(src_seq, d_control, p_control, e_control)
+        return mel_postnet
 
 
 if __name__ == "__main__":
