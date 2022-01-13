@@ -1,9 +1,13 @@
-from ..phonemes import SHORT_PAUSE, convert_ipa_to_xsampa,  \
-                       convert_xsampa_to_ipa,               \
-                       align_ipa_from_xsampa,               \
-                       _align_ipa,                          \
-                       SHORT_PAUSE
 from pytest import raises
+
+from ..phonemes import (
+    SHORT_PAUSE,
+    _align_ipa,
+    align_ipa_from_xsampa,
+    convert_ipa_to_xsampa,
+    convert_xsampa_to_ipa,
+)
+
 
 class TestConvertIpaToXsampa:
     def test_empty_lis(self):

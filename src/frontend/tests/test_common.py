@@ -1,5 +1,7 @@
 from pytest import raises
-from ..common import utf8_byte_length, consume_whitespace, consume_whitespace_bytes
+
+from ..common import consume_whitespace, consume_whitespace_bytes, utf8_byte_length
+
 
 class TestUtf8ByteLength:
     def test_empty_string(self):
@@ -38,7 +40,7 @@ class TestUtf8ByteLength:
 
     def test_incorrect_arg_dict(self):
         with raises(AttributeError):
-            utf8_byte_length({'meaning': 42})
+            utf8_byte_length({"meaning": 42})
 
     def test_no_arg(self):
         with raises(TypeError):
@@ -47,37 +49,38 @@ class TestUtf8ByteLength:
     def test_extra_arg(self):
         with raises(TypeError):
             utf8_byte_length(" Marcus", "\tTullius")
-    
-class TestConsumeWhitespace():
+
+
+class TestConsumeWhitespace:
     def test_empty_string(self):
-        assert consume_whitespace("") == (0,0)
+        assert consume_whitespace("") == (0, 0)
 
     def test_four_spaces(self):
-        assert consume_whitespace("    ") == (4,4)
-    
+        assert consume_whitespace("    ") == (4, 4)
+
     def test_space(self):
-        assert consume_whitespace(" ") == (1,1)
+        assert consume_whitespace(" ") == (1, 1)
 
     def test_tab_prefix(self):
-        assert consume_whitespace(" ragnar fór á fund") == (1,1)
+        assert consume_whitespace(" ragnar fór á fund") == (1, 1)
 
     def test_two_tab_prefix(self):
-        assert consume_whitespace("\t\tragnar fór á fund") == (2,2)
+        assert consume_whitespace("\t\tragnar fór á fund") == (2, 2)
 
     def test_four_spaces_prefix(self):
-        assert consume_whitespace("    afi minn fór á honum rauð") == (4,4)
+        assert consume_whitespace("    afi minn fór á honum rauð") == (4, 4)
 
     def test_tab_three_spaces_prefix(self):
-        assert consume_whitespace("\t   örlygur") == (4,4)
+        assert consume_whitespace("\t   örlygur") == (4, 4)
 
     def test_space_tab(self):
-        assert consume_whitespace(" \tragnar fór á fund   ") == (2,2)
+        assert consume_whitespace(" \tragnar fór á fund   ") == (2, 2)
 
     def test_space_postfix(self):
-        assert consume_whitespace("100 ") == (0,0)
+        assert consume_whitespace("100 ") == (0, 0)
 
     def test_tab_space_tab_postfix(self):
-        assert consume_whitespace("1001\t  \t") == (0,0)
+        assert consume_whitespace("1001\t  \t") == (0, 0)
 
     def test_incorrect_arg_int(self):
         with raises(TypeError):
@@ -85,7 +88,7 @@ class TestConsumeWhitespace():
 
     def test_incorrect_arg_dict(self):
         with raises(TypeError):
-            consume_whitespace({'meaning': 42})
+            consume_whitespace({"meaning": 42})
 
     def test_no_arg(self):
         with raises(TypeError):
@@ -94,6 +97,7 @@ class TestConsumeWhitespace():
     def test_extra_arg(self):
         with raises(TypeError):
             consume_whitespace(" Marcus", "\tTullius")
+
 
 class TestConsumeWhitespaceBytes:
     def test_empty(self):
