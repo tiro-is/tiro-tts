@@ -112,9 +112,18 @@ py_binary(
 
 py_pytest_test(
     name = "test_frontend",
-    srcs = glob(["src/frontend/tests/test_*.py"]),
+    srcs = glob(
+        ["src/frontend/tests/test_*.py"], 
+        exclude=["src/frontend/tests/test_grapheme_to_phoneme.py"]
+    ),
     deps = [":app_lib"],
-    data = ["@test_models//:models"]
+)
+
+py_pytest_test(
+    name = "test_frontend_model_dependent",
+    srcs = ["src/frontend/tests/test_grapheme_to_phoneme.py"],
+    deps = [":app_lib"],
+    data = ["@test_models//:models"],
 )
 
 # Defines a runnable REPL with the same environment as :app
