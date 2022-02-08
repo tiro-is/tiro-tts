@@ -5,8 +5,6 @@ def py_pytest_test(
         name,
         # This argument exists for back-compatibility with earlier versions
         pytest_args = [
-            "--ignore=external",
-            ".",
             "-p",
             "no:cacheprovider",
             "-s"
