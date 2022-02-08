@@ -23,8 +23,6 @@ load("@com_adobe_rules_gitops//gitops:repositories.bzl", "rules_gitops_repositor
 
 rules_gitops_repositories()
 
-load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_file")
-
 new_local_repository(
     name = "test_models",
     path = "./models",

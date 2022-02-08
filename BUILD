@@ -121,6 +121,7 @@ py_pytest_test(
         ["src/frontend/tests/test_*.py"], 
         exclude=["src/frontend/tests/test_grapheme_to_phoneme.py"],
     ),
+    tags = ["manual"],
 )
 
 py_pytest_test(
@@ -129,6 +130,7 @@ py_pytest_test(
     deps = [":app_lib"],
     args = ["src/frontend/tests/test_grapheme_to_phoneme.py"],
     data = ["@test_models//:models"],
+    tags = ["manual"],
 )
 
 # Defines a runnable REPL with the same environment as :app

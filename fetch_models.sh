@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
 
-echo $#
-
-if [[ $# != 1 ]] || ([[ $1 != "test" ]] && [[ $1 != "dep" ]]); then
+if [[ $# != 1 ]] || { [[ $1 != "test" ]] && [[ $1 != "dep" ]]; }; then
     echo "Please provide a single argument: \"test\" or \"dep\""
     exit 1
 fi
 
 echo "Fetching $1 models..."
 
-[[ $1 == "test" ]] && KEYFILE_PATH=$GCS_CREDS || KEYFILE_PATH="/creds/keyfile.json"
+if [[ $1 == "test" ]]; then
+    KEYFILE_PATH=$GCS_CREDS
+else
+    KEYFILE_PATH="/creds/keyfile.json"
+fi
 
 if [[ $1 == "test" ]]; then
     curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-370.0.0-linux-x86_64.tar.gz
@@ -18,7 +20,11 @@ if [[ $1 == "test" ]]; then
 fi
 
 gcloud auth activate-service-account --key-file=$KEYFILE_PATH
-[[ $1 == "test" ]] && mkdir -p models || mkdir -p /models/
+if [[ $1 == "test" ]]; then
+    mkdir -p models
+else
+    mkdir -p /models/
+fi
 
 ALFUR_FASTSPEECH_ORIGIN="gs://models-talgreinir-is/tts/fastspeech2/v2021-01-01/checkpoint_490000_jit_quant_fbgemm_v2.pt"
 ALFUR_MELGAN_ORIGIN="gs://models-talgreinir-is/tts/fastspeech2/v2021-01-01/vocoder_aca5990_3350_jit_v2.pt"
