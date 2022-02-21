@@ -81,7 +81,7 @@ py_binary(
 
 py_library(
     name = "app_lib",
-    srcs = glob(["src/**/*.py"], exclude=["src/lib"]),
+    srcs = glob(["src/**/*.py"], exclude=["src/lib", "src/**/tests"]),
     data = glob(["src/templates/*.dhtml"]) + glob(["conf/*.pbtxt"]),
     srcs_version = "PY3",
     deps = all_requirements + [
@@ -111,8 +111,26 @@ py_binary(
 )
 
 py_pytest_test(
-    name = "unit_test",
-    deps = [":app_lib"]
+    name = "test_frontend",
+    srcs = glob(
+        ["src/frontend/tests/test_*.py"], 
+        exclude=["src/frontend/tests/test_grapheme_to_phoneme.py"],
+    ),
+    deps = [":app_lib"],
+    args = glob(
+        ["src/frontend/tests/test_*.py"], 
+        exclude=["src/frontend/tests/test_grapheme_to_phoneme.py"],
+    ),
+    tags = ["manual"],
+)
+
+py_pytest_test(
+    name = "test_frontend_model_dependent",
+    srcs = ["src/frontend/tests/test_grapheme_to_phoneme.py"],
+    deps = [":app_lib"],
+    args = ["src/frontend/tests/test_grapheme_to_phoneme.py"],
+    data = ["@test_models//:models"],
+    tags = ["manual"],
 )
 
 # Defines a runnable REPL with the same environment as :app
@@ -171,5 +189,11 @@ container_image(
         "--access-logformat", "%(l)s %(u)s %(t)s \"%(r)s\" %(s)s %(b)s \"%(f)s\" \"%(a)s\"",
         "app:app",
     ],
+    visibility = ["//visibility:public"],
+)
+
+sh_binary(
+    name = "fetch_models",
+    srcs = ["fetch_models.sh"],
     visibility = ["//visibility:public"],
 )

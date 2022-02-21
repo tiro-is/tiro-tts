@@ -6,6 +6,28 @@ NAMESPACE = "default"
 REGISTRY = "eu.gcr.io"
 REPOSITORY_PREFIX = "talgreining-is/k8s"
 
+# This is a bit hacky but gets the job done. We're injecting the contents of
+# /fetch_models.sh into the initContainers command
+genrule(
+    name = "expanded_base_deployment_yaml",
+    srcs = [
+        "base/deployment.yaml",
+    ],
+    tools = [
+        "//:fetch_models",
+    ],
+    outs = ["expanded_deployment.yaml"],
+    local = True,
+    cmd = """\
+sed 's/^/          /' $(location //:fetch_models) > indented_fetch_models.sh
+sed "/{{FETCH_MODELS_SCRIPT}}/{
+ r indented_fetch_models.sh
+ d
+}" $(location base/deployment.yaml) > $(location expanded_deployment.yaml)
+    """,
+)
+
+
 k8s_deploy(
     name = "dev",
     cluster = CLUSTER,
@@ -17,7 +39,7 @@ k8s_deploy(
         "tiro-tts": "//:tiro-tts_image",
     },
     manifests = [
-        "base/deployment.yaml",
+        ":expanded_base_deployment_yaml",
         "base/ingress.yaml",
         "base/service.yaml",
     ],
@@ -49,7 +71,7 @@ k8s_deploy(
         "tiro-tts": "//:tiro-tts_image",
     },
     manifests = [
-        "base/deployment.yaml",
+        ":expanded_base_deployment_yaml",
         "base/ingress.yaml",
         "base/service.yaml",
     ],

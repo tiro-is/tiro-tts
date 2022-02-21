@@ -6,11 +6,13 @@ default:
   cache:
     paths:
       - bazel-output_base
+
 stages:
   - build
   - test
+  - test_predeploy
   - deploy
-  
+
 build:
   stage: build
   script:
@@ -35,12 +37,29 @@ deploy:
 test:
   stage: test
   script:
-    - tools/bazel --output_base=bazel-output_base test :unit_test
+    - tools/bazel --output_base=bazel-output_base test :test_frontend
   after_script:
-    - mkdir -p test-log
-    - cp bazel-testlogs/unit_test/test.xml test-log/test.xml
+    - mkdir -p test-logs
+    - cp bazel-testlogs/test_frontend/test.xml test-logs/test_frontend.xml
   artifacts:
     when: always
     reports:
-      junit: test-log/test.xml
+      junit: test-logs/test_frontend.xml
+      
+test_predeploy:
+  stage: test
+  only:
+    - master
+  before_script:
+    - chmod a+x fetch_models.sh
+    - ./fetch_models.sh test
+  script:
+    - tools/bazel --output_base=bazel-output_base test :test_frontend_model_dependent
+  after_script:
+    - mkdir -p test-logs
+    - cp bazel-testlogs/test_frontend_model_dependent/test.xml test-logs/test_frontend_model_dependent.xml
+  artifacts:
+    when: always
+    reports:
+      junit: test-logs/test_frontend_model_dependent.xml
       
