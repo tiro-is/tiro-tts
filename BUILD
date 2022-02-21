@@ -191,3 +191,9 @@ container_image(
     ],
     visibility = ["//visibility:public"],
 )
+
+sh_binary(
+    name = "fetch_models",
+    srcs = ["fetch_models.sh"],
+    visibility = ["//visibility:public"],
+)

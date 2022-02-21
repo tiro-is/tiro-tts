@@ -28,9 +28,8 @@ spec:
         - -xeu
         - -c
         - |
-          chmod a+x fetch_models.sh
-          ./fetch_models.sh dep
-          exit 0
+          {{FETCH_MODELS_SCRIPT}}
+
         volumeMounts:
         - name: models
           mountPath: /models
