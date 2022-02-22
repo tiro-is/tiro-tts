@@ -29,7 +29,8 @@ spec:
         - -c
         - |
           {{FETCH_MODELS_SCRIPT}}
-
+        - fetch
+        - dep
         volumeMounts:
         - name: models
           mountPath: /models
