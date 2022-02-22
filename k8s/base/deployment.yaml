@@ -58,6 +58,8 @@ spec:
           requests:
             memory: "2000Mi"
             cpu: "1000m"
+          limits:
+            nvidia.com/gpu: 1
         env:
         - name: TIRO_TTS_AWS_ACCESS_KEY_ID
           valueFrom:
