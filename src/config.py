@@ -33,3 +33,6 @@ class EnvvarConfig(metaclass=flask_env.MetaFlaskEnv):
 
     # Enable to use ffmpeg executable to encode ogg_vorbis/mp3
     USE_FFMPEG = True
+
+    # Use this variable to enable or disable auth(orization|entication)
+    AUTH_DISABLED = True
