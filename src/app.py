@@ -23,7 +23,7 @@ from flask_cors import CORS
 from webargs.flaskparser import FlaskParser, abort
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from src import schemas
+from src import schemas, db
 from src.config import EnvvarConfig
 
 app = Flask(__name__)
@@ -31,6 +31,7 @@ app.config["JSON_AS_ASCII"] = False
 app.config["APISPEC_SWAGGER_URL"] = "/v0/swagger.json"
 app.config["APISPEC_SWAGGER_UI_URL"] = None
 app.config.from_object(EnvvarConfig)
+db.setup_db(app)
 
 # Fix access to client remote_addr when running behind proxy
 setattr(app, "wsgi_app", ProxyFix(app.wsgi_app))
