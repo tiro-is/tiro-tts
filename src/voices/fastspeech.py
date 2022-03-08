@@ -40,14 +40,71 @@ from src.frontend.words import WORD_SENTENCE_SEPARATOR, Word
 
 from .voice_base import OutputFormat, VoiceBase, VoiceProperties
 
-if True:  # noqa: E402
-    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../lib/fastspeech"))
-    from src.lib.fastspeech import hparams as hp
-    from src.lib.fastspeech import utils
-    from src.lib.fastspeech.align_phonemes import Aligner
-    from src.lib.fastspeech.g2p_is import translate as g2p
-    from src.lib.fastspeech.synthesize import get_FastSpeech2
-    from src.lib.fastspeech.text import text_to_sequence
+# TODO(rkjaran): Don't hardcode this. Remove it once we've refactored FastSpeech2Voice
+#   into a more generic TorchScript voice
+FASTSPEECH2_SYMBOLS = {
+    "a": 64,
+    "aː": 65,
+    "ai": 66,
+    "aiː": 67,
+    "au": 68,
+    "auː": 69,
+    "c": 70,
+    "ç": 71,
+    "cʰ": 72,
+    "ð": 73,
+    "ei": 74,
+    "eiː": 75,
+    "ɛ": 76,
+    "ɛː": 77,
+    "f": 78,
+    "ɣ": 79,
+    "h": 80,
+    "i": 81,
+    "iː": 82,
+    "ɪ": 83,
+    "ɪː": 84,
+    "j": 85,
+    "k": 86,
+    "kʰ": 87,
+    "l": 88,
+    "l̥": 89,
+    "m": 90,
+    "m̥": 91,
+    "n": 92,
+    "n̥": 93,
+    "ɲ": 94,
+    "ɲ̊": 95,
+    "ŋ": 96,
+    "ŋ̊": 97,
+    "œ": 98,
+    "œː": 99,
+    "œy": 100,
+    "œyː": 101,
+    "ou": 102,
+    "ouː": 103,
+    "ɔ": 104,
+    "ɔː": 105,
+    "ɔi": 106,
+    "p": 107,
+    "pʰ": 108,
+    "r": 109,
+    "r̥": 110,
+    "s": 111,
+    "t": 112,
+    "tʰ": 113,
+    "u": 114,
+    "uː": 115,
+    "v": 116,
+    "x": 117,
+    "ʏ": 118,
+    "ʏː": 119,
+    "ʏi": 120,
+    "θ": 121,
+    "sp": 122,
+    "spn": 123,
+    "sil": 124,
+}
 
 
 class FastSpeech2Synthesizer:
@@ -85,11 +142,11 @@ class FastSpeech2Synthesizer:
         self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self._melgan_model = torch.jit.load(
             melgan_vocoder_path,
-            map_location=self._device
+            map_location=self._device,
         )
         self._fs_model = torch.jit.load(
             fastspeech_model_path,
-            map_location=self._device
+            map_location=self._device,
         )
         self._phonetizer = phonetizer
         self._normalizer = normalizer
@@ -192,7 +249,7 @@ class FastSpeech2Synthesizer:
                     continue
 
                 text_seq = torch.tensor(
-                    [text_to_sequence("{%s}" % " ".join(phone_seq), hp.text_cleaners)],
+                    [[FASTSPEECH2_SYMBOLS[phoneme] for phoneme in phone_seq]],
                     dtype=torch.int64,
                     device=self._device,
                 )
@@ -200,7 +257,7 @@ class FastSpeech2Synthesizer:
                 (
                     mel_postnet,
                     # Duration of each phoneme in log(millisec)
-                    log_duration_output
+                    log_duration_output,
                 ) = self._fs_model.inference(
                     text_seq,
                     d_control=duration_control,

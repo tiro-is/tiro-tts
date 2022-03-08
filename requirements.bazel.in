@@ -4,6 +4,7 @@ pyyaml
 numpy
 librosa
 tgt
+tqdm
 scipy
 numba
 inflect

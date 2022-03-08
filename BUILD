@@ -2,7 +2,7 @@ load("@rules_python//python:defs.bzl", "py_binary", "py_library") # "py_test"
 load("@rules_python//python:pip.bzl", "compile_pip_requirements")
 load("@io_bazel_rules_docker//python:image.bzl", "py_layer")
 load("@io_bazel_rules_docker//python3:image.bzl", "py3_image")
-load("@pip_deps//:requirements.bzl", "all_requirements", "requirement")
+load("@pip_deps//:requirements.bzl", "requirement")
 load(
     "@io_bazel_rules_docker//container:container.bzl",
     "container_image",
@@ -46,6 +46,7 @@ py_binary(
     deps = [
         ":melgan",
         requirement("librosa"),
+        requirement("tqdm"),
     ],
 )
 
@@ -73,21 +74,69 @@ py_binary(
     srcs = ["src/scripts/fastspeech_convert.py"],
     python_version = "PY3",
     deps = [
+        requirement("torch"),
         ":fastspeech",
+        ":frontend"
+    ],
+)
+
+py_library(
+    name = "auth",
+    srcs = glob(["src/auth/**/*.py"], exclude=["**/tests"]),
+    srcs_version = "PY3",
+    deps = [
+        requirement("flask"),
+    ],
+)
+
+py_library(
+    name = "frontend",
+    srcs = glob(["src/frontend/**/*.py"], exclude=["**/tests"]),
+    srcs_version = "PY3",
+    deps = [
         requirement("sequitur"),
-        ":app_lib",
+        requirement("tokenizer"),
+        "@com_github_grammatek_tts_frontend_api//:tts_frontend_service_python_grpc",
+    ],
+)
+
+py_library(
+    name = "voices",
+    srcs = glob(["src/voices/**/*.py"], exclude=["**/tests"]),
+    srcs_version = "PY3",
+    deps = [
+        requirement("boto3"),
+        requirement("flask"),    # required for access to current_app.config
+        requirement("torch"),    # TODO(rkjaran): select on whether we support cuda
+        ":frontend",
+        "//proto/tiro/tts:voice_python_proto",
+    ],
+)
+
+py_library(
+    name = "main",
+    srcs = glob(["src/*.py"], exclude=["*_test.py"]),
+    srcs_version = "PY3",
+    deps = [
+        requirement("flask"),
+        requirement("flask-apispec"),
+        requirement("flask-cors"),
+        requirement("flask-env"),
+        requirement("flask-migrate"),
+        requirement("flask-sqlalchemy"),
+        ":voices",
+        ":auth",
     ],
 )
 
 py_library(
     name = "app_lib",
-    srcs = glob(["src/**/*.py"], exclude=["src/lib", "src/**/tests"]),
     data = glob(["src/templates/*.dhtml"]) + glob(["conf/*.pbtxt"]),
     srcs_version = "PY3",
-    deps = all_requirements + [
-        "//proto/tiro/tts:voice_python_proto",
-        "@com_github_grammatek_tts_frontend_api//:tts_frontend_service_python_grpc",
-        ":fastspeech",
+    deps = [
+        ":main",
+        ":frontend",
+        ":voices",
     ],
 )
 
@@ -104,8 +153,6 @@ py_binary(
     python_version = "PY3",
     deps = [
         ":app_lib",
-        # Technically this is included in ``all_requirements``, but let's be
-        # explicit
         requirement("gunicorn"),
     ],
 )
@@ -168,17 +215,11 @@ container_image(
     base = "@py3_8_image_base//image",
 )
 
-py_layer(
-    name = "app_deps_image_layer",
-    deps = all_requirements,
-)
-
 py3_image(
     name = "app_image",
     main = "src/gunicorn_runner.py",
     srcs = ["src/gunicorn_runner.py"],
     layers = [
-        ":app_deps_image_layer",
         requirement("gunicorn"),
         ":app_lib",
     ],

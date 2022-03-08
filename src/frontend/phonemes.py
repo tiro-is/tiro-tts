@@ -15,9 +15,6 @@ import os
 import sys
 from typing import List
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../lib/fastspeech"))
-from src.lib.fastspeech.align_phonemes import Aligner
-
 PhoneSeq = List[str]
 
 SHORT_PAUSE = "sp"
@@ -85,6 +82,74 @@ IPA_XSAMPA_MAP = {
 }
 
 XSAMPA_IPA_MAP = {val: key for key, val in IPA_XSAMPA_MAP.items()}
+
+DEFAULT_PHONEMES = XSAMPA_IPA_MAP.keys()
+
+
+class Aligner:
+    def __init__(self, phoneme_set=None, align_sep=" ", cleanup=""):
+        "Align according to phoneme_set"
+        if phoneme_set:
+            self.phoneme_set = phoneme_set
+        else:
+            self.phoneme_set = DEFAULT_PHONEMES
+        self.phoneme_stats = dict(
+            zip(self.phoneme_set, [0 for i in range(len(self.phoneme_set))])
+        )
+        self.max_plen = 0
+        self.align_sep = align_sep
+        self.clean_trtbl = str.maketrans("", "", cleanup)
+        for phoneme in self.phoneme_set:
+            plen = len(phoneme)
+            self.max_plen = plen if plen > self.max_plen else self.max_plen
+
+    def find_longest(self, partial_pstring, phoneme_string):
+        if len(partial_pstring) < self.max_plen:
+            max_len = len(partial_pstring)
+        else:
+            max_len = self.max_plen
+
+        r = range(1, max_len + 1)[::-1]
+
+        for l in r:
+            if partial_pstring[0:l] in self.phoneme_set:
+                self.phoneme_stats[partial_pstring[0:l]] += 1
+                return l
+        raise ValueError(
+            'Invalid symbol found in "{}"'.format(
+                phoneme_string + "\t" + partial_pstring[0:l]
+            )
+        )
+
+    def align(self, phoneme_string):
+        phoneme_string = self.clean(phoneme_string)
+        sublengths = []
+        w = phoneme_string
+        while len(w) > 0:
+            offset = self.find_longest(w, phoneme_string)
+            w = w[offset:]
+            sublengths.append(offset)
+        aligned = []
+        a = 0
+        for b in sublengths:
+            aligned.append(phoneme_string[a : a + b])
+            a = a + b
+        return self.align_sep.join(aligned)
+
+    def clean(self, phoneme_string):
+        """Clean some unwanted characters from string"""
+        return phoneme_string.translate(self.clean_trtbl)
+
+    @staticmethod
+    def read_file_as_set(fpath):
+        phonemes = set()
+        with open(fpath) as fobj:
+            for line in fobj:
+                line = line.strip()
+                if line[0] != "#":
+                    phonemes.add(line)
+        return phonemes
+
 
 ALIGNER_IPA = Aligner(phoneme_set=set(IPA_XSAMPA_MAP.keys()))
 ALIGNER_XSAMPA = Aligner(phoneme_set=set(XSAMPA_IPA_MAP.keys()))

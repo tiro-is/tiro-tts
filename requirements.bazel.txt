@@ -695,6 +695,10 @@ tomli==1.2.2 \
 https://download.pytorch.org/whl/cpu/torch-1.9.0%2Bcpu-cp38-cp38-linux_x86_64.whl \
     --hash=sha256:ea73020dce444caf16c584995186f724d68cdc235c92a34668b5fc330f21ba7b
     # via -r requirements.bazel.in
+tqdm==4.63.0 \
+    --hash=sha256:1d9835ede8e394bb8c9dcbffbca02d717217113adc679236873eeaac5bc0b3cd \
+    --hash=sha256:e643e071046f17139dea55b880dc9b33822ce21613b4a4f5ea57f202833dbc29
+    # via -r requirements.bazel.in
 typing-extensions==4.0.0 \
     --hash=sha256:2cdf80e4e04866a9b3689a51869016d36db0814d84b8d8a568d22781d45d27ed \
     --hash=sha256:829704698b22e13ec9eaf959122315eabb370b0884400e9818334d8b677023d9
