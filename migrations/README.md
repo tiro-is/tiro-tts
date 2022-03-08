@@ -1,9 +1,10 @@
 # tiro-tts database
 
 This simple SQLAlchemy+Flask-Migrate PostgreSQL database is used to keep records of endpoint calls to Tiro TTS.
+This document assumes you already have a connection to an instance of a database.
 
 ## How to modify
-This section explains the step that must be taken to apply modificatinos to the database.
+This section explains the steps that must be taken to apply modifications to the database.
 
 ### Your own changes
 To apply your own changes to the database, the following steps must be taken:

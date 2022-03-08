@@ -1,9 +1,9 @@
-from email.policy import default
-from enum import unique
 import os
+
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from flask_sqlalchemy import SQLAlchemy
+
 
 def setup_db(app: Flask):
     db_username: str = os.environ.get("POSTGRESQL_USERNAME", "")
@@ -11,10 +11,12 @@ def setup_db(app: Flask):
     db_name: str = os.environ.get("POSTGRESQL_DATABASE", "")
 
     if not db_username or not db_password or not db_name:
-        raise Exception("One or more database credentials were missing!")
+        raise Exception("One or more database credentials are missing!")
 
-    app.config["SQLALCHEMY_DATABASE_URI"] = f"postgresql://{db_username}:{db_password}@{db_name}"
-    
+    app.config[
+        "SQLALCHEMY_DATABASE_URI"
+    ] = f"postgresql://{db_username}:{db_password}@{db_name}"
+
     db: SQLAlchemy = SQLAlchemy(app)
     migrate: Migrate = Migrate(app, db)
 
