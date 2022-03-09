@@ -17,6 +17,7 @@ from pathlib import Path
 from apispec import APISpec, BasePlugin
 from apispec.ext.marshmallow import MarshmallowPlugin
 from flask import Flask, Response, jsonify, render_template, stream_with_context
+from auth.api_key import require_api_key
 from flask_apispec import FlaskApiSpec, doc, marshal_with, use_kwargs
 from flask_cors import CORS
 from webargs.flaskparser import FlaskParser, abort
@@ -144,6 +145,7 @@ def handle_internal_error(err):
 @marshal_with({}, code=200, description="Audio or speech marks content")
 @marshal_with(schemas.Error, code=400, description="Bad request")
 @marshal_with(schemas.Error, code=500, description="Service error")
+@require_api_key
 def route_synthesize_speech(**kwargs):
     app.logger.info("Got request: %s", clean_request(kwargs))
 
