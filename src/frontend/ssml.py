@@ -43,7 +43,6 @@ class OldSSMLParser(HTMLParser):
 
         if tag == "phoneme":
             attrs_map = dict(attrs)
-            print(attrs_map)
             if attrs_map.get("alphabet") != "x-sampa" or "ph" not in attrs_map:
                 raise ValueError(
                     "'phoneme' tag has to have 'alphabet' and 'ph' attributes using "
@@ -66,5 +65,16 @@ class OldSSMLParser(HTMLParser):
         if self._tags_queue[-1] != "phoneme":
             self._prepared_fastspeech_strings.append(data.strip())
 
-    def get_fastspeech_string(self):
+    def get_fastspeech_string(self) -> str:
+        """Get a string compatible with FastSpeech2Voice
+
+        Returns:
+          A string with containing the text from the SSML document with all the
+          <phoneme> enclosed text replaced by the phone sequences enclosed in curly
+          brackets. E.g.:
+          "Halló {a}" if the input SSML was "<speak>Halló <phoneme alphabet='x-sampa' ph='a'>aa</phoneme>"
+
+        """
+        if len(self._tags_queue) > 0:
+            raise ValueError("Not all tags were closed, malformed SSML.")
         return " ".join(self._prepared_fastspeech_strings)
