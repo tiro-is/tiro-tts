@@ -114,21 +114,21 @@ py_pytest_test(
     name = "test_frontend",
     srcs = glob(
         ["src/frontend/tests/test_*.py"], 
-        exclude=["src/frontend/tests/test_grapheme_to_phoneme.py"],
+        exclude=["src/frontend/tests/test_mdl_*.py"],
     ),
     deps = [":app_lib"],
     args = glob(
         ["src/frontend/tests/test_*.py"], 
-        exclude=["src/frontend/tests/test_grapheme_to_phoneme.py"],
+        exclude=["src/frontend/tests/test_mdl_*.py"],
     ),
     tags = ["manual"],
 )
 
 py_pytest_test(
     name = "test_frontend_model_dependent",
-    srcs = ["src/frontend/tests/test_grapheme_to_phoneme.py"],
+    srcs = glob(["src/frontend/tests/test_mdl_*.py"]),
     deps = [":app_lib"],
-    args = ["src/frontend/tests/test_grapheme_to_phoneme.py"],
+    args = glob(["src/frontend/tests/test_mdl_*.py"]),
     data = ["@test_models//:models"],
     tags = ["manual"],
 )
