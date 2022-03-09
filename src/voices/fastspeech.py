@@ -1,4 +1,4 @@
-# Copyright 2021 Tiro ehf.
+# Copyright 2021-2022 Tiro ehf.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@ import re
 import string
 import sys
 import typing
-from html.parser import HTMLParser
 from pathlib import Path
 
 import numpy as np
@@ -25,6 +24,7 @@ import resampy
 import tokenizer
 import torch
 from flask import current_app
+from srcs.frontend.ssml import OldSSMLParser as SSMLParser
 
 from proto.tiro.tts import voice_pb2
 from src import ffmpeg
@@ -48,57 +48,6 @@ if True:  # noqa: E402
     from src.lib.fastspeech.g2p_is import translate as g2p
     from src.lib.fastspeech.synthesize import get_FastSpeech2
     from src.lib.fastspeech.text import text_to_sequence
-
-
-class SSMLParser(HTMLParser):
-    _ALLOWED_TAGS = ["speak", "phoneme"]
-    _first_tag_seen: bool
-    _tags_queue: typing.List[str]
-    _prepared_fastspeech_strings: typing.List[str]
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._first_tag_seen = False
-        self._tags_queue = []
-        self._prepared_fastspeech_strings = []
-
-    def _check_first_tag(self, tag):
-        if not self._first_tag_seen:
-            if tag != "speak":
-                raise ValueError("Start tag is not <speak>")
-            self._first_tag_seen = True
-
-    def handle_starttag(self, tag, attrs):
-        self._check_first_tag(tag)
-
-        if tag not in SSMLParser._ALLOWED_TAGS:
-            raise ValueError("Unsupported tag encountered: '{}'".format(tag))
-
-        if tag == "phoneme":
-            attrs_map = dict(attrs)
-            if attrs_map.get("alphabet") != "x-sampa" or "ph" not in attrs_map:
-                raise ValueError(
-                    "'phoneme' tag has to have 'alphabet' and 'ph' attributes"
-                )
-            self._prepared_fastspeech_strings.append(
-                "{%s}" % align_ipa_from_xsampa(attrs_map["ph"])
-            )
-        self._tags_queue.append(tag)
-
-    def handle_endtag(self, tag):
-        open_tag = self._tags_queue.pop()
-        if open_tag != tag:
-            raise ValueError("Invalid closing tag '{}' for '{}'".format(tag, open_tag))
-
-    def handle_data(self, data):
-        # Raise a ValueError if we haven't seen the initial <speak> tag
-        self._check_first_tag("")
-
-        if self._tags_queue[-1] != "phoneme":
-            self._prepared_fastspeech_strings.append(data.strip())
-
-    def get_fastspeech_string(self):
-        return " ".join(self._prepared_fastspeech_strings)
 
 
 class FastSpeech2Synthesizer:
