@@ -1,4 +1,4 @@
-# Copyright 2021 Tiro ehf.
+# Copyright 2021-2022 Tiro ehf.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import re
+import string
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Dict, Iterable, List, Literal, NewType, Optional
@@ -21,6 +22,7 @@ import sequitur
 
 from .lexicon import LangID, LexiconBase, read_kaldi_lexicon
 from .phonemes import SHORT_PAUSE, Aligner, PhoneSeq
+from .words import WORD_SENTENCE_SEPARATOR, Word
 
 
 class GraphemeToPhonemeTranslatorBase(ABC):
@@ -43,7 +45,18 @@ class GraphemeToPhonemeTranslatorBase(ABC):
             phones.
 
         """
-        return NotImplemented
+        ...
+
+    def translate_words(self, words: Iterable[Word], lang: LangID) -> Iterable[Word]:
+        for word in words:
+            if not word == WORD_SENTENCE_SEPARATOR:
+                # TODO(rkjaran): Cover more punctuation (Unicode)
+                punctuation = re.sub(r"[{}\[\]]", "", string.punctuation)
+                g2p_word = re.sub(r"([{}])".format(punctuation), r" \1 ", word.symbol)
+                # TODO(rkjaran): The language code shouldn't be hardcoded here. Should
+                #                it be here at all?
+                word.phone_sequence = self.translate(g2p_word, lang)
+            yield word
 
 
 class ComposedTranslator(GraphemeToPhonemeTranslatorBase):

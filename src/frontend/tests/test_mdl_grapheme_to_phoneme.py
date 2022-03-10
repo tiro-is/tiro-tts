@@ -8,6 +8,7 @@ from ..grapheme_to_phoneme import (
     SequiturGraphemeToPhonemeTranslator,
 )
 from ..lexicon import SimpleInMemoryLexicon
+from ..words import Word
 
 
 class TestComposedTranslator:
@@ -354,6 +355,18 @@ class TestLexiconGraphemeToPhonemeTranslator:
             "ʏ",
             "sp",
         ]
+
+    def test_add_phonemes_to_words(self):
+        phrase = "hann Gummi er kallakall"
+        original_words = [Word(original_symbol=s, symbol=s) for s in phrase.split()]
+        phonetized_words = list(
+            self._t.translate_words(original_words, self._language_code)
+        )
+        phonemes_only = [
+            self._t.translate(s, self._language_code) for s in phrase.split()
+        ]
+        for idx, phone_seq in enumerate(phonemes_only):
+            assert phonetized_words[idx].phone_sequence == phone_seq
 
 
 class TestSequiturGraphemeToPhonemeTranslator:

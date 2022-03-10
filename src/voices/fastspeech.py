@@ -152,19 +152,6 @@ class FastSpeech2Synthesizer:
         self._normalizer = normalizer
         self._max_words_per_segment = 30
 
-    def _add_phonemes(self, words: typing.Iterable[Word]) -> typing.Iterable[Word]:
-        for word in words:
-            if not word == WORD_SENTENCE_SEPARATOR:
-                # TODO(rkjaran): Cover more punctuation (Unicode)
-                punctuation = re.sub(r"[{}\[\]]", "", string.punctuation)
-                g2p_word = re.sub(r"([{}])".format(punctuation), r" \1 ", word.symbol)
-                # TODO(rkjaran): The language code shouldn't be hardcoded here. Should
-                #                it be here at all?
-                word.phone_sequence = self._phonetizer.translate(
-                    g2p_word, LangID("is-IS")
-                )
-            yield word
-
     def _do_vocoder_pass(self, mel: torch.Tensor) -> torch.Tensor:
         """Perform a vocoder pass, returning int16 samples at 22050 Hz."""
         return self._melgan_model.inference(mel).to(torch.int16)
@@ -221,7 +208,10 @@ class FastSpeech2Synthesizer:
             if not handle_embedded_phonemes
             else BasicNormalizer().normalize
         )
-        words = list(self._add_phonemes(normalize_fn(text_string)))
+        # TODO(rkjaran): The language code shouldn't be hardcoded here.
+        words = list(
+            self._phonetizer.translate_words(normalize_fn(text_string), LangID("is-IS"))
+        )
         sentences: typing.List[typing.List[Word]] = [[]]
         for idx, word in enumerate(words):
             if word == WORD_SENTENCE_SEPARATOR:
