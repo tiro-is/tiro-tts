@@ -1,4 +1,4 @@
-torch @ https://download.pytorch.org/whl/cpu/torch-1.9.0%2Bcpu-cp38-cp38-linux_x86_64.whl
+torch>=1.9.2
 sequitur @ https://github.com/rkjaran/sequitur-g2p/releases/download/v1.0a2/sequitur-1.0a2-cp38-cp38-manylinux_2_12_x86_64.manylinux2010_x86_64.whl
 pyyaml
 numpy
@@ -19,6 +19,9 @@ flask-env
 tokenizer
 resampy
 boto3
+espnet>=0.10.0
+espnet_model_zoo
+
 # dev:
 black
 mypy

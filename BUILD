@@ -108,6 +108,8 @@ py_library(
         requirement("boto3"),
         requirement("flask"),    # required for access to current_app.config
         requirement("torch"),    # TODO(rkjaran): select on whether we support cuda
+        requirement("espnet"),
+        requirement("espnet_model_zoo"),
         ":frontend",
         "//proto/tiro/tts:voice_python_proto",
     ],
