@@ -153,8 +153,8 @@ py_library(
 )
 
 py_binary(
-    name = "app",
-    srcs = ["src/app.py"],
+    name = "main",
+    srcs = ["main.py"],
     python_version = "PY3",
     deps = [":app_lib"],
 )
