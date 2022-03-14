@@ -24,7 +24,6 @@ import resampy
 import tokenizer
 import torch
 from flask import current_app
-from src.frontend.ssml import OldSSMLParser as SSMLParser
 
 from proto.tiro.tts import voice_pb2
 from src import ffmpeg
@@ -36,7 +35,8 @@ from src.frontend.normalization import (
     NormalizerBase,
 )
 from src.frontend.phonemes import IPA_XSAMPA_MAP, XSAMPA_IPA_MAP, align_ipa_from_xsampa
-from src.frontend.words import WORD_SENTENCE_SEPARATOR, Word
+from src.frontend.ssml import OldSSMLParser as SSMLParser
+from src.frontend.words import WORD_SENTENCE_SEPARATOR, Word, preprocess_sentences
 
 from .voice_base import OutputFormat, VoiceBase, VoiceProperties
 
@@ -150,7 +150,7 @@ class FastSpeech2Synthesizer:
         )
         self._phonetizer = phonetizer
         self._normalizer = normalizer
-        self._max_words_per_segment = 30
+        self._alphabet = alphabet
 
     def _do_vocoder_pass(self, mel: torch.Tensor) -> torch.Tensor:
         """Perform a vocoder pass, returning int16 samples at 22050 Hz."""
@@ -208,86 +208,60 @@ class FastSpeech2Synthesizer:
             if not handle_embedded_phonemes
             else BasicNormalizer().normalize
         )
-        # TODO(rkjaran): The language code shouldn't be hardcoded here.
-        words = list(
-            self._phonetizer.translate_words(normalize_fn(text_string), LangID("is-IS"))
-        )
-        sentences: typing.List[typing.List[Word]] = [[]]
-        for idx, word in enumerate(words):
-            if word == WORD_SENTENCE_SEPARATOR:
-                if idx != len(words) - 1:
-                    sentences.append([])
-            else:
-                sentences[-1].append(word)
 
         # Segment to decrease latency and memory usage
         duration_time_offset = 0
-        for sentence in sentences:
-            for idx in range(0, len(sentence), self._max_words_per_segment):
-                segment_words = sentence[idx : idx + self._max_words_per_segment]
 
-                phone_counts: typing.List[int] = []
-                phone_seq = []
+        for segment_words, phone_seq, phone_count in preprocess_sentences(
+            text_string, normalize_fn, self._phonetizer.translate_words
+        ):
+            text_seq = torch.tensor(
+                [[FASTSPEECH2_SYMBOLS[phoneme] for phoneme in phone_seq]],
+                dtype=torch.int64,
+                device=self._device,
+            )
+
+            (
+                mel_postnet,
+                # Duration of each phoneme in log(millisec)
+                log_duration_output,
+            ) = self._fs_model.inference(
+                text_seq,
+                d_control=duration_control,
+                p_control=pitch_control,
+                e_control=energy_control,
+            )
+
+            if emit_speech_marks:
+                # The model uses 10 ms as the unit (or, technically, log(dur*10ms))
+                phone_durations = (
+                    10 * torch.exp(log_duration_output.detach()[0].to(torch.float32))
+                ).tolist()
+                word_durations = []
+                offset = 0
+                for count in phone_counts:
+                    word_durations.append(
+                        # type: ignore
+                        sum(phone_durations[offset : offset + count])
+                    )
+                    offset += count
+
+                segment_duration_time_offset: int = duration_time_offset
+                for idx, dur in enumerate(word_durations):
+                    segment_words[idx].start_time_milli = segment_duration_time_offset
+                    segment_duration_time_offset += dur
 
                 for word in segment_words:
-                    phone_counts.append(len(word.phone_sequence))
-                    phone_seq.extend(word.phone_sequence)
+                    if word.is_spoken():
+                        yield word.to_json().encode("utf-8") + b"\n"
 
-                if not phone_seq:
-                    # If none of the words in this segment got a phone sequence we skip the
-                    # rest
-                    continue
-
-                text_seq = torch.tensor(
-                    [[FASTSPEECH2_SYMBOLS[phoneme] for phoneme in phone_seq]],
-                    dtype=torch.int64,
-                    device=self._device,
+                duration_time_offset += segment_duration_time_offset
+            else:
+                # 22050 Hz 16 bit linear PCM chunks
+                wav = self._do_vocoder_pass(mel_postnet).numpy()
+                yield FastSpeech2Synthesizer._wavarray_to_pcm(
+                    wav, src_sample_rate=22050, dst_sample_rate=sample_rate
                 )
-
-                (
-                    mel_postnet,
-                    # Duration of each phoneme in log(millisec)
-                    log_duration_output,
-                ) = self._fs_model.inference(
-                    text_seq,
-                    d_control=duration_control,
-                    p_control=pitch_control,
-                    e_control=energy_control,
-                )
-
-                if emit_speech_marks:
-                    # The model uses 10 ms as the unit (or, technically, log(dur*10ms))
-                    phone_durations = (
-                        10
-                        * torch.exp(log_duration_output.detach()[0].to(torch.float32))
-                    ).tolist()
-                    word_durations = []
-                    offset = 0
-                    for count in phone_counts:
-                        word_durations.append(
-                            # type: ignore
-                            sum(phone_durations[offset : offset + count])
-                        )
-                        offset += count
-
-                    segment_duration_time_offset: int = duration_time_offset
-                    for idx, dur in enumerate(word_durations):
-                        segment_words[
-                            idx
-                        ].start_time_milli = segment_duration_time_offset
-                        segment_duration_time_offset += dur
-
-                    for word in segment_words:
-                        if word.is_spoken():
-                            yield word.to_json().encode("utf-8") + b"\n"
-
-                    duration_time_offset += segment_duration_time_offset
-                else:
-                    # 22050 Hz 16 bit linear PCM chunks
-                    wav = self._do_vocoder_pass(mel_postnet).numpy()
-                    yield FastSpeech2Synthesizer._wavarray_to_pcm(
-                        wav, src_sample_rate=22050, dst_sample_rate=sample_rate
-                    )
 
 
 class FastSpeech2Voice(VoiceBase):

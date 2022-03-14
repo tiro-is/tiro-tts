@@ -1,4 +1,4 @@
-# Copyright 2021 Tiro ehf.
+# Copyright 2021-2022 Tiro ehf.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,9 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import json
-from typing import List
+from typing import Callable, Iterable, List, Tuple
 
 import tokenizer
+
+from src.frontend.lexicon import LangID
+from src.frontend.phonemes import PhoneSeq
 
 
 class Word:
@@ -65,3 +68,48 @@ class Word:
 
 # Use an empty initialized word as a sentence separator
 WORD_SENTENCE_SEPARATOR = Word()
+
+
+MAX_WORDS_PER_SEGMENT = 30
+
+
+def preprocess_sentences(
+    text_string: str,
+    normalize_fn: Callable[[str], Iterable[Word]],
+    translator_fn: Callable[[Iterable[Word]], Iterable[Word]],
+) -> Iterable[Tuple[List[List[Word]], PhoneSeq, List[int]]]:
+    """Preprocess text into sentences of phonetized words
+
+    Yields:
+      A tuple (List[Word], PhoneSeq, List[int]) of the words in the segment, a flattened
+        phoneme sequence of each segment and list of phoneme counts per word in the
+        segment.
+
+    """
+    # TODO(rkjaran): The language code shouldn't be hardcoded here.
+    words = list(translator_fn(normalize_fn(text_string), LangID("is-IS")))
+    sentences: List[List[Word]] = [[]]
+    for idx, word in enumerate(words):
+        if word == WORD_SENTENCE_SEPARATOR:
+            if idx != len(words) - 1:
+                sentences.append([])
+        else:
+            sentences[-1].append(word)
+
+    for sentence in sentences:
+        for idx in range(0, len(sentence), MAX_WORDS_PER_SEGMENT):
+            segment_words = sentence[idx : idx + MAX_WORDS_PER_SEGMENT]
+
+            phone_counts: List[int] = []
+            phone_seq = []
+
+            for word in segment_words:
+                phone_counts.append(len(word.phone_sequence))
+                phone_seq.extend(word.phone_sequence)
+
+            if not phone_seq:
+                # If none of the words in this segment got a phone sequence we skip the
+                # rest
+                continue
+
+            yield segment_words, phone_seq, phone_counts
