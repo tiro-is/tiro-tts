@@ -24,7 +24,7 @@ import resampy
 import tokenizer
 import torch
 from flask import current_app
-from srcs.frontend.ssml import OldSSMLParser as SSMLParser
+from src.frontend.ssml import OldSSMLParser as SSMLParser
 
 from proto.tiro.tts import voice_pb2
 from src import ffmpeg
