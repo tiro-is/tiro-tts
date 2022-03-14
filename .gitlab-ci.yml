@@ -16,7 +16,7 @@ stages:
 build:
   stage: build
   script:
-    - tools/bazel --output_base=bazel-output_base build //...
+    - tools/bazel --output_base=bazel-output_base build //... --build_tag_filters=-needs-models
 
 deploy:
   stage: deploy
@@ -37,15 +37,12 @@ deploy:
 test:
   stage: test
   script:
-    - tools/bazel --output_base=bazel-output_base test :test_frontend
-  after_script:
-    - mkdir -p test-logs
-    - cp bazel-testlogs/test_frontend/test.xml test-logs/test_frontend.xml
+    - tools/bazel --output_base=bazel-output_base test --test_tag_filters=-needs-models --build_tag_filters=-needs-models -- ... -//:pip_compile_test
   artifacts:
     when: always
     reports:
-      junit: test-logs/test_frontend.xml
-      
+      junit: bazel-testlogs/**/*.xml
+
 test_predeploy:
   stage: test
   only:
@@ -54,12 +51,9 @@ test_predeploy:
     - chmod a+x fetch_models.sh
     - ./fetch_models.sh test
   script:
-    - tools/bazel --output_base=bazel-output_base test :test_frontend_model_dependent
-  after_script:
-    - mkdir -p test-logs
-    - cp bazel-testlogs/test_frontend_model_dependent/test.xml test-logs/test_frontend_model_dependent.xml
+    - tools/bazel --output_base=bazel-output_base test  -- ... -//:pip_compile_test
   artifacts:
     when: always
     reports:
-      junit: test-logs/test_frontend_model_dependent.xml
-      
+      junit: bazel-testlogs/**/*.xml
+
