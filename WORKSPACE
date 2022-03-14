@@ -31,7 +31,9 @@ filegroup(
     name = "models",
     srcs = [
         "lexicon.txt",
-        "sequitur.mdl"
+        "sequitur.mdl",
+        "alfur/fastspeech_jit.pt",
+        "alfur/melgan_jit.pt",
     ],
     visibility = ["//visibility:public"]
 )

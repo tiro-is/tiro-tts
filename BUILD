@@ -133,6 +133,20 @@ py_pytest_test(
     tags = ["manual"],
 )
 
+py_pytest_test(
+    name = "test_end2end",
+    srcs = glob(["src/tests/test_*.py"]),
+    deps = [":app_lib"],
+    args = glob(["src/tests/test_*.py"]),
+    data = [
+        "@test_models//:models",
+        "src/tests/synthesis_set_test.pbtxt",
+    ],
+    tags = ["manual"],
+    size = "small",
+)
+
+
 # Defines a runnable REPL with the same environment as :app
 # Something like:
 #   echo "import os; print(os.environ['PYTHONPATH'])" | bazel run //:repl
