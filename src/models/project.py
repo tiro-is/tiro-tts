@@ -1,3 +1,4 @@
+from datetime import datetime
 from src import db
 from src.models.user import User
 
@@ -13,3 +14,16 @@ class Project(db.Model):
 
         key = db.relationship("Key", backref="project", uselist=False, lazy=True)
         tts_requests = db.relationship("TTSRequest", backref="project", lazy=True)
+
+        @staticmethod
+        def create(user_id: int, name: str, description: str):
+                db.session.add(
+                        Project(
+                                user_id=user_id,
+                                name=name,
+                                description=description,
+                                created_at=datetime.utcnow(),
+                                updated_at=datetime.utcnow(),
+                        )
+                )
+                db.session.commit()
