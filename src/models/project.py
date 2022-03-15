@@ -12,8 +12,10 @@ class Project(db.Model):
         created_at = db.Column(db.DateTime, nullable=False)
         updated_at = db.Column(db.DateTime, nullable=False)
 
-        key = db.relationship("Key", backref="project", uselist=False, lazy=True)
-        tts_requests = db.relationship("TTSRequest", backref="project", lazy=True)
+        key = db.relationship("Key", backref="project", uselist=False, lazy=True,
+                                cascade="all, delete, delete-orphan")
+        tts_requests = db.relationship("TTSRequest", backref="project", lazy=True,
+                                cascade="all, delete, delete-orphan")
 
         @staticmethod
         def create(user_id: int, name: str, description: str):

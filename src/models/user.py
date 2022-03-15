@@ -10,7 +10,8 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, nullable=False)
     updated_at = db.Column(db.DateTime, nullable=False)
 
-    projects = db.relationship("Project", backref="user", lazy=True)
+    projects = db.relationship("Project", backref="user", lazy=True,
+                                cascade="all, delete, delete-orphan")
 
     @staticmethod
     def create(name: str, email: str):
