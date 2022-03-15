@@ -1,6 +1,7 @@
 exports_files([
     "defs.bzl",
     "py_pytest_test.bzl",
+    "pytest_helper.py",
 ])
 
 py_library(

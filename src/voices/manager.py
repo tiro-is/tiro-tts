@@ -31,9 +31,11 @@ from src.frontend.normalization import (
     GrammatekNormalizer,
     NormalizerBase,
 )
+from src.frontend.phonemes import Alphabet
 
-from . import aws, fastspeech
+from . import aws, espnet2, fastspeech
 from .aws import PollyVoice
+from .espnet2 import Espnet2Synthesizer, Espnet2Voice
 from .fastspeech import FastSpeech2Synthesizer, FastSpeech2Voice
 from .voice_base import VoiceBase, VoiceProperties
 
@@ -94,9 +96,24 @@ class VoiceManager:
                         normalizer=normalizers[
                             voice.fs2melgan.normalizer_name or "fallback"
                         ],
+                        alphabet=_alphabet_pb_as_str(voice.fs2melgan.alphabet),
                     ),
                 )
                 synthesizers[props.voice_id] = fs
+            elif backend_name == "espnet2":
+                props.supported_output_formats = espnet2.SUPPORTED_OUTPUT_FORMATS
+                synthesizers[props.voice_id] = Espnet2Voice(
+                    properties=props,
+                    backend=Espnet2Synthesizer(
+                        model_uri=voice.espnet2.model_pack_uri,
+                        vocoder_uri=voice.espnet2.vocoder_uri,
+                        phonetizer=phonetizers[voice.espnet2.phonetizer_name],
+                        normalizer=normalizers[
+                            voice.espnet2.normalizer_name or "fallback"
+                        ],
+                        alphabet=_alphabet_pb_as_str(voice.espnet2.alphabet),
+                    ),
+                )
             elif backend_name == "polly":
                 props.supported_output_formats = aws.SUPPORTED_OUTPUT_FORMATS
                 synthesizers[props.voice_id] = PollyVoice(properties=props)
@@ -123,7 +140,7 @@ def _gender_pb_as_str(
         return None
 
 
-def _alphabet_pb_as_str(alphabet_pb: voice_pb2.Alphabet) -> Literal["x-sampa", "ipa"]:
+def _alphabet_pb_as_str(alphabet_pb: voice_pb2.Alphabet) -> Alphabet:
     """Convert voice_pb2.Alphabet enum to string, defaulting to x-sampa
 
     Raises:
@@ -131,6 +148,8 @@ def _alphabet_pb_as_str(alphabet_pb: voice_pb2.Alphabet) -> Literal["x-sampa", "
     """
     if alphabet_pb == voice_pb2.Alphabet.IPA:
         return "ipa"
+    elif alphabet_pb == voice_pb2.Alphabet.XSAMPA_WITH_STRESS_AND_SYLLABIFICATION:
+        return "x-sampa+syll+stress"
     elif (
         alphabet_pb == voice_pb2.Alphabet.XSAMPA
         or alphabet_pb == voice_pb2.Alphabet.UNSPECIFIED_ALPHABET

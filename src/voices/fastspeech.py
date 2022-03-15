@@ -33,7 +33,12 @@ from src.frontend.normalization import (
     GrammatekNormalizer,
     NormalizerBase,
 )
-from src.frontend.phonemes import IPA_XSAMPA_MAP, XSAMPA_IPA_MAP, align_ipa_from_xsampa
+from src.frontend.phonemes import (
+    IPA_XSAMPA_MAP,
+    XSAMPA_IPA_MAP,
+    Alphabet,
+    align_ipa_from_xsampa,
+)
 from src.frontend.ssml import OldSSMLParser as SSMLParser
 from src.frontend.words import WORD_SENTENCE_SEPARATOR, Word, preprocess_sentences
 
@@ -115,6 +120,7 @@ class FastSpeech2Synthesizer:
     _fs_model: torch.jit.RecursiveScriptModule
     _phonetizer: GraphemeToPhonemeTranslatorBase
     _normalizer: NormalizerBase
+    _alphabet: Alphabet
 
     def __init__(
         self,
@@ -122,6 +128,7 @@ class FastSpeech2Synthesizer:
         fastspeech_model_path: os.PathLike,
         phonetizer: GraphemeToPhonemeTranslatorBase,
         normalizer: NormalizerBase,
+        alphabet: Alphabet = "ipa",
     ):
         """Initialize a FastSpeech2Synthesizer.
 
@@ -193,8 +200,13 @@ class FastSpeech2Synthesizer:
         # Segment to decrease latency and memory usage
         duration_time_offset = 0
 
+        def phonetize_fn(*args, **kwargs):
+            return self._phonetizer.translate_words(
+                *args, **kwargs, alphabet=self._alphabet
+            )
+
         for segment_words, phone_seq, phone_count in preprocess_sentences(
-            text_string, normalize_fn, self._phonetizer.translate_words
+            text_string, normalize_fn, phonetize_fn
         ):
             text_seq = torch.tensor(
                 [[FASTSPEECH2_SYMBOLS[phoneme] for phoneme in phone_seq]],

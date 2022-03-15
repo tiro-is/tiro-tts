@@ -111,6 +111,7 @@ py_library(
         requirement("torch"),    # TODO(rkjaran): select on whether we support cuda
         requirement("espnet"),
         requirement("espnet_model_zoo"),
+        requirement("parallel_wavegan"),
         ":frontend",
         "//proto/tiro/tts:voice_python_proto",
     ],
@@ -197,6 +198,15 @@ py_pytest_test(
     size = "small",
 )
 
+py_pytest_test(
+    name = "test_voices",
+    srcs = glob(["src/voices/tests/test_*.py"]),
+    deps = [":app_lib"],
+    args = glob(["src/voices/tests/test_*.py"]),
+    data = ["@test_models//:models"],
+    tags = ["needs-models"],
+    size = "large",
+)
 
 # Defines a runnable REPL with the same environment as :app
 # Something like:

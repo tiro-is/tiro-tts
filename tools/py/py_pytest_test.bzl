@@ -7,7 +7,9 @@ def py_pytest_test(
         pytest_args = [
             "-p",
             "no:cacheprovider",
-            "-s"
+            "-p",
+            "no:warnings",
+            "-s",
         ],
         **kwargs):
         
@@ -50,7 +52,7 @@ def py_pytest_test(
     native.py_test(
         name = name,
         srcs = srcs,
-        main = "pytest_helper.py",
+        main = "@//tools/py:pytest_helper.py",
         deps = deps,
         args = args,
         **kwargs

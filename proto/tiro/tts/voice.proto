@@ -49,7 +49,7 @@ message Fastspeech2MelganBackend {
   // *optional* The BCP-47 language code
   string language_code = 1;
 
-  // The pronunciation alphabet used for the models output
+  // The pronunciation alphabet used for the models input
   Alphabet alphabet = 2;
 
   // URI pointing to a Fastspeech model checkpoint.  This can be a file:// URI
