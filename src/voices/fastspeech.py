@@ -20,7 +20,6 @@ import typing
 from pathlib import Path
 
 import numpy as np
-import resampy
 import tokenizer
 import torch
 from flask import current_app
@@ -38,6 +37,7 @@ from src.frontend.phonemes import IPA_XSAMPA_MAP, XSAMPA_IPA_MAP, align_ipa_from
 from src.frontend.ssml import OldSSMLParser as SSMLParser
 from src.frontend.words import WORD_SENTENCE_SEPARATOR, Word, preprocess_sentences
 
+from .utils import wavarray_to_pcm
 from .voice_base import OutputFormat, VoiceBase, VoiceProperties
 
 # TODO(rkjaran): Don't hardcode this. Remove it once we've refactored FastSpeech2Voice
@@ -156,25 +156,6 @@ class FastSpeech2Synthesizer:
         """Perform a vocoder pass, returning int16 samples at 22050 Hz."""
         return self._melgan_model.inference(mel).to(torch.int16)
 
-    @staticmethod
-    def _wavarray_to_pcm(
-        array: np.ndarray, src_sample_rate=22050, dst_sample_rate=22050
-    ) -> bytes:
-        """Convert a NDArray (int16) to a PCM byte chunk, resampling if necessary."""
-
-        def to_pcm_bytes(array1d):
-            return array1d.view("b").data.tobytes()
-
-        if sys.byteorder == "big":
-            array.byteswap()
-
-        orig_samples = array.ravel()
-        if src_sample_rate == dst_sample_rate:
-            return to_pcm_bytes(orig_samples)
-        return to_pcm_bytes(
-            resampy.resample(orig_samples, src_sample_rate, dst_sample_rate)
-        )
-
     def synthesize(
         self,
         text_string: str,
@@ -259,7 +240,7 @@ class FastSpeech2Synthesizer:
             else:
                 # 22050 Hz 16 bit linear PCM chunks
                 wav = self._do_vocoder_pass(mel_postnet).numpy()
-                yield FastSpeech2Synthesizer._wavarray_to_pcm(
+                yield wavarray_to_pcm(
                     wav, src_sample_rate=22050, dst_sample_rate=sample_rate
                 )
 
