@@ -1,4 +1,4 @@
-# Copyright 2021 Tiro ehf.
+# Copyright 2022 Tiro ehf.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ from flask_cors import CORS
 from webargs.flaskparser import FlaskParser, abort
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from src import schemas
+from src import schemas, db
 from src.config import EnvvarConfig
 
 app = Flask(__name__)
@@ -31,6 +31,9 @@ app.config["JSON_AS_ASCII"] = False
 app.config["APISPEC_SWAGGER_URL"] = "/v0/swagger.json"
 app.config["APISPEC_SWAGGER_UI_URL"] = None
 app.config.from_object(EnvvarConfig)
+
+if not app.config["AUTH_DISABLED"]:
+    db.setup_db(app)
 
 # Fix access to client remote_addr when running behind proxy
 setattr(app, "wsgi_app", ProxyFix(app.wsgi_app))
