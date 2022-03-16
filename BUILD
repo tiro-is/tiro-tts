@@ -94,7 +94,7 @@ py_library(
     srcs = glob(["src/frontend/**/*.py"], exclude=["**/tests"]),
     srcs_version = "PY3",
     deps = [
-        requirement("sequitur"),
+        requirement("sequitur-g2p"),
         requirement("tokenizer"),
         "@com_github_grammatek_tts_frontend_api//:tts_frontend_service_python_grpc",
     ],

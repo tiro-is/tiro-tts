@@ -217,6 +217,10 @@ flask==2.0.2 \
     #   flask-cors
     #   flask-migrate
     #   flask-sqlalchemy
+g2p-en==2.1.0 \
+    --hash=sha256:2a7aabf1fc7f270fcc3349881407988c9245173c2413debbe5432f4a4f31319f \
+    --hash=sha256:32ecb119827a3b10ea8c1197276f4ea4f44070ae56cbbd01f0f261875f556a58
+    # via espnet-tts-frontend
 greenlet==1.1.2 \
     --hash=sha256:0051c6f1f27cb756ffc0ffbac7d2cd48cb0362ac1736871399a739b2885134d3 \
     --hash=sha256:00e44c8afdbe5467e4f7b5851be223be68adb4272f44696ee71fe46b7036a711 \
@@ -274,10 +278,6 @@ greenlet==1.1.2 \
     --hash=sha256:fa877ca7f6b48054f847b61d6fa7bed5cebb663ebc55e018fda12db09dcc664c \
     --hash=sha256:fdcec0b8399108577ec290f55551d926d9a1fa6cad45882093a7a07ac5ec147b
     # via sqlalchemy
-g2p-en==2.1.0 \
-    --hash=sha256:2a7aabf1fc7f270fcc3349881407988c9245173c2413debbe5432f4a4f31319f \
-    --hash=sha256:32ecb119827a3b10ea8c1197276f4ea4f44070ae56cbbd01f0f261875f556a58
-    # via espnet-tts-frontend
 gunicorn==20.1.0 \
     --hash=sha256:9dcc4547dbb1cb284accfb15ab5667a0e5d1881cc443e0677b4882a4067a807e \
     --hash=sha256:e0a968b5ba15f8a328fdfd7ab1fcb5af4470c28aaf7e55df02a99bc13138e6e8
@@ -580,7 +580,7 @@ numpy==1.19.0 \
     #   resampy
     #   scikit-learn
     #   scipy
-    #   sequitur
+    #   sequitur-g2p
     #   torch-complex
 packaging==21.2 \
     --hash=sha256:096d689d78ca690e4cd8a89568ba06d07ca097e3306a4381635073ca91479966 \
@@ -853,8 +853,23 @@ sentencepiece==0.1.96 \
     --hash=sha256:fd907a8f744e5337de7fc532dd800c4416b571ea47f8c3c66be10cd1bc67c925 \
     --hash=sha256:ff7d752a7f82d87711ec1a95c2262cb74f98be5b457f0300d81a1aefe5be2a95
     # via espnet
-https://github.com/rkjaran/sequitur-g2p/releases/download/v1.0a2/sequitur-1.0a2-cp38-cp38-manylinux_2_12_x86_64.manylinux2010_x86_64.whl \
-    --hash=sha256:3a32261acb78db1df04d29aa06f1311797d8bd5d3c8e59396a0cf7570ab042c2
+sequitur-g2p==1.0.1668.21 \
+    --hash=sha256:20156239108ca09411c3dd6ca49d6f7fd862580431919919fda9f5aa8d9046b1 \
+    --hash=sha256:23d6d120c572f1c5935c32c6a84bf8231df6414d057b4d85177ba81a24c60490 \
+    --hash=sha256:3a9170a63236101e791210296fb4f1651fe3f22f8c3110432cab6a6c28905395 \
+    --hash=sha256:4239b45f7afb322cd3f0476a25db922b717ab04e5053d492012f5271c8499f12 \
+    --hash=sha256:5c71e0feaf7c636aae2b6dc10c3499e2f3e74f7c4ea8ea9b199537b329b49911 \
+    --hash=sha256:5d8dfb93be37fb28a93222d8a9509db189fc71bd903a7c25e430c5f8790cf91e \
+    --hash=sha256:5df6db6f57001cbf20e1ba80511135a654d7501c61cceb733855e1fdc5105e14 \
+    --hash=sha256:7e546318231b6c1c4668f2a2671b4c93b8f0af457ff6298086da7db3f12bcf0f \
+    --hash=sha256:7f6ec44485e7d5d0eb4b3cb5bad632c45252a09ffbdacf78fe465cfcd731afb3 \
+    --hash=sha256:8d37adba355696eba812a873b4327c0d6fb3fe196ea91d65274fc85ee7591690 \
+    --hash=sha256:9ae3e9b03cd4a071b2deef4076f4ddd16d8d4874d5fe81e2bd74fd6daf795e48 \
+    --hash=sha256:9b52924a8db255b38c6b2bbb43b277464d44db507374e01f26ab6d93bc5d50a9 \
+    --hash=sha256:b8bba21d7070df8739802d34078432ab29a3be87c8e35d160667b4dfe2ef5459 \
+    --hash=sha256:c404ee91aac0e182e7d0576ad0a97309082157ccabeb7c2c0dc4548dec8ab635 \
+    --hash=sha256:d24eab48a719679d5dc5f10b61c0754903d187d80fa04b7311649e67ca6d9ffa \
+    --hash=sha256:d8bc824ad6ac6883824a1abb608bf89305eb5b8978822738a9b8193e25abcba5
     # via -r requirements.bazel.in
 six==1.15.0 \
     --hash=sha256:30639c035cdb23534cd4aa2dd52c3bf48f06e5f4a941509c8bafd8ce11080259 \
@@ -863,14 +878,16 @@ six==1.15.0 \
     #   flask-cors
     #   python-dateutil
     #   resampy
-    #   sequitur
+    #   sequitur-g2p
 soundfile==0.10.3.post1 \
     --hash=sha256:2d17e0a6fc2af0d6c1d868bafa5ec80aae6e186a97fec8db07ad6af29842fbc7 \
     --hash=sha256:4555438c2c4f02b39fea2ed40f6ddeda88a80cd1ee9dd129be4d5f5134698cc2 \
     --hash=sha256:490cff42650733d1832728b937fe99fa1802896f5ef4d61bcf78cf7ebecb107b \
     --hash=sha256:5e342ee293b896d31da67617fe65d0bdca217af193991b0cb6052353b1e0e506 \
     --hash=sha256:b361d4ac1519a2e516cabafa6bf7e93492f999f35d7d25350cd87fdc3e5cb27e
-    # via librosa
+    # via
+    #   espnet
+    #   librosa
 sqlalchemy==1.4.31 \
     --hash=sha256:05fa14f279d43df68964ad066f653193187909950aa0163320b728edfc400167 \
     --hash=sha256:0ddc5e5ccc0160e7ad190e5c61eb57560f38559e22586955f205e537cda26034 \
@@ -912,8 +929,6 @@ sqlalchemy==1.4.31 \
     #   -r requirements.bazel.in
     #   alembic
     #   flask-sqlalchemy
-    #   espnet
-    #   librosa
 tgt==1.4.4 \
     --hash=sha256:1473f3c2292f0b97d779b6f575df0d3394ded94f4bf62417bd5781b3889f7a62
     # via -r requirements.bazel.in
