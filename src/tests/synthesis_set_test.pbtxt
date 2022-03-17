@@ -1,0 +1,35 @@
+voices {
+  voice_id: "Alfur"
+  display_name: "Álfur"
+  gender: MALE
+  language_code: "is-IS"
+  fs2melgan {
+      alphabet: IPA
+      fastspeech2_uri: "file://external/test_models/alfur/fastspeech_jit.pt"
+      melgan_uri: "file://external/test_models/alfur/melgan_jit.pt"
+      phonetizer_name: "default"
+      normalizer_name: "default"
+  }
+}
+phonetizers {
+  name: "default"
+  language_code: "is-IS"
+  translators {
+    lexicon {
+      language_code: "is-IS"
+      alphabet: XSAMPA
+      uri: "file://external/test_models/lexicon.txt"
+    }
+  }
+  translators {
+    sequitur {
+      language_code: "is-IS"
+      alphabet: IPA
+      uri: "file://external/test_models/sequitur.mdl"
+    }
+  }
+}
+normalizers {
+  name: "default"
+  basic { }
+}

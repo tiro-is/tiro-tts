@@ -17,13 +17,13 @@ from pathlib import Path
 from apispec import APISpec, BasePlugin
 from apispec.ext.marshmallow import MarshmallowPlugin
 from flask import Flask, Response, jsonify, render_template, stream_with_context
-from auth.api_key import require_api_key
 from flask_apispec import FlaskApiSpec, doc, marshal_with, use_kwargs
 from flask_cors import CORS
 from webargs.flaskparser import FlaskParser, abort
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from src import schemas, db
+from src.auth.api_key import require_api_key
 from src.config import EnvvarConfig
 
 app = Flask(__name__)

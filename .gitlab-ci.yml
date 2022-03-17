@@ -3,9 +3,6 @@ default:
     # gcc:9-buster 
     name: gcc@sha256:f7a6e098b77a363b2ac86d36c09e7464839e8ac5d99545f4cf899a8e2b90e3c2
     entrypoint: [""]
-  cache:
-    paths:
-      - bazel-output_base
 
 stages:
   - build
@@ -16,7 +13,7 @@ stages:
 build:
   stage: build
   script:
-    - tools/bazel --output_base=bazel-output_base build //...
+    - tools/bazel --bazelrc=.gitlab/ci.bazelrc build //... --build_tag_filters=-needs-models
 
 deploy:
   stage: deploy
@@ -32,20 +29,17 @@ deploy:
     - curl -L https://dl.k8s.io/release/v1.22.0/bin/linux/amd64/kubectl -o /usr/bin/kubectl
     - chmod a+x /usr/bin/kubectl
   script:
-    - tools/bazel --output_base=bazel-output_base run //k8s:prod.apply
+    - tools/bazel --bazelrc=.gitlab/ci.bazelrc run //k8s:prod.apply
 
 test:
   stage: test
   script:
-    - tools/bazel --output_base=bazel-output_base test :test_frontend
-  after_script:
-    - mkdir -p test-logs
-    - cp bazel-testlogs/test_frontend/test.xml test-logs/test_frontend.xml
+    - tools/bazel --bazelrc=.gitlab/ci.bazelrc test --test_tag_filters=-needs-models --build_tag_filters=-needs-models -- ... -//:pip_compile_test
   artifacts:
     when: always
     reports:
-      junit: test-logs/test_frontend.xml
-      
+      junit: bazel-testlogs/**/*.xml
+
 test_predeploy:
   stage: test
   only:
@@ -54,12 +48,9 @@ test_predeploy:
     - chmod a+x fetch_models.sh
     - ./fetch_models.sh test
   script:
-    - tools/bazel --output_base=bazel-output_base test :test_frontend_model_dependent
-  after_script:
-    - mkdir -p test-logs
-    - cp bazel-testlogs/test_frontend_model_dependent/test.xml test-logs/test_frontend_model_dependent.xml
+    - tools/bazel --bazelrc=.gitlab/ci.bazelrc test  -- ... -//:pip_compile_test
   artifacts:
     when: always
     reports:
-      junit: test-logs/test_frontend_model_dependent.xml
-      
+      junit: bazel-testlogs/**/*.xml
+

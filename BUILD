@@ -121,7 +121,7 @@ py_pytest_test(
         ["src/frontend/tests/test_*.py"], 
         exclude=["src/frontend/tests/test_mdl_*.py"],
     ),
-    tags = ["manual"],
+    size = "small",
 )
 
 py_pytest_test(
@@ -130,8 +130,23 @@ py_pytest_test(
     deps = [":app_lib"],
     args = glob(["src/frontend/tests/test_mdl_*.py"]),
     data = ["@test_models//:models"],
-    tags = ["manual"],
+    tags = ["needs-models"],
+    size = "small",
 )
+
+py_pytest_test(
+    name = "test_end2end",
+    srcs = glob(["src/tests/test_*.py"]),
+    deps = [":app_lib"],
+    args = glob(["src/tests/test_*.py"]),
+    data = [
+        "@test_models//:models",
+        "src/tests/synthesis_set_test.pbtxt",
+    ],
+    tags = ["needs-models"],
+    size = "small",
+)
+
 
 # Defines a runnable REPL with the same environment as :app
 # Something like:
