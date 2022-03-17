@@ -96,6 +96,7 @@ py_library(
     deps = [
         requirement("sequitur-g2p"),
         requirement("tokenizer"),
+        requirement("ice-g2p"),
         "@com_github_grammatek_tts_frontend_api//:tts_frontend_service_python_grpc",
     ],
 )

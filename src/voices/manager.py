@@ -20,6 +20,7 @@ from proto.tiro.tts import voice_pb2
 from src.frontend.grapheme_to_phoneme import (
     ComposedTranslator,
     GraphemeToPhonemeTranslatorBase,
+    IceG2PTranslator,
     LangID,
     LexiconGraphemeToPhonemeTranslator,
     SequiturGraphemeToPhonemeTranslator,
@@ -165,6 +166,17 @@ def _translator_from_pb(
                 LangID(pb.sequitur.language_code): _parse_uri(pb.sequitur.uri)
             }
         )
+    elif model_kind == "ice_g2p":
+        if language_code != "is-IS":
+            raise ValueError("Unsupported language for ice-g2p")
+
+        if pb.ice_g2p.alphabet not in (
+            voice_pb2.Alphabet.XSAMPA,
+            voice_pb2.Alphabet.XSAMPA_WITH_STRESS_AND_SYLLABIFICATION,
+        ):
+            raise ValueError("Unsupported alphabet for ice-g2p")
+
+        return IceG2PTranslator()
     else:
         raise ValueError("Unsupported translator type.")
 

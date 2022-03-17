@@ -1,7 +1,7 @@
 torch>=1.9.2
 sequitur-g2p
 pyyaml
-numpy
+numpy==1.22.0
 librosa
 tgt
 tqdm

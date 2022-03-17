@@ -18,17 +18,30 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Literal, NewType, Optional
 
 import g2p  # from sequitur
+import ice_g2p.transcriber
 import sequitur
 
-from .lexicon import LangID, LexiconBase, read_kaldi_lexicon
-from .phonemes import SHORT_PAUSE, Aligner, PhoneSeq
+from .lexicon import LangID, LexiconBase, SimpleInMemoryLexicon, read_kaldi_lexicon
+from .phonemes import (
+    SHORT_PAUSE,
+    Aligner,
+    Alphabet,
+    PhoneSeq,
+    convert_ipa_to_xsampa,
+    convert_xsampa_to_ipa,
+    convert_xsampa_to_xsampa_with_stress,
+)
 from .words import WORD_SENTENCE_SEPARATOR, Word
 
 
 class GraphemeToPhonemeTranslatorBase(ABC):
     @abstractmethod
     def translate(
-        self, text: str, lang: LangID, failure_langs: Optional[Iterable[LangID]] = None
+        self,
+        text: str,
+        lang: LangID,
+        failure_langs: Optional[Iterable[LangID]] = None,
+        alphabet: Alphabet = "ipa",
     ) -> PhoneSeq:
         """Translate a graphemic text into a string of phones
 
@@ -47,7 +60,15 @@ class GraphemeToPhonemeTranslatorBase(ABC):
         """
         ...
 
-    def translate_words(self, words: Iterable[Word], lang: LangID) -> Iterable[Word]:
+    def translate_words(
+        self,
+        words: Iterable[Word],
+        lang: LangID,
+        alphabet: Alphabet = "ipa",
+    ) -> Iterable[Word]:
+        # TODO(rkjaran): Syllabification in IceG2PTranslator does not work well with
+        #   single word inputs. Need to figure out an interface that includes the
+        #   necessary context.
         for word in words:
             if not word == WORD_SENTENCE_SEPARATOR:
                 # TODO(rkjaran): Cover more punctuation (Unicode)
@@ -55,7 +76,7 @@ class GraphemeToPhonemeTranslatorBase(ABC):
                 g2p_word = re.sub(r"([{}])".format(punctuation), r" \1 ", word.symbol)
                 # TODO(rkjaran): The language code shouldn't be hardcoded here. Should
                 #                it be here at all?
-                word.phone_sequence = self.translate(g2p_word, lang)
+                word.phone_sequence = self.translate(g2p_word, lang, alphabet=alphabet)
             yield word
 
 
@@ -77,11 +98,15 @@ class ComposedTranslator(GraphemeToPhonemeTranslatorBase):
         self._translators = list(translators)
 
     def translate(
-        self, text: str, lang: LangID, failure_langs: Optional[Iterable[LangID]] = None
+        self,
+        text: str,
+        lang: LangID,
+        failure_langs: Optional[Iterable[LangID]] = None,
+        alphabet: Alphabet = "ipa",
     ) -> PhoneSeq:
         phone = []
         for t in self._translators:
-            phone = t.translate(text, lang, failure_langs)
+            phone = t.translate(text, lang, failure_langs, alphabet=alphabet)
             if phone:
                 break
         return phone
@@ -121,8 +146,16 @@ class LexiconGraphemeToPhonemeTranslator(GraphemeToPhonemeTranslatorBase):
     def __init__(self, lexica: Dict[LangID, LexiconBase]):
         self._lookup_lexica = lexica
 
+        for lang, lex in lexica.items():
+            if isinstance(lex, Path):
+                self._lookup_lexica[lang] = SimpleInMemoryLexicon(lex, "x-sampa")
+
     def translate(
-        self, text: str, lang: LangID, failure_langs: Optional[Iterable[LangID]] = None
+        self,
+        text: str,
+        lang: LangID,
+        failure_langs: Optional[Iterable[LangID]] = None,
+        alphabet: Alphabet = "ipa",
     ) -> PhoneSeq:
         if not failure_langs:
             failure_langs = []
@@ -171,6 +204,13 @@ class LexiconGraphemeToPhonemeTranslator(GraphemeToPhonemeTranslatorBase):
                             if phones:
                                 break
                     phone.extend(phones)
+
+        # TODO(rkjaran): By default LexiconBase.get(...) returns IPA, change this once
+        #   we add a parameter for the alphabet to .get()
+        if alphabet != "ipa":
+            phone = convert_ipa_to_xsampa(phone)
+            if alphabet == "x-sampa+syll+stress":
+                phone = convert_xsampa_to_xsampa_with_stress(phone)
         return phone
 
 
@@ -194,7 +234,11 @@ class SequiturGraphemeToPhonemeTranslator(GraphemeToPhonemeTranslatorBase):
         self._lookup_lexica = lexica if lexica else {}
 
     def translate(
-        self, text: str, lang: LangID, failure_langs: Optional[Iterable[LangID]] = None
+        self,
+        text: str,
+        lang: LangID,
+        failure_langs: Optional[Iterable[LangID]] = None,
+        alphabet: Alphabet = "ipa",
     ) -> PhoneSeq:
         if not failure_langs:
             failure_langs = []
@@ -261,3 +305,37 @@ class SequiturGraphemeToPhonemeTranslator(GraphemeToPhonemeTranslatorBase):
                                     continue
                     phone.extend(phones)
         return phone
+
+
+class IceG2PTranslator(GraphemeToPhonemeTranslatorBase):
+    _transcriber: ice_g2p.transcriber.Transcriber
+
+    def __init__(self):
+        self._transcriber = ice_g2p.transcriber.Transcriber(
+            use_dict=True, use_syll=True
+        )
+
+    def translate(
+        self,
+        text: str,
+        lang: LangID,
+        failure_langs: Optional[Iterable[LangID]] = None,
+        alphabet: Alphabet = "ipa",
+    ) -> PhoneSeq:
+        punctuation = re.sub(r"[{}\[\]]", "", string.punctuation)
+        text = re.sub(r"([{}])".format(punctuation), "", text)
+
+        if text.strip() == "":
+            return []
+
+        out = self._transcriber.transcribe(
+            text.lower(),
+            syllab=True if alphabet == "x-sampa+syll+stress" else False,
+            use_dict=True,
+        )
+
+        phone_seq = out.split()
+        if alphabet == "ipa":
+            return convert_xsampa_to_ipa(phone_seq)
+
+        return phone_seq

@@ -129,6 +129,7 @@ message Phonetizer {
     oneof model_kind {
       Lexicon lexicon = 1;
       SequiturTranslator sequitur = 2;
+      IceG2pTranslator ice_g2p = 3;
     }
   }
 
@@ -156,6 +157,14 @@ message SequiturTranslator {
   // URI pointing to a Sequitur model.  This can be a file:// URI or gs:// that
   // the server has access to.
   string uri = 3;
+}
+
+// A translator backed by [ice-g2p](https://github.com/grammatek/ice-g2p)
+//
+// Only supports language code is-IS (and en-IS with trigram based lang detect)
+message IceG2pTranslator {
+  // Supports XSAMPA_WITH_STRESS_AND_SYLLABIFICATION and XSAMPA
+  Alphabet alphabet = 2;
 }
 
 message Lexicon {

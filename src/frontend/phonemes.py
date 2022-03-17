@@ -1,4 +1,4 @@
-# Copyright 2021 Tiro ehf.
+# Copyright 2021-2022 Tiro ehf.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,9 +13,10 @@
 # limitations under the License.
 import os
 import sys
-from typing import List
+from typing import List, Literal
 
 PhoneSeq = List[str]
+Alphabet = Literal["x-sampa", "ipa", "x-sampa+syll+stress"]
 
 SHORT_PAUSE = "sp"
 
@@ -84,6 +85,42 @@ IPA_XSAMPA_MAP = {
 XSAMPA_IPA_MAP = {val: key for key, val in IPA_XSAMPA_MAP.items()}
 
 DEFAULT_PHONEMES = XSAMPA_IPA_MAP.keys()
+
+XSAMPA_VOWELS = {
+    "a",
+    "ai",
+    "ai:",
+    "au",
+    "au:",
+    "a:",
+    "ei",
+    "ei:",
+    "i",
+    "i:",
+    "ou",
+    "ou:",
+    "u",
+    "u:",
+    "9",
+    "9i",
+    "9i:",
+    "9:",
+    "O",
+    "Oi",
+    "O:",
+    "E",
+    "E:",
+    "G",
+    "I",
+    "I:",
+    "Y",
+    "Yi",
+    "Y:",
+}
+
+XSAMPA_VOWELS_AND_STRESS = set(
+    [ph + "0" for ph in XSAMPA_VOWELS] + [ph + "1" for ph in XSAMPA_VOWELS]
+)
 
 
 class Aligner:
@@ -161,6 +198,10 @@ def convert_ipa_to_xsampa(phoneme: PhoneSeq) -> PhoneSeq:
 
 def convert_xsampa_to_ipa(phoneme: PhoneSeq) -> PhoneSeq:
     return [XSAMPA_IPA_MAP[ph] for ph in phoneme]
+
+
+def convert_xsampa_to_xsampa_with_stress(phoneme: PhoneSeq) -> PhoneSeq:
+    return [ph + "0" if ph in XSAMPA_VOWELS else ph for ph in phoneme]
 
 
 def align_ipa_from_xsampa(phoneme_string: str) -> str:
