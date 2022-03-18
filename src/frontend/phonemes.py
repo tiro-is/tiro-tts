@@ -15,6 +15,9 @@ import os
 import sys
 from typing import List, Literal
 
+import ice_g2p.stress
+import ice_g2p.syllab_stress_processing
+
 PhoneSeq = List[str]
 Alphabet = Literal["x-sampa", "ipa", "x-sampa+syll+stress"]
 
@@ -200,8 +203,20 @@ def convert_xsampa_to_ipa(phoneme: PhoneSeq) -> PhoneSeq:
     return [XSAMPA_IPA_MAP[ph] for ph in phoneme]
 
 
-    return [ph + "0" if ph in XSAMPA_VOWELS else ph for ph in phoneme]
 def convert_xsampa_to_xsampa_with_stress(phoneme: PhoneSeq, word: str) -> PhoneSeq:
+    if not phoneme:
+        return []
+
+    phoneme = [ph for ph in phoneme if ph != "sp"]
+
+    # From here: https://github.com/grammatek/ice-g2p/blob/d318f91/src/ice_g2p/transcriber.py#L53
+    entries = ice_g2p.syllab_stress_processing.init_pron_dict_from_tuples(
+        [(word, " ".join(phoneme))]
+    )
+    syllabified_dict = ice_g2p.syllab_stress_processing.syllabify_and_label(entries)
+    stressed = ice_g2p.stress.set_stress([syllabified_dict[word]])
+
+    return stressed[0].simple_stress_format().split()
 
 
 def align_ipa_from_xsampa(phoneme_string: str) -> str:
