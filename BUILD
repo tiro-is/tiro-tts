@@ -172,7 +172,7 @@ py_pytest_test(
         ["src/frontend/tests/test_*.py"], 
         exclude=["src/frontend/tests/test_mdl_*.py"],
     ),
-    size = "small",
+    size = "large",
 )
 
 py_pytest_test(
@@ -182,7 +182,7 @@ py_pytest_test(
     args = glob(["src/frontend/tests/test_mdl_*.py"]),
     data = ["@test_models//:models"],
     tags = ["needs-models"],
-    size = "small",
+    size = "large",
 )
 
 py_pytest_test(
@@ -195,7 +195,7 @@ py_pytest_test(
         "src/tests/synthesis_set_test.pbtxt",
     ],
     tags = ["needs-models"],
-    size = "small",
+    size = "large",
 )
 
 py_pytest_test(
