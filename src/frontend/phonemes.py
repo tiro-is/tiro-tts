@@ -200,8 +200,8 @@ def convert_xsampa_to_ipa(phoneme: PhoneSeq) -> PhoneSeq:
     return [XSAMPA_IPA_MAP[ph] for ph in phoneme]
 
 
-def convert_xsampa_to_xsampa_with_stress(phoneme: PhoneSeq) -> PhoneSeq:
     return [ph + "0" if ph in XSAMPA_VOWELS else ph for ph in phoneme]
+def convert_xsampa_to_xsampa_with_stress(phoneme: PhoneSeq, word: str) -> PhoneSeq:
 
 
 def align_ipa_from_xsampa(phoneme_string: str) -> str:

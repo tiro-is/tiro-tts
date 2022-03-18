@@ -172,18 +172,15 @@ def _translator_from_pb(
     model_kind = pb.WhichOneof("model_kind")
     if model_kind == "lexicon":
         return LexiconGraphemeToPhonemeTranslator(
-            {
-                LangID(language_code): SimpleInMemoryLexicon(
-                    lex_path=_parse_uri(pb.lexicon.uri),
-                    alphabet=_alphabet_pb_as_str(pb.lexicon.alphabet),
-                )
-            }
+            lexicon=_parse_uri(pb.lexicon.uri),
+            language_code=LangID(language_code),
+            alphabet=_alphabet_pb_as_str(pb.lexicon.alphabet),
         )
     elif model_kind == "sequitur":
         return SequiturGraphemeToPhonemeTranslator(
-            lang_model_paths={
-                LangID(pb.sequitur.language_code): _parse_uri(pb.sequitur.uri)
-            }
+            lang_model_path=_parse_uri(pb.sequitur.uri),
+            language_code=LangID(pb.sequitur.language_code),
+            alphabet=_alphabet_pb_as_str(pb.sequitur.alphabet),
         )
     elif model_kind == "ice_g2p":
         if language_code != "is-IS":
