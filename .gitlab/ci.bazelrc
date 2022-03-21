@@ -1,3 +1,6 @@
 startup --output_base=bazel-output_base
 build --repository_cache=/cache/tiro-tts/bazel-repo
 build --disk_cache=/cache/tiro-tts/bazel-disk
+
+build --action_env=PATH=/opt/python/cp38-cp38/bin:/usr/local/bin:/usr/bin:/bin
+build --test_env=PATH=/opt/python/cp38-cp38/bin:/usr/local/bin:/usr/bin:/bin
