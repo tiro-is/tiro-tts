@@ -20,276 +20,283 @@ from src.models.tts_request import TTSRequest
 force: bool = False
 overwrite: bool = False
 
-def seed(table: Literal["all", "users", "projects", "keys", "tts_requests"]):
+def seed(table: Literal["all", "users", "projects", "keys", "tts_requests"]) -> None:
     """Populates database table specified by input parameter. A single table or all of them."""
 
-    if overwrite:
-        if not clear(table):
-            return
+    try:
+        if overwrite:
+            if not clear(table):
+                return
 
-    if table == "all" or table == "users":
-        User.create(name="Smári Freyr Guðmundsson", email="smari@tiro.is")
-        User.create(name="Róbert Kjaran", email="robert@tiro.is")
-        User.create(name="Eydís Huld Magnúsdóttir", email="eydis@tiro.is")
-        User.create(name="Júlíus Reynald Björnsson", email="julius@tiro.is")
-        User.create(name="David Erik Mollberg", email="david@tiro.is")
-    if table == "all" or table == "projects":
-        Project.create(
-            user_id=db.session.query(User.id).filter(User.name == "Róbert Kjaran"),
-            name="Mbl.is",
-            description="Morgunblaðið er með afspilunartakka fyrir hverja frétt í viðmótinu hjá sér.",
-        )
-        Project.create(
-            user_id=db.session.query(User.id).filter(User.name == "Róbert Kjaran"),
-            name="Visir.is",
-            description="Vísir.is er með afspilunartakka fyrir hverja frétt í viðmótinu hjá sér.",
-        )
-        Project.create(
-            user_id=db.session.query(User.id).filter(
-                User.name == "Smári Freyr Guðmundsson"
-            ),
-            name="WebRICE",
-            description="WebRICE, íslenski veflesarinn, notar Tiro TTS til að sækja mælt mál til afspilunar.",
-        )
-        Project.create(
-            user_id=db.session.query(User.id).filter(
-                User.name == "Eydís Huld Magnúsdóttir"
-            ),
-            name="Tiro.is",
-            description="Vefur Tiro notar nú sinn eigin veflesara sem notast við Tiro TTS.",
-        )
-        Project.create(
-            user_id=db.session.query(User.id).filter(
-                User.name == "Eydís Huld Magnúsdóttir"
-            ),
-            name="Háskólinn í Reykjavík",
-            description="Háskólinn í Reykjavík býður upp á upplestur á öllum verkefnalýsingum fyrir verkefni í tölvunarfræðideild.",
-        )
-        Project.create(
-            user_id=db.session.query(User.id).filter(
-                User.name == "David Erik Mollberg"
-            ),
-            name="Alþingi - upplýsingaspjöld",
-            description="Alþingi notar þjónustuna okkar til að lesa upp af upplýsingaspjöldum í Alþingishúsinu.",
-        )
-        Project.create(
-            user_id=db.session.query(User.id).filter(
-                User.name == "David Erik Mollberg"
-            ),
-            name="Reykjavíkurborg",
-            description="Borgin notar þjónustuna okkar til að lesa upp vikulegt blogg borgarstjóra.",
-        )
-    if table == "all" or table == "keys":
-        Key.create(
-            project_id=db.session.query(Project.id).filter(Project.name == "Mbl.is"),
-        )
-        Key.create(
-            project_id=db.session.query(Project.id).filter(Project.name == "Visir.is"),
-        )
-        Key.create(
-            project_id=db.session.query(Project.id).filter(Project.name == "WebRICE"),
-        )
-        Key.create(
-            project_id=db.session.query(Project.id).filter(Project.name == "Tiro.is"),
-        )
-        Key.create(
-            project_id=db.session.query(Project.id).filter(
-                Project.name == "Háskólinn í Reykjavík"
-            ),
-        )
-        Key.create(
-            project_id=db.session.query(Project.id).filter(
-                Project.name == "Alþingi - upplýsingaspjöld"
-            ),
-        )
-        Key.create(
-            project_id=db.session.query(Project.id).filter(
-                Project.name == "Reykjavíkurborg"
-            ),
-        )
-    if table == "all" or table == "tts_requests":
-        TTSRequest.create(
-            project_id=db.session.query(Project.id).filter(Project.name == "Mbl.is"),
-            audio_duration=uniform(2.5, 60.0),
-        )
-        TTSRequest.create(
-            project_id=db.session.query(Project.id).filter(Project.name == "Mbl.is"),
-            audio_duration=uniform(2.5, 60.0),
-        )
-        TTSRequest.create(
-            project_id=db.session.query(Project.id).filter(Project.name == "Visir.is"),
-            audio_duration=uniform(2.5, 60.0),
-        )
-        TTSRequest.create(
-            project_id=db.session.query(Project.id).filter(Project.name == "Visir.is"),
-            audio_duration=uniform(2.5, 60.0),
-        )
-        TTSRequest.create(
-            project_id=db.session.query(Project.id).filter(Project.name == "Visir.is"),
-            audio_duration=uniform(2.5, 60.0),
-        )
-        TTSRequest.create(
-            project_id=db.session.query(Project.id).filter(Project.name == "WebRICE"),
-            audio_duration=uniform(2.5, 60.0),
-        )
-        TTSRequest.create(
-            project_id=db.session.query(Project.id).filter(Project.name == "WebRICE"),
-            audio_duration=uniform(2.5, 60.0),
-        )
-        TTSRequest.create(
-            project_id=db.session.query(Project.id).filter(Project.name == "WebRICE"),
-            audio_duration=uniform(2.5, 60.0),
-        )
-        TTSRequest.create(
-            project_id=db.session.query(Project.id).filter(Project.name == "WebRICE"),
-            audio_duration=uniform(2.5, 60.0),
-        )
-        TTSRequest.create(
-            project_id=db.session.query(Project.id).filter(Project.name == "Tiro.is"),
-            audio_duration=uniform(2.5, 60.0),
-        )
-        TTSRequest.create(
-            project_id=db.session.query(Project.id).filter(Project.name == "Tiro.is"),
-            audio_duration=uniform(2.5, 60.0),
-        )
-        TTSRequest.create(
-            project_id=db.session.query(Project.id).filter(Project.name == "Tiro.is"),
-            audio_duration=uniform(2.5, 60.0),
-        )
-        TTSRequest.create(
-            project_id=db.session.query(Project.id).filter(Project.name == "Tiro.is"),
-            audio_duration=uniform(2.5, 60.0),
-        )
-        TTSRequest.create(
-            project_id=db.session.query(Project.id).filter(Project.name == "Tiro.is"),
-            audio_duration=uniform(2.5, 60.0),
-        )
-        TTSRequest.create(
-            project_id=db.session.query(Project.id).filter(
-                Project.name == "Háskólinn í Reykjavík"
-            ),
-            audio_duration=uniform(2.5, 60.0),
-        )
-        TTSRequest.create(
-            project_id=db.session.query(Project.id).filter(
-                Project.name == "Háskólinn í Reykjavík"
-            ),
-            audio_duration=uniform(2.5, 60.0),
-        )
-        TTSRequest.create(
-            project_id=db.session.query(Project.id).filter(
-                Project.name == "Háskólinn í Reykjavík"
-            ),
-            audio_duration=uniform(2.5, 60.0),
-        )
-        TTSRequest.create(
-            project_id=db.session.query(Project.id).filter(
-                Project.name == "Háskólinn í Reykjavík"
-            ),
-            audio_duration=uniform(2.5, 60.0),
-        )
-        TTSRequest.create(
-            project_id=db.session.query(Project.id).filter(
-                Project.name == "Háskólinn í Reykjavík"
-            ),
-            audio_duration=uniform(2.5, 60.0),
-        )
-        TTSRequest.create(
-            project_id=db.session.query(Project.id).filter(
-                Project.name == "Háskólinn í Reykjavík"
-            ),
-            audio_duration=uniform(2.5, 60.0),
-        )
-        TTSRequest.create(
-            project_id=db.session.query(Project.id).filter(
-                Project.name == "Alþingi - upplýsingaspjöld"
-            ),
-            audio_duration=uniform(2.5, 60.0),
-        )
-        TTSRequest.create(
-            project_id=db.session.query(Project.id).filter(
-                Project.name == "Alþingi - upplýsingaspjöld"
-            ),
-            audio_duration=uniform(2.5, 60.0),
-        )
-        TTSRequest.create(
-            project_id=db.session.query(Project.id).filter(
-                Project.name == "Alþingi - upplýsingaspjöld"
-            ),
-            audio_duration=uniform(2.5, 60.0),
-        )
-        TTSRequest.create(
-            project_id=db.session.query(Project.id).filter(
-                Project.name == "Alþingi - upplýsingaspjöld"
-            ),
-            audio_duration=uniform(2.5, 60.0),
-        )
-        TTSRequest.create(
-            project_id=db.session.query(Project.id).filter(
-                Project.name == "Alþingi - upplýsingaspjöld"
-            ),
-            audio_duration=uniform(2.5, 60.0),
-        )
-        TTSRequest.create(
-            project_id=db.session.query(Project.id).filter(
-                Project.name == "Alþingi - upplýsingaspjöld"
-            ),
-            audio_duration=uniform(2.5, 60.0),
-        )
-        TTSRequest.create(
-            project_id=db.session.query(Project.id).filter(
-                Project.name == "Alþingi - upplýsingaspjöld"
-            ),
-            audio_duration=uniform(2.5, 60.0),
-        )
-        TTSRequest.create(
-            project_id=db.session.query(Project.id).filter(
-                Project.name == "Reykjavíkurborg"
-            ),
-            audio_duration=uniform(2.5, 60.0),
-        )
-        TTSRequest.create(
-            project_id=db.session.query(Project.id).filter(
-                Project.name == "Reykjavíkurborg"
-            ),
-            audio_duration=uniform(2.5, 60.0),
-        )
-        TTSRequest.create(
-            project_id=db.session.query(Project.id).filter(
-                Project.name == "Reykjavíkurborg"
-            ),
-            audio_duration=uniform(2.5, 60.0),
-        )
-        TTSRequest.create(
-            project_id=db.session.query(Project.id).filter(
-                Project.name == "Reykjavíkurborg"
-            ),
-            audio_duration=uniform(2.5, 60.0),
-        )
-        TTSRequest.create(
-            project_id=db.session.query(Project.id).filter(
-                Project.name == "Reykjavíkurborg"
-            ),
-            audio_duration=uniform(2.5, 60.0),
-        )
-        TTSRequest.create(
-            project_id=db.session.query(Project.id).filter(
-                Project.name == "Reykjavíkurborg"
-            ),
-            audio_duration=uniform(2.5, 60.0),
-        )
-        TTSRequest.create(
-            project_id=db.session.query(Project.id).filter(
-                Project.name == "Reykjavíkurborg"
-            ),
-            audio_duration=uniform(2.5, 60.0),
-        )
-        TTSRequest.create(
-            project_id=db.session.query(Project.id).filter(
-                Project.name == "Reykjavíkurborg"
-            ),
-            audio_duration=uniform(2.5, 60.0),
-        )
+        if table == "all" or table == "users":
+            User.create(name="Smári Freyr Guðmundsson", email="smari@tiro.is")
+            User.create(name="Róbert Kjaran", email="robert@tiro.is")
+            User.create(name="Eydís Huld Magnúsdóttir", email="eydis@tiro.is")
+            User.create(name="Júlíus Reynald Björnsson", email="julius@tiro.is")
+            User.create(name="David Erik Mollberg", email="david@tiro.is")
+        if table == "all" or table == "projects":
+            Project.create(
+                user_id=db.session.query(User.id).filter(User.name == "Róbert Kjaran"),
+                name="Mbl.is",
+                description="Morgunblaðið er með afspilunartakka fyrir hverja frétt í viðmótinu hjá sér.",
+            )
+            Project.create(
+                user_id=db.session.query(User.id).filter(User.name == "Róbert Kjaran"),
+                name="Visir.is",
+                description="Vísir.is er með afspilunartakka fyrir hverja frétt í viðmótinu hjá sér.",
+            )
+            Project.create(
+                user_id=db.session.query(User.id).filter(
+                    User.name == "Smári Freyr Guðmundsson"
+                ),
+                name="WebRICE",
+                description="WebRICE, íslenski veflesarinn, notar Tiro TTS til að sækja mælt mál til afspilunar.",
+            )
+            Project.create(
+                user_id=db.session.query(User.id).filter(
+                    User.name == "Eydís Huld Magnúsdóttir"
+                ),
+                name="Tiro.is",
+                description="Vefur Tiro notar nú sinn eigin veflesara sem notast við Tiro TTS.",
+            )
+            Project.create(
+                user_id=db.session.query(User.id).filter(
+                    User.name == "Eydís Huld Magnúsdóttir"
+                ),
+                name="Háskólinn í Reykjavík",
+                description="Háskólinn í Reykjavík býður upp á upplestur á öllum verkefnalýsingum fyrir verkefni í tölvunarfræðideild.",
+            )
+            Project.create(
+                user_id=db.session.query(User.id).filter(
+                    User.name == "David Erik Mollberg"
+                ),
+                name="Alþingi - upplýsingaspjöld",
+                description="Alþingi notar þjónustuna okkar til að lesa upp af upplýsingaspjöldum í Alþingishúsinu.",
+            )
+            Project.create(
+                user_id=db.session.query(User.id).filter(
+                    User.name == "David Erik Mollberg"
+                ),
+                name="Reykjavíkurborg",
+                description="Borgin notar þjónustuna okkar til að lesa upp vikulegt blogg borgarstjóra.",
+            )
+        if table == "all" or table == "keys":
+            Key.create(
+                project_id=db.session.query(Project.id).filter(Project.name == "Mbl.is"),
+            )
+            Key.create(
+                project_id=db.session.query(Project.id).filter(Project.name == "Visir.is"),
+            )
+            Key.create(
+                project_id=db.session.query(Project.id).filter(Project.name == "WebRICE"),
+            )
+            Key.create(
+                project_id=db.session.query(Project.id).filter(Project.name == "Tiro.is"),
+            )
+            Key.create(
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "Háskólinn í Reykjavík"
+                ),
+            )
+            Key.create(
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "Alþingi - upplýsingaspjöld"
+                ),
+            )
+            Key.create(
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "Reykjavíkurborg"
+                ),
+            )
+        if table == "all" or table == "tts_requests":
+            TTSRequest.create(
+                project_id=db.session.query(Project.id).filter(Project.name == "Mbl.is"),
+                audio_duration=uniform(2.5, 60.0),
+            )
+            TTSRequest.create(
+                project_id=db.session.query(Project.id).filter(Project.name == "Mbl.is"),
+                audio_duration=uniform(2.5, 60.0),
+            )
+            TTSRequest.create(
+                project_id=db.session.query(Project.id).filter(Project.name == "Visir.is"),
+                audio_duration=uniform(2.5, 60.0),
+            )
+            TTSRequest.create(
+                project_id=db.session.query(Project.id).filter(Project.name == "Visir.is"),
+                audio_duration=uniform(2.5, 60.0),
+            )
+            TTSRequest.create(
+                project_id=db.session.query(Project.id).filter(Project.name == "Visir.is"),
+                audio_duration=uniform(2.5, 60.0),
+            )
+            TTSRequest.create(
+                project_id=db.session.query(Project.id).filter(Project.name == "WebRICE"),
+                audio_duration=uniform(2.5, 60.0),
+            )
+            TTSRequest.create(
+                project_id=db.session.query(Project.id).filter(Project.name == "WebRICE"),
+                audio_duration=uniform(2.5, 60.0),
+            )
+            TTSRequest.create(
+                project_id=db.session.query(Project.id).filter(Project.name == "WebRICE"),
+                audio_duration=uniform(2.5, 60.0),
+            )
+            TTSRequest.create(
+                project_id=db.session.query(Project.id).filter(Project.name == "WebRICE"),
+                audio_duration=uniform(2.5, 60.0),
+            )
+            TTSRequest.create(
+                project_id=db.session.query(Project.id).filter(Project.name == "Tiro.is"),
+                audio_duration=uniform(2.5, 60.0),
+            )
+            TTSRequest.create(
+                project_id=db.session.query(Project.id).filter(Project.name == "Tiro.is"),
+                audio_duration=uniform(2.5, 60.0),
+            )
+            TTSRequest.create(
+                project_id=db.session.query(Project.id).filter(Project.name == "Tiro.is"),
+                audio_duration=uniform(2.5, 60.0),
+            )
+            TTSRequest.create(
+                project_id=db.session.query(Project.id).filter(Project.name == "Tiro.is"),
+                audio_duration=uniform(2.5, 60.0),
+            )
+            TTSRequest.create(
+                project_id=db.session.query(Project.id).filter(Project.name == "Tiro.is"),
+                audio_duration=uniform(2.5, 60.0),
+            )
+            TTSRequest.create(
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "Háskólinn í Reykjavík"
+                ),
+                audio_duration=uniform(2.5, 60.0),
+            )
+            TTSRequest.create(
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "Háskólinn í Reykjavík"
+                ),
+                audio_duration=uniform(2.5, 60.0),
+            )
+            TTSRequest.create(
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "Háskólinn í Reykjavík"
+                ),
+                audio_duration=uniform(2.5, 60.0),
+            )
+            TTSRequest.create(
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "Háskólinn í Reykjavík"
+                ),
+                audio_duration=uniform(2.5, 60.0),
+            )
+            TTSRequest.create(
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "Háskólinn í Reykjavík"
+                ),
+                audio_duration=uniform(2.5, 60.0),
+            )
+            TTSRequest.create(
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "Háskólinn í Reykjavík"
+                ),
+                audio_duration=uniform(2.5, 60.0),
+            )
+            TTSRequest.create(
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "Alþingi - upplýsingaspjöld"
+                ),
+                audio_duration=uniform(2.5, 60.0),
+            )
+            TTSRequest.create(
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "Alþingi - upplýsingaspjöld"
+                ),
+                audio_duration=uniform(2.5, 60.0),
+            )
+            TTSRequest.create(
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "Alþingi - upplýsingaspjöld"
+                ),
+                audio_duration=uniform(2.5, 60.0),
+            )
+            TTSRequest.create(
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "Alþingi - upplýsingaspjöld"
+                ),
+                audio_duration=uniform(2.5, 60.0),
+            )
+            TTSRequest.create(
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "Alþingi - upplýsingaspjöld"
+                ),
+                audio_duration=uniform(2.5, 60.0),
+            )
+            TTSRequest.create(
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "Alþingi - upplýsingaspjöld"
+                ),
+                audio_duration=uniform(2.5, 60.0),
+            )
+            TTSRequest.create(
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "Alþingi - upplýsingaspjöld"
+                ),
+                audio_duration=uniform(2.5, 60.0),
+            )
+            TTSRequest.create(
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "Reykjavíkurborg"
+                ),
+                audio_duration=uniform(2.5, 60.0),
+            )
+            TTSRequest.create(
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "Reykjavíkurborg"
+                ),
+                audio_duration=uniform(2.5, 60.0),
+            )
+            TTSRequest.create(
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "Reykjavíkurborg"
+                ),
+                audio_duration=uniform(2.5, 60.0),
+            )
+            TTSRequest.create(
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "Reykjavíkurborg"
+                ),
+                audio_duration=uniform(2.5, 60.0),
+            )
+            TTSRequest.create(
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "Reykjavíkurborg"
+                ),
+                audio_duration=uniform(2.5, 60.0),
+            )
+            TTSRequest.create(
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "Reykjavíkurborg"
+                ),
+                audio_duration=uniform(2.5, 60.0),
+            )
+            TTSRequest.create(
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "Reykjavíkurborg"
+                ),
+                audio_duration=uniform(2.5, 60.0),
+            )
+            TTSRequest.create(
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "Reykjavíkurborg"
+                ),
+                audio_duration=uniform(2.5, 60.0),
+            )
+    except IntegrityError:
+        print(f"ERROR: Unable to seed one or more table(s) due to a unique constraint violation!\nERROR: Please make sure to modify the data accordingly, clear the table(s) first or overwrite.\nTerminating...")
+        return
+    except KeyError:
+        print("ERROR: SQLAlchemy has encountered an error. This is most likely due to auth being disabled. Make sure that AUTH_DISABLED is set to \"False\" in src/config.py.\nTerminating...")
+        return
 
     print(f"SEED: Finished adding data to {'all tables' if table == 'all' else f'the {table} table'}.")
     if overwrite:
@@ -334,12 +341,15 @@ def clear(table: Literal["all", "users", "projects", "keys", "tts_requests"]):
                 f"CLEAR: Finished {'overwriting' if overwrite else 'erasing'} {'all tables' if table == 'all' else f'the {table} table'}."
             )
         except IntegrityError:
-            print(f"ERROR: Unable to {'overwrite' if overwrite else 'clear'} one or more table(s) due to foreign key constraints!\nPlease make sure to avoid leaving orphans in children tables ({'overwrite' if overwrite else 'clear'} children tables first).\nTerminating...")
+            print(f"ERROR: Unable to {'overwrite' if overwrite else 'clear'} one or more table(s) due to foreign key constraints!\nERROR: Please make sure to avoid leaving orphans in children tables ({'overwrite' if overwrite else 'clear'} children tables first).\nTerminating...")
+            return False
+        except KeyError:
+            print("ERROR: SQLAlchemy has encountered an error. This is most likely due to auth being disabled. Make sure that AUTH_DISABLED is set to \"False\" in src/config.py.\nTerminating...")
             return False
 
         return True
     else:
-        print(f"CLEAR: {'Overwrite' if overwrite else 'Clear'} confirmation failed!\nDatabase {'seed-with-overwrite' if overwrite else 'clear'} action cancelled.\nTerminating...")
+        print(f"CLEAR: {'Overwrite' if overwrite else 'Clear'} confirmation failed!\nCLEAR: Database {'seed-with-overwrite' if overwrite else 'clear'} action cancelled.\nTerminating...")
         return False
 
 
@@ -365,6 +375,7 @@ def create_migration():
 def validate_args(action: Literal["seed", "clear", "migrate", "upgrade", "downgrade", "history"],
                   table: Literal["all", "users", "projects", "keys", "tts_requests"],
     ) -> None:
+    """Makes sure that all script input arguments are correctly formed."""
     
     if action not in ["seed", "clear", "migrate", "upgrade", "downgrade", "history"]:
         raise IllegalArgument("ERROR: Illegal action argument!\nERROR: Please specify action with \"-a\", pick one of the following: \"seed\", \"clear\", \"migrate\", \"upgrade\", \"downgrade\" or \"history\".")
@@ -392,6 +403,8 @@ def route_action(
     action: Literal["seed", "clear", "migrate", "upgrade", "downgrade", "history"],
     table: Literal["all", "users", "projects", "keys", "tts_requests"],
 ) -> None:
+    """Makes decisions based on input arguments and routes control accordingly."""
+
     try:
         validate_args(action, table)
     except Exception as e:
@@ -441,7 +454,7 @@ if __name__ == "__main__":
         "-o",
         dest="overwrite",
         action="store_true",
-        help="If your action involves data insertion (seed), add this flag if you wish to overwrite existing data. May be hindered by unique constraints on some tables.",
+        help="If your action involves data insertion (seed), add this flag if you wish to overwrite existing data.",
         default=False,
         required=False,
     )
