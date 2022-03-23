@@ -19,6 +19,7 @@ class Project(db.Model):
 
         @staticmethod
         def create(user_id: int, name: str, description: str):
+                """Adds a new entry to the table."""
                 db.session.add(
                         Project(
                                 user_id=user_id,
@@ -28,4 +29,10 @@ class Project(db.Model):
                                 updated_at=datetime.utcnow(),
                         )
                 )
+                db.session.commit()
+
+        @staticmethod
+        def erase():
+                """Erases all table data."""
+                db.session.query(Project).delete()
                 db.session.commit()

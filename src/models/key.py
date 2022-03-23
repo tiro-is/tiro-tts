@@ -12,6 +12,7 @@ class Key(db.Model):
 
         @staticmethod
         def create(project_id: int):
+                """Adds a new entry to the table."""
                 db.session.add(
                         Key(
                                 project_id=project_id,
@@ -21,3 +22,8 @@ class Key(db.Model):
                 )
                 db.session.commit()
                 
+        @staticmethod
+        def erase():
+                """Erases all table data."""
+                db.session.query(Key).delete()
+                db.session.commit()

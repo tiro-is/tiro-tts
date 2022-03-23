@@ -323,19 +323,17 @@ def clear(table: Literal["all", "users", "projects", "keys", "tts_requests"]):
 
         try:
             if table == "all" or table == "keys":
-                db.session.query(Key).delete()
+                Key.erase()
                 print(f"CLEAR: \"keys\" {'overwritten' if overwrite else 'erased'}.")
             if table == "all" or table == "tts_requests":
-                db.session.query(TTSRequest).delete()
+                TTSRequest.erase()
                 print(f"CLEAR: \"tts_requests\" {'overwritten' if overwrite else 'erased'}.")
             if table == "all" or table == "projects":
-                db.session.query(Project).delete()
+                Project.erase()
                 print(f"CLEAR: \"projects\" {'overwritten' if overwrite else 'erased'}.")
             if table == "all" or table == "users":
-                db.session.query(User).delete()
+                User.erase()
                 print(f"CLEAR: \"users\" {'overwritten' if overwrite else 'erased'}.")
-
-            db.session.commit()
 
             print(
                 f"CLEAR: Finished {'overwriting' if overwrite else 'erasing'} {'all tables' if table == 'all' else f'the {table} table'}."

@@ -15,6 +15,7 @@ class User(db.Model):
 
     @staticmethod
     def create(name: str, email: str):
+        """Adds a new entry to the table."""
         db.session.add(
             User(
                 name=name,
@@ -23,4 +24,10 @@ class User(db.Model):
                 updated_at=datetime.utcnow(),
             )
         )
+        db.session.commit()
+
+    @staticmethod
+    def erase():
+        """Erases all table data."""
+        db.session.query(User).delete()
         db.session.commit()

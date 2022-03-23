@@ -12,6 +12,7 @@ class TTSRequest(db.Model):
 
         @staticmethod
         def create(project_id: int, audio_duration: float):
+                """Adds a new entry to the table."""
                 db.session.add(
                         TTSRequest(
                                 project_id=project_id,
@@ -19,5 +20,11 @@ class TTSRequest(db.Model):
                                 audio_duration=audio_duration,
                         )
                 )
+                db.session.commit()
+                
+        @staticmethod
+        def erase():
+                """Erases all table data."""
+                db.session.query(TTSRequest).delete()
                 db.session.commit()
                 
