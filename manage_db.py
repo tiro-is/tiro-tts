@@ -328,15 +328,20 @@ def seed(table: Literal["all", "users", "projects", "keys", "tts_requests"]) -> 
                 ),
                 audio_duration=uniform(2.5, 60.0),
             )
-    except IntegrityError:
+    except IntegrityError as e:
         print(
-            f"ERROR: Unable to seed one or more table(s) due to a unique constraint violation!\nERROR: Please make sure to modify the data accordingly, clear the table(s) first or overwrite.\nTerminating..."
+            f"ERROR: SQLAlchemy encountered an error while seeding one or more tables:\n\n{e}\n\nTerminating..."
         )
+        db.session.rollback()
         return
     except KeyError:
         print(
             'ERROR: SQLAlchemy has encountered an error. This is most likely due to auth being disabled. Make sure that AUTH_DISABLED is set to "False" in src/config.py.\nTerminating...'
         )
+        return
+    except Exception as e:
+        print(f"An unhandled error occurred during seeding:\n\n{e}\n\nTerminating...")
+        db.session.rollback()
         return
 
     print(
@@ -385,15 +390,20 @@ def clear(table: Literal["all", "users", "projects", "keys", "tts_requests"]):
             print(
                 f"CLEAR: Finished {'overwriting' if overwrite else 'erasing'} {'all tables' if table == 'all' else f'the {table} table'}."
             )
-        except IntegrityError:
+        except IntegrityError as e:
             print(
-                f"ERROR: Unable to {'overwrite' if overwrite else 'clear'} one or more table(s) due to foreign key constraints!\nERROR: Please make sure to avoid leaving orphans in children tables ({'overwrite' if overwrite else 'clear'} children tables first).\nTerminating..."
+                f"ERROR: SQLAlchemy encountered an error while {'overwriting' if overwrite else 'clearing'} one or more tables:\n\n{e}\n\nTerminating..."
             )
+            db.session.rollback()
             return False
         except KeyError:
             print(
                 'ERROR: SQLAlchemy has encountered an error. This is most likely due to auth being disabled. Make sure that AUTH_DISABLED is set to "False" in src/config.py.\nTerminating...'
             )
+            return False
+        except Exception as e:
+            print(f"An unhandled error occurred while {'overwriting' if overwrite else 'clearing'}:\n\n{e}\n\nTerminating...")
+            db.session.rollback()
             return False
 
         return True
@@ -482,8 +492,11 @@ def route_action(
 
     try:
         validate_args(action, table)
+    except IllegalArgument as e:
+        print(f"ERROR: Bad input parameters detected!\n{e}\n\nTerminating...")
+        return
     except Exception as e:
-        print(f"ERROR: Bad input parameters detected!\n{str(e)}\n\nTerminating...")
+        print(f"An unhandled error occurred during argument validation:\n\n{e}\n\nTerminating...")
         return
 
     load_dotenv(Path(".env.local"))
@@ -507,6 +520,8 @@ def route_action(
             print(
                 'ERROR: SQLAlchemy has encountered an error. This is most likely due to auth being disabled. Make sure that AUTH_DISABLED is set to "False" in src/config.py.\nTerminating...'
             )
+        except Exception as e:
+            print(f'An unhandled error occurred during "{action}" action:\n\n{e}\n\nTerminating...')
 
 
 if __name__ == "__main__":
