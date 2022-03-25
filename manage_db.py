@@ -416,14 +416,18 @@ def route_action(
             seed(table)
         elif action == "clear":
             clear(table)
-        elif action == "migrate":
-            create_migration()
-        elif action == "upgrade":
-            upgrade()
-        elif action == "downgrade":
-            downgrade()
-        elif action == "history":
-            history(indicate_current=True)
+
+        try:
+            if action == "migrate":
+                create_migration()
+            elif action == "upgrade":
+                upgrade()
+            elif action == "downgrade":
+                downgrade()
+            elif action == "history":
+                history(indicate_current=True)
+        except KeyError:
+            print("ERROR: SQLAlchemy has encountered an error. This is most likely due to auth being disabled. Make sure that AUTH_DISABLED is set to \"False\" in src/config.py.\nTerminating...")
 
 
 if __name__ == "__main__":
