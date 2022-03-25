@@ -19,11 +19,13 @@ from typing import List
 import pytest
 
 
-@pytest.fixture()
+@pytest.fixture(scope="session")
 def dut_app():
     os.environ["TIRO_TTS_SYNTHESIS_SET_PB"] = "src/tests/synthesis_set_test.pbtxt"
-    from src.app import app
-
+    
+    from src import init_app
+    app = init_app()
+    
     app.config.update(
         {
             "TESTING": True,

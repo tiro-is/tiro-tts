@@ -10,4 +10,5 @@ export TIRO_TTS_SYNTHESIS_SET_PB=$PWD/conf/synthesis_set.local.pbtxt
 bazel build :main
 bazel test :test_frontend
 bazel test :test_frontend_model_dependent
+bazel test :test_end2end
 exec bazel-bin/main
