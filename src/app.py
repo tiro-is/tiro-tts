@@ -13,7 +13,7 @@
 # limitations under the License.
 from pathlib import Path
 
-from flask import Response, jsonify, render_template, stream_with_context, current_app
+from flask import Response, current_app, jsonify, render_template, stream_with_context
 from flask_apispec import FlaskApiSpec, doc, marshal_with, use_kwargs
 from webargs.flaskparser import FlaskParser, abort
 
@@ -23,6 +23,7 @@ from src import schemas
 # bit.
 from src.auth.api_key import require_api_key
 from src.logging_utils import clean_request
+
 from src.voices import OutputFormat, VoiceManager  # noqa:E402 isort:skip
 
 g_synthesizers = VoiceManager.from_pbtxt(Path(current_app.config["SYNTHESIS_SET_PB"]))

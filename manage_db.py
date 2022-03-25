@@ -2,23 +2,24 @@
 
 import argparse
 from pathlib import Path
+from random import uniform
 from types import LambdaType
 from typing import Literal
 
-from flask_migrate import migrate, upgrade, downgrade, history
 from dotenv import load_dotenv
-from random import uniform
+from flask_migrate import downgrade, history, migrate, upgrade
 from intervals import IllegalArgument
 from sqlalchemy.exc import IntegrityError
 
-from src import init_app, db
+from src import db, init_app
 from src.models.key import Key
-from src.models.user import User
 from src.models.project import Project
 from src.models.tts_request import TTSRequest
+from src.models.user import User
 
 force: bool = False
 overwrite: bool = False
+
 
 def seed(table: Literal["all", "users", "projects", "keys", "tts_requests"]) -> None:
     """Populates database table specified by input parameter. A single table or all of them."""
@@ -82,16 +83,24 @@ def seed(table: Literal["all", "users", "projects", "keys", "tts_requests"]) -> 
             )
         if table == "all" or table == "keys":
             Key.create(
-                project_id=db.session.query(Project.id).filter(Project.name == "Mbl.is"),
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "Mbl.is"
+                ),
             )
             Key.create(
-                project_id=db.session.query(Project.id).filter(Project.name == "Visir.is"),
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "Visir.is"
+                ),
             )
             Key.create(
-                project_id=db.session.query(Project.id).filter(Project.name == "WebRICE"),
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "WebRICE"
+                ),
             )
             Key.create(
-                project_id=db.session.query(Project.id).filter(Project.name == "Tiro.is"),
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "Tiro.is"
+                ),
             )
             Key.create(
                 project_id=db.session.query(Project.id).filter(
@@ -110,59 +119,87 @@ def seed(table: Literal["all", "users", "projects", "keys", "tts_requests"]) -> 
             )
         if table == "all" or table == "tts_requests":
             TTSRequest.create(
-                project_id=db.session.query(Project.id).filter(Project.name == "Mbl.is"),
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "Mbl.is"
+                ),
                 audio_duration=uniform(2.5, 60.0),
             )
             TTSRequest.create(
-                project_id=db.session.query(Project.id).filter(Project.name == "Mbl.is"),
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "Mbl.is"
+                ),
                 audio_duration=uniform(2.5, 60.0),
             )
             TTSRequest.create(
-                project_id=db.session.query(Project.id).filter(Project.name == "Visir.is"),
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "Visir.is"
+                ),
                 audio_duration=uniform(2.5, 60.0),
             )
             TTSRequest.create(
-                project_id=db.session.query(Project.id).filter(Project.name == "Visir.is"),
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "Visir.is"
+                ),
                 audio_duration=uniform(2.5, 60.0),
             )
             TTSRequest.create(
-                project_id=db.session.query(Project.id).filter(Project.name == "Visir.is"),
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "Visir.is"
+                ),
                 audio_duration=uniform(2.5, 60.0),
             )
             TTSRequest.create(
-                project_id=db.session.query(Project.id).filter(Project.name == "WebRICE"),
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "WebRICE"
+                ),
                 audio_duration=uniform(2.5, 60.0),
             )
             TTSRequest.create(
-                project_id=db.session.query(Project.id).filter(Project.name == "WebRICE"),
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "WebRICE"
+                ),
                 audio_duration=uniform(2.5, 60.0),
             )
             TTSRequest.create(
-                project_id=db.session.query(Project.id).filter(Project.name == "WebRICE"),
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "WebRICE"
+                ),
                 audio_duration=uniform(2.5, 60.0),
             )
             TTSRequest.create(
-                project_id=db.session.query(Project.id).filter(Project.name == "WebRICE"),
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "WebRICE"
+                ),
                 audio_duration=uniform(2.5, 60.0),
             )
             TTSRequest.create(
-                project_id=db.session.query(Project.id).filter(Project.name == "Tiro.is"),
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "Tiro.is"
+                ),
                 audio_duration=uniform(2.5, 60.0),
             )
             TTSRequest.create(
-                project_id=db.session.query(Project.id).filter(Project.name == "Tiro.is"),
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "Tiro.is"
+                ),
                 audio_duration=uniform(2.5, 60.0),
             )
             TTSRequest.create(
-                project_id=db.session.query(Project.id).filter(Project.name == "Tiro.is"),
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "Tiro.is"
+                ),
                 audio_duration=uniform(2.5, 60.0),
             )
             TTSRequest.create(
-                project_id=db.session.query(Project.id).filter(Project.name == "Tiro.is"),
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "Tiro.is"
+                ),
                 audio_duration=uniform(2.5, 60.0),
             )
             TTSRequest.create(
-                project_id=db.session.query(Project.id).filter(Project.name == "Tiro.is"),
+                project_id=db.session.query(Project.id).filter(
+                    Project.name == "Tiro.is"
+                ),
                 audio_duration=uniform(2.5, 60.0),
             )
             TTSRequest.create(
@@ -292,13 +329,19 @@ def seed(table: Literal["all", "users", "projects", "keys", "tts_requests"]) -> 
                 audio_duration=uniform(2.5, 60.0),
             )
     except IntegrityError:
-        print(f"ERROR: Unable to seed one or more table(s) due to a unique constraint violation!\nERROR: Please make sure to modify the data accordingly, clear the table(s) first or overwrite.\nTerminating...")
+        print(
+            f"ERROR: Unable to seed one or more table(s) due to a unique constraint violation!\nERROR: Please make sure to modify the data accordingly, clear the table(s) first or overwrite.\nTerminating..."
+        )
         return
     except KeyError:
-        print("ERROR: SQLAlchemy has encountered an error. This is most likely due to auth being disabled. Make sure that AUTH_DISABLED is set to \"False\" in src/config.py.\nTerminating...")
+        print(
+            'ERROR: SQLAlchemy has encountered an error. This is most likely due to auth being disabled. Make sure that AUTH_DISABLED is set to "False" in src/config.py.\nTerminating...'
+        )
         return
 
-    print(f"SEED: Finished adding data to {'all tables' if table == 'all' else f'the {table} table'}.")
+    print(
+        f"SEED: Finished adding data to {'all tables' if table == 'all' else f'the {table} table'}."
+    )
     if overwrite:
         print("SEED: Preexisting data was overwritten.")
 
@@ -327,10 +370,14 @@ def clear(table: Literal["all", "users", "projects", "keys", "tts_requests"]):
                 print(f"CLEAR: \"keys\" {'overwritten' if overwrite else 'erased'}.")
             if table == "all" or table == "tts_requests":
                 TTSRequest.erase()
-                print(f"CLEAR: \"tts_requests\" {'overwritten' if overwrite else 'erased'}.")
+                print(
+                    f"CLEAR: \"tts_requests\" {'overwritten' if overwrite else 'erased'}."
+                )
             if table == "all" or table == "projects":
                 Project.erase()
-                print(f"CLEAR: \"projects\" {'overwritten' if overwrite else 'erased'}.")
+                print(
+                    f"CLEAR: \"projects\" {'overwritten' if overwrite else 'erased'}."
+                )
             if table == "all" or table == "users":
                 User.erase()
                 print(f"CLEAR: \"users\" {'overwritten' if overwrite else 'erased'}.")
@@ -339,15 +386,21 @@ def clear(table: Literal["all", "users", "projects", "keys", "tts_requests"]):
                 f"CLEAR: Finished {'overwriting' if overwrite else 'erasing'} {'all tables' if table == 'all' else f'the {table} table'}."
             )
         except IntegrityError:
-            print(f"ERROR: Unable to {'overwrite' if overwrite else 'clear'} one or more table(s) due to foreign key constraints!\nERROR: Please make sure to avoid leaving orphans in children tables ({'overwrite' if overwrite else 'clear'} children tables first).\nTerminating...")
+            print(
+                f"ERROR: Unable to {'overwrite' if overwrite else 'clear'} one or more table(s) due to foreign key constraints!\nERROR: Please make sure to avoid leaving orphans in children tables ({'overwrite' if overwrite else 'clear'} children tables first).\nTerminating..."
+            )
             return False
         except KeyError:
-            print("ERROR: SQLAlchemy has encountered an error. This is most likely due to auth being disabled. Make sure that AUTH_DISABLED is set to \"False\" in src/config.py.\nTerminating...")
+            print(
+                'ERROR: SQLAlchemy has encountered an error. This is most likely due to auth being disabled. Make sure that AUTH_DISABLED is set to "False" in src/config.py.\nTerminating...'
+            )
             return False
 
         return True
     else:
-        print(f"CLEAR: {'Overwrite' if overwrite else 'Clear'} confirmation failed!\nCLEAR: Database {'seed-with-overwrite' if overwrite else 'clear'} action cancelled.\nTerminating...")
+        print(
+            f"CLEAR: {'Overwrite' if overwrite else 'Clear'} confirmation failed!\nCLEAR: Database {'seed-with-overwrite' if overwrite else 'clear'} action cancelled.\nTerminating..."
+        )
         return False
 
 
@@ -357,44 +410,68 @@ def create_migration():
     message_bad: LambdaType = lambda msg: len(msg) < 5 or msg.isspace()
     CANCEL_CHAR: str = "x"
     while message_bad(message):
-        message = input(f"MIGRATION: Please input a migration message (\"{CANCEL_CHAR}\" to cancel): ")
+        message = input(
+            f'MIGRATION: Please input a migration message ("{CANCEL_CHAR}" to cancel): '
+        )
         if message.lower() == CANCEL_CHAR:
             print("MIGRATION: Migration action cancelled.\nTerminating...")
             return
         elif message_bad(message):
-            print(f"MIGRATION: Please write a proper migration message with at least 5 characters (\"{CANCEL_CHAR}\" to cancel).")
+            print(
+                f'MIGRATION: Please write a proper migration message with at least 5 characters ("{CANCEL_CHAR}" to cancel).'
+            )
         else:
             break
 
-    print(f"MIGRATION: Creating new migration with message: \"{message}\".")
+    print(f'MIGRATION: Creating new migration with message: "{message}".')
     migrate(message=message)
 
 
-def validate_args(action: Literal["seed", "clear", "migrate", "upgrade", "downgrade", "history"],
-                  table: Literal["all", "users", "projects", "keys", "tts_requests"],
-    ) -> None:
+def validate_args(
+    action: Literal["seed", "clear", "migrate", "upgrade", "downgrade", "history"],
+    table: Literal["all", "users", "projects", "keys", "tts_requests"],
+) -> None:
     """Makes sure that all script input arguments are correctly formed."""
-    
+
     if action not in ["seed", "clear", "migrate", "upgrade", "downgrade", "history"]:
-        raise IllegalArgument("ERROR: Illegal action argument!\nERROR: Please specify action with \"-a\", pick one of the following: \"seed\", \"clear\", \"migrate\", \"upgrade\", \"downgrade\" or \"history\".")
+        raise IllegalArgument(
+            'ERROR: Illegal action argument!\nERROR: Please specify action with "-a", pick one of the following: "seed", "clear", "migrate", "upgrade", "downgrade" or "history".'
+        )
 
     if action == "seed" and force and not overwrite:
-        raise IllegalArgument(f"ERROR: Please don't provide the \"force\" flag while seeding if you don't intend to overwrite existing data.")
+        raise IllegalArgument(
+            "ERROR: Please don't provide the \"force\" flag while seeding if you don't intend to overwrite existing data."
+        )
 
-    if (action == "seed" or action == "clear") and (not table or table not in [
-        "all",
-        "users",
-        "projects",
-        "keys",
-        "tts_requests",
-    ]):
-        raise IllegalArgument(f"ERROR: Illegal table argument!\nERROR: Please specify which table to {action} with \"-t\".\nERROR: Possible table names are \"all\" (for all tables), \"users\", \"projects\", \"keys\" and \"tts_requests\".")
+    if (action == "seed" or action == "clear") and (
+        not table
+        or table
+        not in [
+            "all",
+            "users",
+            "projects",
+            "keys",
+            "tts_requests",
+        ]
+    ):
+        raise IllegalArgument(
+            f'ERROR: Illegal table argument!\nERROR: Please specify which table to {action} with "-t".\nERROR: Possible table names are "all" (for all tables), "users", "projects", "keys" and "tts_requests".'
+        )
 
     if action == "clear" and overwrite:
-        raise IllegalArgument(f"ERROR: Please don't provide the \"overwrite\" flag while performing a database clear action.")
+        raise IllegalArgument(
+            f'ERROR: Please don\'t provide the "overwrite" flag while performing a database clear action.'
+        )
 
-    if (action == "migrate" or action == "upgrade" or action == "downgrade" or action == "history") and (table or overwrite or force):
-        raise IllegalArgument(f"ERROR: Please don't provide additional arguments or flags while performing migrations, upgrades, downgrades or viewing migration history.")
+    if (
+        action == "migrate"
+        or action == "upgrade"
+        or action == "downgrade"
+        or action == "history"
+    ) and (table or overwrite or force):
+        raise IllegalArgument(
+            f"ERROR: Please don't provide additional arguments or flags while performing migrations, upgrades, downgrades or viewing migration history."
+        )
 
 
 def route_action(
@@ -427,7 +504,9 @@ def route_action(
             elif action == "history":
                 history(indicate_current=True)
         except KeyError:
-            print("ERROR: SQLAlchemy has encountered an error. This is most likely due to auth being disabled. Make sure that AUTH_DISABLED is set to \"False\" in src/config.py.\nTerminating...")
+            print(
+                'ERROR: SQLAlchemy has encountered an error. This is most likely due to auth being disabled. Make sure that AUTH_DISABLED is set to "False" in src/config.py.\nTerminating...'
+            )
 
 
 if __name__ == "__main__":

@@ -1,5 +1,7 @@
 from datetime import datetime
+
 from src import db
+
 
 class User(db.Model):
     __tablename__ = "users"
@@ -10,8 +12,9 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, nullable=False)
     updated_at = db.Column(db.DateTime, nullable=False)
 
-    projects = db.relationship("Project", backref="user", lazy=True,
-                                cascade="all, delete, delete-orphan")
+    projects = db.relationship(
+        "Project", backref="user", lazy=True, cascade="all, delete, delete-orphan"
+    )
 
     @staticmethod
     def create(name: str, email: str):

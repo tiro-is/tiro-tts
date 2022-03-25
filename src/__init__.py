@@ -1,17 +1,17 @@
 import os
+
 from apispec import APISpec, BasePlugin
 from apispec.ext.marshmallow import MarshmallowPlugin
-
 from flask import Flask
+from flask_cors import CORS
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
-
-from flask_cors import CORS
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from src.config import EnvvarConfig
 
 db: SQLAlchemy = SQLAlchemy()
+
 
 class DisableOptionsOperationPlugin(BasePlugin):
     # See https://github.com/jmcarp/flask-apispec/issues/155#issuecomment-562542538
@@ -20,6 +20,7 @@ class DisableOptionsOperationPlugin(BasePlugin):
         # apispec.exceptions.DuplicateParameterError: Duplicate parameter with name body and location body
         # => remove
         operations.pop("options", None)
+
 
 def setup_db(app: Flask):
     db_username: str = os.environ.get("POSTGRESQL_USERNAME", "")
@@ -36,6 +37,7 @@ def setup_db(app: Flask):
     db.init_app(app)
     migrate: Migrate = Migrate(app, db)
 
+
 def init_app():
     app = Flask(__name__)
     app.config["JSON_AS_ASCII"] = False
@@ -51,9 +53,6 @@ def init_app():
 
     cors = CORS(app)
 
-    # Give everyone access to current_app
-    app.app_context().push()
-
     app.config["APISPEC_SPEC"] = APISpec(
         title="TTS",
         version="v0",
@@ -68,14 +67,14 @@ def init_app():
 
     with app.app_context():
         if not app.config["AUTH_DISABLED"]:
-            from src.models.user import User
-            from src.models.project import Project
-            from src.models.key import Key
-            from src.models.tts_request import TTSRequest
-            
+            from src.models.user import User  # noqa:E402 isort:skip
+            from src.models.project import Project  # noqa:E402 isort:skip
+            from src.models.key import Key  # noqa:E402 isort:skip
+            from src.models.tts_request import TTSRequest  # noqa:E402 isort:skip
+
             # Create tables if they don't exist
             db.create_all()
 
         import src.app
+
         return app
-        
