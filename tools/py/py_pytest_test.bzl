@@ -5,6 +5,7 @@ def py_pytest_test(
         name,
         # This argument exists for back-compatibility with earlier versions
         pytest_args = [
+            "--junitxml=$$XML_OUTPUT_FILE",
             "-p",
             "no:cacheprovider",
             "-p",
