@@ -1,10 +1,11 @@
-torch @ https://download.pytorch.org/whl/cpu/torch-1.9.0%2Bcpu-cp38-cp38-linux_x86_64.whl
-sequitur @ https://github.com/rkjaran/sequitur-g2p/releases/download/v1.0a2/sequitur-1.0a2-cp38-cp38-manylinux_2_12_x86_64.manylinux2010_x86_64.whl
+torch>=1.9.2
+sequitur-g2p --only-binary sequitur-g2p
 pyyaml
-numpy
+numpy==1.22.0
 librosa
 tgt
-scipy
+tqdm
+scipy==1.7.0 --only-binary scipy
 numba
 inflect
 unidecode
@@ -18,6 +19,17 @@ flask-env
 tokenizer
 resampy
 boto3
+# TODO: espnet brings in a TON of unnecessary dependencies. Find a way to ignore
+#   them, fork or subtree espnet
+espnet>=0.10.0
+espnet_model_zoo
+parallel_wavegan
+# No wheels available for py3.8 for fairseq 0.10.0 and wheel building broken
+fairseq @ https://github.com/pytorch/fairseq/archive/b554f5ec9067c2f88bf17a736ddb57ea1cab14cc.zip
+ice-g2p @ https://github.com/grammatek/ice-g2p/archive/d318f91bd87edd1b6624c175207f47328d2b4e87.zip
+
+soundfile>=0.10
+
 # dev:
 black
 mypy

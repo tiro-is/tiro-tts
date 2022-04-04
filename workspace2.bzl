@@ -28,5 +28,3 @@ def tiro_tts_workspace():
     _py3_image_repos()
 
     grpc_deps()
-
-    native.register_toolchains("//tools/py:py_toolchain")

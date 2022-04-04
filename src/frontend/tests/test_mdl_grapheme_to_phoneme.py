@@ -8,6 +8,7 @@ from ..grapheme_to_phoneme import (
     SequiturGraphemeToPhonemeTranslator,
 )
 from ..lexicon import SimpleInMemoryLexicon
+from ..words import Word
 
 
 class TestComposedTranslator:
@@ -18,17 +19,17 @@ class TestComposedTranslator:
 
     _lexiconGraphemeToPhonemeTranslator: LexiconGraphemeToPhonemeTranslator = (
         LexiconGraphemeToPhonemeTranslator(
-            {
-                _language_code: SimpleInMemoryLexicon(
-                    lex_path=_lex_path, alphabet=_alphabet
-                )
-            }
+            lexicon=_lex_path,
+            alphabet=_alphabet,
+            language_code=_language_code,
         )
     )
 
     _sequiturGraphemeToPhonemeTranslator: SequiturGraphemeToPhonemeTranslator = (
         SequiturGraphemeToPhonemeTranslator(
-            lang_model_paths={_language_code: _model_path}
+            lang_model_path=_model_path,
+            language_code=_language_code,
+            alphabet="ipa",
         )
     )
 
@@ -156,7 +157,9 @@ class TestLexiconGraphemeToPhonemeTranslator:
     _lex_path: Path = Path("external/test_models/lexicon.txt")
     _alphabet: str = "x-sampa"
     _t: LexiconGraphemeToPhonemeTranslator = LexiconGraphemeToPhonemeTranslator(
-        {_language_code: SimpleInMemoryLexicon(lex_path=_lex_path, alphabet=_alphabet)}
+        language_code=_language_code,
+        lexicon=_lex_path,
+        alphabet=_alphabet,
     )
 
     def test_empty(self):
@@ -355,12 +358,26 @@ class TestLexiconGraphemeToPhonemeTranslator:
             "sp",
         ]
 
+    def test_add_phonemes_to_words(self):
+        phrase = "hann Gummi er kallakall"
+        original_words = [Word(original_symbol=s, symbol=s) for s in phrase.split()]
+        phonetized_words = list(
+            self._t.translate_words(original_words, self._language_code)
+        )
+        phonemes_only = [
+            self._t.translate(s, self._language_code) for s in phrase.split()
+        ]
+        for idx, phone_seq in enumerate(phonemes_only):
+            assert phonetized_words[idx].phone_sequence == phone_seq
+
 
 class TestSequiturGraphemeToPhonemeTranslator:
     _model_path: Path = Path("external/test_models/sequitur.mdl")
     _language_code: str = "is-IS"
     _t: SequiturGraphemeToPhonemeTranslator = SequiturGraphemeToPhonemeTranslator(
-        lang_model_paths={_language_code: _model_path}
+        lang_model_path=_model_path,
+        language_code=_language_code,
+        alphabet="ipa",
     )
 
     def test_empty(self):

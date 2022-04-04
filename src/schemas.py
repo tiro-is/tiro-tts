@@ -75,7 +75,7 @@ class SynthesizeSpeechRequest(Schema):
                  "OutputFormat": "json",
                  "SpeechMarkTypes": ["word"],
                  "Text": " Góðan, dag. Hvað heitir þú? Kvöld-Úlfur.",
-                 "VoiceId": "Other"
+                 "VoiceId": "Alfur"
                 }
 
             might return
@@ -113,7 +113,7 @@ class SynthesizeSpeechRequest(Schema):
     VoiceId = fields.Str(
         required=True,
         description="Voice ID to use for the synthesis",
-        example="Other",
+        example="Alfur",
     )
 
 
@@ -136,7 +136,7 @@ class DescribeVoicesRequest(Schema):
 
 
 class Voice(Schema):
-    VoiceId = fields.Str(example="Other")
+    VoiceId = fields.Str(example="Alfur")
 
     Gender = fields.Str(validate=validate.OneOf(["Male", "Female"]))
 

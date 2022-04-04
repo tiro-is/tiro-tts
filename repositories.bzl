@@ -19,13 +19,14 @@ def tiro_tts_repositories():
     com_github_grammatek_tts_frontend_api()
 
 def rules_python():
-    RULES_PYTHON_VERSION = "0.5.0"
-    RULES_PYTHON_SHA256 = "cd6730ed53a002c56ce4e2f396ba3b3be262fd7cb68339f0377a45e8227fe332"
+    RULES_PYTHON_VERSION = "bed8c1b410d435bc795a1d03acdc737b8aa1b37f"
+    RULES_PYTHON_SHA256 = "265a793f51b5912bbbebddefc34e781df0683d83827aca627dbf98a37e22699c"
     maybe(
         http_archive,
         name = "rules_python",
         sha256 = RULES_PYTHON_SHA256,
-        url = "https://github.com/bazelbuild/rules_python/releases/download/{v}/rules_python-{v}.tar.gz".format(v = RULES_PYTHON_VERSION),
+        url = "https://github.com/bazelbuild/rules_python/archive/{v}.tar.gz".format(v = RULES_PYTHON_VERSION),
+        strip_prefix = "rules_python-{v}".format(v = RULES_PYTHON_VERSION),
     )
 
 
@@ -69,11 +70,6 @@ def com_github_grpc_grpc(
         sha256 = sha256,
         strip_prefix = "grpc-{}".format(version),
         urls = ["https://github.com/grpc/grpc/archive/v{}.tar.gz".format(version)],
-        patches = [
-            "@//:patches/com_github_grpc_grpc/cython_library.bzl.patch",
-            "@//:patches/com_github_grpc_grpc/grpc_python_deps.bzl.patch",
-        ],
-        patch_args = ["-p1"],
     )
 
 

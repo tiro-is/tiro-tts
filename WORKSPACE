@@ -34,6 +34,8 @@ filegroup(
         "sequitur.mdl",
         "alfur/fastspeech_jit.pt",
         "alfur/melgan_jit.pt",
+        "dilja/espnet2.zip",
+        "universal/pwg.zip",
     ],
     visibility = ["//visibility:public"]
 )

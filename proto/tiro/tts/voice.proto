@@ -41,6 +41,7 @@ message Voice {
   oneof backend {
     Fastspeech2MelganBackend fs2melgan = 5;
     PollyBackend polly = 6;
+    Espnet2Backend espnet2 = 7;
   }
 }
 
@@ -48,7 +49,7 @@ message Fastspeech2MelganBackend {
   // *optional* The BCP-47 language code
   string language_code = 1;
 
-  // The pronunciation alphabet used for the models output
+  // The pronunciation alphabet used for the models input
   Alphabet alphabet = 2;
 
   // URI pointing to a Fastspeech model checkpoint.  This can be a file:// URI
@@ -72,10 +73,55 @@ message Fastspeech2MelganBackend {
 // variables.
 message PollyBackend { }
 
+
+// A backend for ESPNET2 trained and packed models compatible with
+// [Text2Speech](https://github.com/espnet/espnet/blob/29f45a45765e78d68e15113a4203de0548040314/espnet2/bin/tts_inference.py#L43)
+message Espnet2Backend {
+  // The BCP-47 language code
+  string language_code = 1;
+
+  // The pronunciation alphabet used for the models input
+  Alphabet alphabet = 2;
+
+  // Model pack to load
+  //
+  // The supported URI schemes are:
+  // - file://  for a local zip archive
+  // - zoo://   to download a model from the HuggingFace or Zenodo Model Zoo
+  string model_pack_uri = 3;
+
+  // A vocoder compatible with compatible the model referenced in
+  // `model_pack_uri`
+  //
+  // This is only required if the the model pack does not include a vocoder, or
+  // does not include a vocoder we want to use.
+  //
+  // The supported URI schemes are:
+  // - file://
+  string vocoder_uri = 4;
+
+  // Name of the phonetizer to use from SynthesisSet.phonetizers
+  // E.g.: "phonetizer/is-IS/2021-07-26
+  string phonetizer_name = 5;
+
+  // Name of the normalizer to use from SynthesisSet.normalizers
+  // E.g.: "normalizer/is-IS/2021-09-13
+  string normalizer_name = 6;
+}
+
 enum Alphabet {
   UNSPECIFIED_ALPHABET = 0;
+
+  // Icelandic subset of IPA without stress or a marker for syllabification
   IPA = 1;
+
+  // Icelandic subset of X-SAMPA without stress or a marker for syllabification
   XSAMPA = 2;
+
+  // Icelandic subset of X-SAMPA *with* stress and a marker for syllabification
+  //
+  // See for reference: https://github.com/grammatek/ice-g2p/tree/d87c77e/src/ice_g2p/data
+  XSAMPA_WITH_STRESS_AND_SYLLABIFICATION = 3;
 }
 
 message Phonetizer {
@@ -83,6 +129,7 @@ message Phonetizer {
     oneof model_kind {
       Lexicon lexicon = 1;
       SequiturTranslator sequitur = 2;
+      IceG2pTranslator ice_g2p = 3;
     }
   }
 
@@ -90,7 +137,7 @@ message Phonetizer {
   // E.g.: "phonetizer/is-IS/2021-07-26"
   string name = 1;
 
-  // The BCP-47 language code of this phonetizer
+  // The main BCP-47 language code of this phonetizer
   string language_code = 2;
 
   // A list of "translators" that map from graphemes to phonemes.  The list is
@@ -112,6 +159,13 @@ message SequiturTranslator {
   string uri = 3;
 }
 
+// A translator backed by [ice-g2p](https://github.com/grammatek/ice-g2p)
+//
+// Only supports language code is-IS (and en-IS with trigram based lang detect)
+message IceG2pTranslator {
+  // Supports XSAMPA_WITH_STRESS_AND_SYLLABIFICATION and XSAMPA
+  Alphabet alphabet = 2;
+}
 
 message Lexicon {
   // The BCP-47 language code
