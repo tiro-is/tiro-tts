@@ -296,7 +296,7 @@ class SequiturGraphemeToPhonemeTranslator(EmbeddedPhonemeTranslatorBase):
         return phones
 
 
-class IceG2PTranslator(GraphemeToPhonemeTranslatorBase):
+class IceG2PTranslator(EmbeddedPhonemeTranslatorBase):
     _transcriber: ice_g2p.transcriber.Transcriber
 
     def __init__(self):
@@ -304,7 +304,7 @@ class IceG2PTranslator(GraphemeToPhonemeTranslatorBase):
             use_dict=True, use_syll=True
         )
 
-    def translate(
+    def _translate(
         self,
         text: str,
         lang: LangID,
