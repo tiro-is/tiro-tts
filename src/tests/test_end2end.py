@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import json
 import os
 from pathlib import Path
 from typing import List
@@ -80,3 +81,26 @@ def test_synthesize_pcm_native_freq_sanity(client):
     assert len(pcm_data) > 4000
     # And each sample is two bytes
     assert len(pcm_data) % 2 == 0
+
+
+def test_synthesize_speech_marks_sanity(client):
+    res = client.post(
+        "/v0/speech",
+        json={
+            "OutputFormat": "json",
+            "SpeechMarkTypes": ["word"],
+            "Text": "Hæ! Ég heiti Gervimaður Finnland, en þú?",
+            "VoiceId": "Alfur",
+        },
+    )
+
+    data = res.get_data(as_text=True).split("\n")
+    marks = [json.loads(line) for line in data if line.strip()]
+    last_time = 0
+    for (mark, original_word,) in zip(
+        [mark for mark in marks if mark["type"] == "word"],
+        ["Hæ", "Ég", "heiti", "Gervimaður", "Finnland", "en", "þú"],
+    ):
+        assert mark["time"] >= last_time
+        last_time = mark["time"]
+        assert mark["value"] == original_word
