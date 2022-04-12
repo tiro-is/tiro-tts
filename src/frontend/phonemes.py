@@ -87,7 +87,7 @@ IPA_XSAMPA_MAP = {
 
 XSAMPA_IPA_MAP = {val: key for key, val in IPA_XSAMPA_MAP.items()}
 
-DEFAULT_PHONEMES = XSAMPA_IPA_MAP.keys()
+DEFAULT_PHONEMES = IPA_XSAMPA_MAP.keys()
 
 XSAMPA_VOWELS = {
     "a",
