@@ -93,38 +93,60 @@ class EmbeddedPhonemeTranslatorBase(GraphemeToPhonemeTranslatorBase):
         def translate_fn(w: str) -> PhoneSeq:
             return self._translate(w, lang, alphabet=alphabet)
 
+        # TODO(rkjaran): Currently we only ever encounter embedded IPA, i.e. the results
+        #   of calling OldSSMLParser.get_fastspeech_string()... At this point we do not
+        #   have any info on what the source alphabet, only the target, unless we assume
+        #   that it will always be IPA.
         return self._process_embedded(text, translate_fn, alphabet)
 
     def _process_embedded(
         self, text: str, translate_fn: Callable[[str], PhoneSeq], alphabet: Alphabet
     ) -> PhoneSeq:
-        phone = []
+        phone_seq = []
         phoneme_str_open = False
         aligner = Aligner()
         for w in text.split(" "):
             if phoneme_str_open:
+                phone = w
                 if w.endswith("}"):
-                    phone.append(w.replace("}", ""))
+                    phone = w.replace("}", "")
                     phoneme_str_open = False
-                else:
-                    phone.append(w)
+
+                if alphabet != "ipa":
+                    phone = convert_ipa_to_xsampa([phone])[0]
+                    if alphabet == "x-sampa+syll+stress":
+                        phone = convert_xsampa_to_xsampa_with_stress(
+                            convert_ipa_to_xsampa([phone]), ""
+                        )[0]
+
+                phone_seq.append(phone)
             elif not phoneme_str_open:
                 if w.startswith("{") and w.endswith("}"):
-                    phone.extend(
-                        aligner.align(w.replace("{", "").replace("}", "")).split(" ")
-                    )
+                    cur_phone_seq = aligner.align(w.replace("{", "").replace("}", "")).split(" ")
+                    if alphabet != "ipa":
+                        cur_phone_seq = convert_ipa_to_xsampa(cur_phone_seq)
+                        if alphabet == "x-sampa+syll+stress":
+                            cur_phone_seq = convert_xsampa_to_xsampa_with_stress(cur_phone_seq, "")
+                    phone_seq.extend(cur_phone_seq)
                 elif w.startswith("{"):
-                    phone.append(w.replace("{", ""))
+                    phone = w.replace("{", "")
+                    if alphabet != "ipa":
+                        phone = convert_ipa_to_xsampa([phone])[0]
+                        if alphabet == "x-sampa+syll+stress":
+                            phone = convert_xsampa_to_xsampa_with_stress(
+                                convert_ipa_to_xsampa([phone]), ""
+                            )[0]
+                    phone_seq.append(phone)
                     phoneme_str_open = True
                 elif w in [".", ","]:
-                    phone.append(
+                    phone_seq.append(
                         "." if alphabet == "x-sampa+syll+stress" else SHORT_PAUSE
                     )
                 else:
                     phones = translate_fn(w)
-                    phone.extend(phones)
+                    phone_seq.extend(phones)
 
-        return phone
+        return phone_seq
 
 
 class ComposedTranslator(GraphemeToPhonemeTranslatorBase):
