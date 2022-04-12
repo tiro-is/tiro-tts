@@ -197,7 +197,7 @@ class FastSpeech2Synthesizer:
                 *args, **kwargs, alphabet=self._alphabet
             )
 
-        for segment_words, phone_seq, phone_count in preprocess_sentences(
+        for segment_words, phone_seq, phone_counts in preprocess_sentences(
             text_string, normalize_fn, phonetize_fn
         ):
             text_seq = torch.tensor(
