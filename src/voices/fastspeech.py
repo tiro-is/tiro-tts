@@ -14,13 +14,10 @@
 import json
 import os
 import re
-import string
 import sys
 import typing
 from pathlib import Path
 
-import numpy as np
-import tokenizer
 import torch
 from flask import current_app
 
@@ -33,14 +30,9 @@ from src.frontend.normalization import (
     GrammatekNormalizer,
     NormalizerBase,
 )
-from src.frontend.phonemes import (
-    IPA_XSAMPA_MAP,
-    XSAMPA_IPA_MAP,
-    Alphabet,
-    align_ipa_from_xsampa,
-)
+from src.frontend.phonemes import Alphabet
 from src.frontend.ssml import OldSSMLParser as SSMLParser
-from src.frontend.words import WORD_SENTENCE_SEPARATOR, Word, preprocess_sentences
+from src.frontend.words import preprocess_sentences
 
 from .utils import wavarray_to_pcm
 from .voice_base import OutputFormat, VoiceBase, VoiceProperties
