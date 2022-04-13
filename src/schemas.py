@@ -74,18 +74,19 @@ class SynthesizeSpeechRequest(Schema):
                  "LanguageCode": "is-IS",
                  "OutputFormat": "json",
                  "SpeechMarkTypes": ["word"],
-                 "Text": " Góðan, dag. Hvað heitir þú? Kvöld-Úlfur.",
+                 "Text": "Hæ! Ég heiti Gervimaður Finnland, en þú?",
                  "VoiceId": "Alfur"
                 }
 
             might return
 
-                {"time": 54, "type": "word", "start": 1, "end": 9, "value": "Góðan,"}
-                {"time": 44, "type": "word", "start": 10, "end": 14, "value": "dag."}
-                {"time": 26, "type": "word", "start": 15, "end": 20, "value": "Hvað"}
-                {"time": 33, "type": "word", "start": 21, "end": 27, "value": "heitir"}
-                {"time": 19, "type": "word", "start": 28, "end": 33, "value": "þú?"}
-                {"time": 88, "type": "word", "start": 34, "end": 48, "value": "Kvöld-Úlfur."}
+                {"time": 0, "type": "word", "start": 0, "end": 3, "value": "Hæ"}
+                {"time": 186, "type": "word", "start": 5, "end": 8, "value": "Ég"}
+                {"time": 342, "type": "word", "start": 9, "end": 14, "value": "heiti"}
+                {"time": 662, "type": "word", "start": 15, "end": 26, "value": "Gervimaður"}
+                {"time": 1227, "type": "word", "start": 27, "end": 35, "value": "Finnland"}
+                {"time": 1905, "type": "word", "start": 37, "end": 39, "value": "en"}
+                {"time": 2055, "type": "word", "start": 40, "end": 44, "value": "þú"}
 
             """
         ),
