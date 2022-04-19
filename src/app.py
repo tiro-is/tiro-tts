@@ -136,13 +136,14 @@ def route_synthesize_speech(**kwargs):
         abort(400)
 
     try:
-        if kwargs.get("TextType") == "ssml":
-            return Response(
-                stream_with_context(voice.synthesize_from_ssml(text, **kwargs)),
-                content_type=output_content_type,
-            )
         return Response(
-            stream_with_context(voice.synthesize(text, **kwargs)),
+            stream_with_context(
+                voice.synthesize(
+                    text=text,
+                    ssml=(kwargs.get("TextType") == "ssml"),
+                    **kwargs,
+                )
+            ),
             content_type=output_content_type,
         )
     except (NotImplementedError, ValueError) as ex:

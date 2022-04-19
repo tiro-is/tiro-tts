@@ -23,6 +23,9 @@ from src.frontend.phonemes import PhoneSeq
 class Word:
     """A wrapper for individual symbol and its metadata."""
 
+    # Idea|TODO (Smári): Add has_custom_phone_seq: bool for Words derived from <phoneme> SSML tags.
+    # Idea TODO (Smári): Better even: Have a ssml_props dictionary with this information and the possibility to easily add more SSML info as we
+    #                    add more SSML support.
     def __init__(
         self,
         original_symbol: str = "",
@@ -85,6 +88,7 @@ MAX_WORDS_PER_SEGMENT = 30
 
 def preprocess_sentences(
     text_string: str,
+    ssml: bool,
     normalize_fn: Callable[[str], Iterable[Word]],
     translator_fn: Callable[[Iterable[Word]], Iterable[Word]],
 ) -> Iterable[Tuple[List[List[Word]], PhoneSeq, List[int]]]:
@@ -97,7 +101,7 @@ def preprocess_sentences(
 
     """
     # TODO(rkjaran): The language code shouldn't be hardcoded here.
-    words = list(translator_fn(normalize_fn(text_string), LangID("is-IS")))
+    words = list(translator_fn(normalize_fn(text_string, ssml), LangID("is-IS")))
     sentences: List[List[Word]] = [[]]
     for idx, word in enumerate(words):
         if word == WORD_SENTENCE_SEPARATOR:

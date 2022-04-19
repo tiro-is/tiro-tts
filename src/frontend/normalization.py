@@ -24,12 +24,13 @@ from messages import tts_frontend_message_pb2
 from services import tts_frontend_service_pb2, tts_frontend_service_pb2_grpc
 
 from src.frontend.common import consume_whitespace, utf8_byte_length
+from src.frontend.ssml import OldSSMLParser as SSMLParser
 from src.frontend.words import WORD_SENTENCE_SEPARATOR, Word
 
 
 class NormalizerBase(ABC):
     @abstractmethod
-    def normalize(self, text: str) -> Iterable[Word]:
+    def normalize(self, text: str, text_is_ssml: bool) -> Iterable[Word]:
         return NotImplemented
 
 
@@ -113,8 +114,17 @@ def _tokenize(text: str) -> Iterable[Word]:
                 )
 
 
+def parse_ssml(ssml) -> Tuple[str, List[Word]]:
+    parser = SSMLParser()
+    parser.feed(ssml)
+    text: str = parser.get_text()
+    parsed: List[Word] = parser.get_words()
+    parser.close()
+    return text, parsed
+
+
 class BasicNormalizer(NormalizerBase):
-    def normalize(self, text):
+    def normalize(self, text: str, text_is_ssml: bool = False):
         return _tokenize(text)
 
 
@@ -130,9 +140,10 @@ class GrammatekNormalizer(NormalizerBase):
             raise ValueError("Unsupported scheme in address '%s'", address)
         self._stub = tts_frontend_service_pb2_grpc.TTSFrontendStub(self._channel)
 
-    def normalize(self, text):
-        # TODO(rkjaran): Should SSML parsing be done here? Or should we add a normalizer
-        #   for Iterable[Word] ?
+    def normalize(self, text: str, text_is_ssml: bool):
+        if text_is_ssml:
+            text, parsed_text = parse_ssml(text)
+
         response: tts_frontend_message_pb2.TokenBasedNormalizedResponse = (
             self._stub.NormalizeTokenwise(
                 tts_frontend_message_pb2.NormalizeRequest(content=text)
@@ -151,6 +162,7 @@ class GrammatekNormalizer(NormalizerBase):
             )
         n_bytes_consumed = 0
         text_view = text
+        p_idx: int = 0
         for sent in sentences_with_pairs:
             for original, normalized in sent:
                 n_chars_whitespace, n_bytes_whitespace = consume_whitespace(text_view)
@@ -160,9 +172,11 @@ class GrammatekNormalizer(NormalizerBase):
                 yield Word(
                     original_symbol=original,
                     symbol=normalized,
+                    phone_sequence=parsed_text[p_idx].phone_sequence if text_is_ssml else [],
                     start_byte_offset=n_bytes_consumed,
                     end_byte_offset=n_bytes_consumed + token_byte_len,
                 )
                 n_bytes_consumed += token_byte_len
                 text_view = text_view[n_chars_whitespace + len(original) :]
+                p_idx += 1
             yield WORD_SENTENCE_SEPARATOR

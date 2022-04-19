@@ -15,19 +15,21 @@ from html.parser import HTMLParser
 from typing import List
 
 from src.frontend.phonemes import align_ipa_from_xsampa
+from src.frontend.words import Word
 
+# TODO(Smári): Does this parser handle illegal input like speak tags within speak tags and phoneme tags within phoneme tags?
 
 class OldSSMLParser(HTMLParser):
     _ALLOWED_TAGS = ["speak", "phoneme"]
     _first_tag_seen: bool
     _tags_queue: List[str]
-    _prepared_fastspeech_strings: List[str]
+    _words: List[Word]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._first_tag_seen = False
         self._tags_queue = []
-        self._prepared_fastspeech_strings = []
+        self._words = []
 
     def _check_first_tag(self, tag):
         if not self._first_tag_seen:
@@ -48,8 +50,11 @@ class OldSSMLParser(HTMLParser):
                     "'phoneme' tag has to have 'alphabet' and 'ph' attributes using "
                     "supported alphabets"
                 )
-            self._prepared_fastspeech_strings.append(
-                "{%s}" % align_ipa_from_xsampa(attrs_map["ph"])
+            self._words.append(
+                Word(
+                    phone_sequence=align_ipa_from_xsampa(attrs_map["ph"])
+                        .split()
+                )
             )
         self._tags_queue.append(tag)
 
@@ -63,18 +68,35 @@ class OldSSMLParser(HTMLParser):
         self._check_first_tag("")
 
         if self._tags_queue[-1] != "phoneme":
-            self._prepared_fastspeech_strings.append(data.strip())
+            for word in data.split():
+                self._words.append(
+                    Word(original_symbol=word)
+                )
+        else:
+            self._words[-1].original_symbol = data.strip()
 
-    def get_fastspeech_string(self) -> str:
-        """Get a string compatible with FastSpeech2Voice
+
+    def get_words(self) -> List[Word]:
+        """
+        Get list of Words that represent the data extracted from the SSML.
 
         Returns:
-          A string with containing the text from the SSML document with all the
-          <phoneme> enclosed text replaced by the phone sequences enclosed in curly
-          brackets. E.g.:
-          "Halló {a}" if the input SSML was "<speak>Halló <phoneme alphabet='x-sampa' ph='a'>aa</phoneme>"
+          A list of Words where each Word contains a word from the SSML as original_symbol.
+          <phoneme> enclosed text is given a special treatment where its data is set as a Word's original_symbol but
+          the phoneme tag's ph attribute value is set as the Word's phone_sequence.
+          E.g.:
+          [Word(original_symbol="Halló"), Word(original_symbol="aa", phone_sequence="a")] if the input SSML was "<speak>Halló <phoneme alphabet='x-sampa' ph='a'>aa</phoneme></speak>"
 
         """
         if len(self._tags_queue) > 0:
             raise ValueError("Not all tags were closed, malformed SSML.")
-        return " ".join(self._prepared_fastspeech_strings)
+        return self._words
+
+    def get_text(self) -> str:
+        """
+        Removes the SSML markup and returns a string containing only the text.
+
+        Return example:
+          "Halló aa" if the input SSML was "<speak>Halló <phoneme alphabet='x-sampa' ph='a'>aa</phoneme></speak>"
+        """
+        return " ".join([word.original_symbol for word in self._words])
