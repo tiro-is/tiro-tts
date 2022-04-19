@@ -25,6 +25,32 @@ voices {
   }
 }
 voices {
+  voice_id: "Alfur_v2"
+  display_name: "Álfur (v2)"
+  gender: MALE
+  language_code: "is-IS"
+  espnet2 {
+      alphabet: XSAMPA_WITH_STRESS_AND_SYLLABIFICATION
+      model_pack_uri: "file:///models/alfur/espnet2.zip"
+      vocoder_uri: "file:///models/universal/mbmelgan.zip"
+      phonetizer_name: "phonetizer/ice-g2p"
+      normalizer_name: "default"
+  }
+}
+voices {
+  voice_id: "Dilja_v2"
+  display_name: "Diljá (v2)"
+  gender: FEMALE
+  language_code: "is-IS"
+  espnet2 {
+      alphabet: XSAMPA_WITH_STRESS_AND_SYLLABIFICATION
+      model_pack_uri: "file:///models/dilja/espnet2.zip"
+      vocoder_uri: "file:///models/universal/mbmelgan.zip"
+      phonetizer_name: "phonetizer/ice-g2p"
+      normalizer_name: "default"
+  }
+}
+voices {
   voice_id: "Karl"
   display_name: "Karl"
   gender: MALE
@@ -60,6 +86,22 @@ phonetizers {
       language_code: "is-IS"
       alphabet: IPA
       uri: "file:///models/sequitur_fail_en.mdl"
+    }
+  }
+}
+phonetizers {
+  name: "phonetizer/ice-g2p"
+  language_code: "is-IS"
+  translators {
+    lexicon {
+      language_code: "is-IS"
+      alphabet: XSAMPA
+      uri: "file:///models/lexicon.txt"
+    }
+  }
+  translators {
+    ice_g2p {
+      alphabet: XSAMPA_WITH_STRESS_AND_SYLLABIFICATION
     }
   }
 }

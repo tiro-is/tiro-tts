@@ -22,7 +22,7 @@ from src.voices.espnet2 import Espnet2Synthesizer
 
 class TestEspnet2Backend:
     model_uri = "file://external/test_models/dilja/espnet2.zip"
-    vocoder_uri = "file://external/test_models/universal/pwg.zip"
+    vocoder_uri = "file://external/test_models/universal/mbmelgan.zip"
     normalizer = BasicNormalizer()
     phonetizer = IceG2PTranslator()
     backend = Espnet2Synthesizer(

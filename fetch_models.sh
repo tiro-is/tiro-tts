@@ -38,7 +38,7 @@ LEXICON_ORIGIN="gs://models-talgreinir-is/g2p/iceprondict/version_21.06/ice_pron
 SEQUITUR_FAIL_EN_ORIGIN="gs://models-talgreinir-is/g2p/en-IS.cmudict_frobv1.20200305.mdl"
 ALFUR_ESPNET2_ORIGIN="gs://models-talgreinir-is/tts/espnet2/alfur/f_tts_train_fastspeech2_raw_phn_none_train.loss.ave.zip"
 DILJA_ESPNET2_ORIGIN="gs://models-talgreinir-is/tts/espnet2/dilja/c_tts_train_fastspeech2_raw_phn_none_train.loss.ave.zip"
-PWG_ORIGIN="gs://models-talgreinir-is/tts/espnet2/universal/pwg.zip"
+MBMELGAN_ORIGIN="gs://models-talgreinir-is/tts/espnet2/universal/mbmelgan.zip"
 
 ALFUR_FASTSPEECH_DESTINATION="/models/alfur/fastspeech_jit.pt"
 ALFUR_MELGAN_DESTINATION="/models/alfur/melgan_jit.pt"
@@ -50,7 +50,7 @@ SEQUITUR_FAIL_EN_DESTINATION="/models/sequitur_fail_en.mdl"
 
 ALFUR_ESPNET2_DESTINATION="/models/alfur/espnet2.zip"
 DILJA_ESPNET2_DESTINATION="/models/dilja/espnet2.zip"
-PWG_DESTINATION="/models/universal/pwg.zip"
+MBMELGAN_DESTINATION="/models/universal/mbmelgan.zip"
 
 if [[ $1 == "test" ]]; then
   SEQUITUR_DESTINATION=${SEQUITUR_DESTINATION:1}
@@ -59,7 +59,7 @@ if [[ $1 == "test" ]]; then
   ALFUR_FASTSPEECH_DESTINATION=${ALFUR_FASTSPEECH_DESTINATION:1}
   ALFUR_ESPNET2_DESTINATION=${ALFUR_ESPNET2_DESTINATION:1}
   DILJA_ESPNET2_DESTINATION=${DILJA_ESPNET2_DESTINATION:1}
-  PWG_DESTINATION=${PWG_DESTINATION:1}
+  MBMELGAN_DESTINATION=${MBMELGAN_DESTINATION:1}
 fi
 
 if [[ $1 == "dep" ]]; then
@@ -74,6 +74,6 @@ gsutil cp $SEQUITUR_ORIGIN $SEQUITUR_DESTINATION
 gsutil cp $LEXICON_ORIGIN $LEXICON_DESTINATION
 gsutil cp $ALFUR_ESPNET2_ORIGIN $ALFUR_ESPNET2_DESTINATION
 gsutil cp $DILJA_ESPNET2_ORIGIN $DILJA_ESPNET2_DESTINATION
-gsutil cp $PWG_ORIGIN $PWG_DESTINATION
+gsutil cp $MBMELGAN_ORIGIN $MBMELGAN_DESTINATION
 
 echo "Successfully finished fetching $1 models!"

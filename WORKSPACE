@@ -35,7 +35,7 @@ filegroup(
         "alfur/fastspeech_jit.pt",
         "alfur/melgan_jit.pt",
         "dilja/espnet2.zip",
-        "universal/pwg.zip",
+        "universal/mbmelgan.zip",
     ],
     visibility = ["//visibility:public"]
 )
