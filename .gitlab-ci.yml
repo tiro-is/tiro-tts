@@ -1,7 +1,15 @@
-default:
-  image:
-    name: quay.io/pypa/manylinux_2_24_x86_64
-    entrypoint: [""]
+# TODO(rkjaran): Remove these once we manage to properly add libsndfile.so as
+#   a dep. The Python wrapper soundfile might need to be patched.
+before_script: &before_script_common  # Stages that have their own before_script should use this anchor
+  - curl https://download.docker.com/linux/static/stable/x86_64/docker-20.10.13.tgz | tar --strip-components=1 -C /usr/bin -zxvf - docker/docker
+  - export APT_CACHE_DIR=$PWD/.apt-cache && mkdir -pv $APT_CACHE_DIR
+  - apt-get update -yq
+  - apt-get -o dir::cache::archives="$APT_CACHE_DIR" install -y libsndfile1
+
+cache:
+  key: apt-cache
+  paths:
+    - .apt-cache
 
 stages:
   - build
@@ -23,6 +31,7 @@ deploy:
   only:
     - master
   before_script:
+    - *before_script_common
     - mkdir -p $HOME/.docker
     - cat $DOCKER_CONFIG_JSON > $HOME/.docker/config.json
     - curl -L https://dl.k8s.io/release/v1.22.0/bin/linux/amd64/kubectl -o /usr/bin/kubectl
@@ -44,6 +53,7 @@ test_predeploy:
   only:
     - master
   before_script:
+    - *before_script_common
     - chmod a+x fetch_models.sh
     - ./fetch_models.sh test
   script:
