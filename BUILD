@@ -2,6 +2,14 @@ load("@rules_python//python:defs.bzl", "py_binary", "py_library") # "py_test"
 load("@rules_python//python:pip.bzl", "compile_pip_requirements")
 load("@io_bazel_rules_docker//python:image.bzl", "py_layer")
 load("@io_bazel_rules_docker//python3:image.bzl", "py3_image")
+load(
+    "@io_bazel_rules_docker//docker/package_managers:download_pkgs.bzl",
+    "download_pkgs"
+)
+load(
+    "@io_bazel_rules_docker//docker/package_managers:install_pkgs.bzl",
+    "install_pkgs"
+)
 load("@pip_deps//:requirements.bzl", "requirement")
 load(
     "@io_bazel_rules_docker//container:container.bzl",
@@ -219,13 +227,36 @@ py_repl2(
     deps = [":app_lib"],
 )
 
+
+download_pkgs(
+    name = "system_pkgs",
+    image_tar = "@py3_8_image_base//image",
+    packages = [
+        "libsndfile1"
+    ],
+)
+
+install_pkgs(
+    name = "system_pkgs_image",
+    image_tar = "@py3_8_image_base//image",
+    installables_tar = ":system_pkgs.tar",
+    installation_cleanup_commands = "rm -rf /var/lib/apt/lists/*",
+    output_image_name = "system_pkgs_image",
+)
+
 container_image(
-    name = "py3_8_image",
+    name = "base_image",
     symlinks = {
         "/usr/bin/python": "/usr/local/bin/python",
         "/usr/bin/python3": "/usr/local/bin/python",
     },
-    base = "@py3_8_image_base//image",
+    base = ":system_pkgs_image.tar",
+)
+
+py_layer(
+    name = "external_deps_layer",
+    deps = [":app_lib"],
+    filter = "@",
 )
 
 py3_image(
@@ -233,10 +264,11 @@ py3_image(
     main = "src/gunicorn_runner.py",
     srcs = ["src/gunicorn_runner.py"],
     layers = [
+        ":external_deps_layer",
         requirement("gunicorn"),
         ":app_lib",
     ],
-    base = ":py3_8_image",
+    base = ":base_image",
 )
 
 container_image(
