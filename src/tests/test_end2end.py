@@ -104,3 +104,41 @@ def test_synthesize_speech_marks_sanity(client):
         assert mark["time"] >= last_time
         last_time = mark["time"]
         assert mark["value"] == original_word
+
+
+def test_synthesize_ssml_sanity(client):
+    res = client.post(
+        "/v0/speech",
+        json={
+            "OutputFormat": "pcm",
+            "SampleRate": "22050",
+            "Text": "<speak>Hæ! Ég heiti Gervimaður Finnland, en þú?</speak>",
+            "TextType": "ssml",
+            "VoiceId": "Alfur",
+        },
+    )
+
+    pcm_data = res.get_data(as_text=False)
+    # The response contains some reasonable number of bytes
+    assert len(pcm_data) > 4000
+    # And each sample is two bytes
+    assert len(pcm_data) % 2 == 0
+
+
+def test_synthesize_ssml_phoneme_sanity(client):
+    res = client.post(
+        "/v0/speech",
+        json={
+            "OutputFormat": "pcm",
+            "SampleRate": "22050",
+            "Text": "<speak>Hæ! Ég <phoneme alphabet='x-sampa' ph='hei:tI'>heiti</phoneme> Gervimaður Finnland, en þú?</speak>",
+            "TextType": "ssml",
+            "VoiceId": "Alfur",
+        },
+    )
+
+    pcm_data = res.get_data(as_text=False)
+    # The response contains some reasonable number of bytes
+    assert len(pcm_data) > 4000
+    # And each sample is two bytes
+    assert len(pcm_data) % 2 == 0

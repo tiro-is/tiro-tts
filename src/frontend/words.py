@@ -49,6 +49,16 @@ class Word:
             self.start_time_milli,
         )
 
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, Word) and (
+            self.original_symbol == other.original_symbol
+            and self.symbol == other.symbol
+            and self.phone_sequence == other.phone_sequence
+            and self.start_byte_offset == other.start_byte_offset
+            and self.end_byte_offset == other.end_byte_offset
+            and self.start_time_milli == other.start_time_milli
+        )
+
     def is_spoken(self):
         return self.original_symbol not in tokenizer.definitions.PUNCTUATION
 
