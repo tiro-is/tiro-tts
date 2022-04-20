@@ -230,15 +230,6 @@ class Espnet2Voice(VoiceBase):
         """Synthesize audio from a string of characters."""
         return self._synthesize(text, **kwargs)
 
-    def synthesize_from_ssml(self, ssml: str, **kwargs) -> Iterable[bytes]:
-        """Synthesize audio from SSML markup."""
-        # TODO(rkjaran): Move SSML parser out of here and make it more general
-        parser = SSMLParser()
-        parser.feed(ssml)
-        text = parser.get_fastspeech_string()
-        parser.close()
-        return self._synthesize(text=text, handle_embedded_phonemes=True, **kwargs)
-
     @property
     def properties(self) -> VoiceProperties:
         return self._properties

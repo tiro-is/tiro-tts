@@ -53,9 +53,6 @@ class PollyVoice(VoiceBase):
             # TODO(rkjaran): Chunk this
             yield content
 
-    def synthesize_from_ssml(self, ssml: str, **kwargs) -> Iterable[bytes]:
-        return self.synthesize(text=ssml, **kwargs)
-
     @property
     def properties(self) -> VoiceProperties:
         return self._properties

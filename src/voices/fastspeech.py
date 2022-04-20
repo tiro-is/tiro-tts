@@ -293,15 +293,6 @@ class FastSpeech2Voice(VoiceBase):
         """Synthesize audio from a string of characters or SSML markup."""
         return self._synthesize(text=text, ssml=ssml, **kwargs)
 
-    def synthesize_from_ssml(self, ssml: str, **kwargs) -> typing.Iterable[bytes]:
-        """Synthesize audio from SSML markup."""
-        # TODO(rkjaran): Move SSML parser out of here and make it more general
-        parser = SSMLParser()
-        parser.feed(ssml)
-        text = parser.get_words()
-        parser.close()
-        return self._synthesize(text=text, **kwargs)
-
     @property
     def properties(self) -> VoiceProperties:
         return self._properties
