@@ -14,6 +14,11 @@ spec:
       labels:
         app: tiro-tts
     spec:
+      tolerations:
+      - key: "tiro.is/gpu"
+        operator: "Equal"
+        value: "true"
+        effect: "PreferNoSchedule"
       volumes:
       - name: models
         emptyDir: {}
@@ -58,8 +63,6 @@ spec:
           requests:
             memory: "2000Mi"
             cpu: "1000m"
-          limits:
-            nvidia.com/gpu: 1
         env:
         - name: TIRO_TTS_AWS_ACCESS_KEY_ID
           valueFrom:
