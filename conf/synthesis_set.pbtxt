@@ -51,6 +51,32 @@ voices {
   }
 }
 voices {
+  voice_id: "Bjartur"
+  display_name: "Bjartur"
+  gender: MALE
+  language_code: "is-IS"
+  espnet2 {
+      alphabet: XSAMPA_WITH_STRESS_AND_SYLLABIFICATION
+      model_pack_uri: "zoo://espnet/GunnarThor_talromur_b_fastspeech2"
+      vocoder_uri: "file:///models/universal/mbmelgan.zip"
+      phonetizer_name: "phonetizer/ice-g2p"
+      normalizer_name: "default"
+  }
+}
+voices {
+  voice_id: "Rosa"
+  display_name: "Rósa"
+  gender: FEMALE
+  language_code: "is-IS"
+  espnet2 {
+      alphabet: XSAMPA_WITH_STRESS_AND_SYLLABIFICATION
+      model_pack_uri: "zoo://espnet/GunnarThor_talromur_a_fastspeech2"
+      vocoder_uri: "file:///models/universal/mbmelgan.zip"
+      phonetizer_name: "phonetizer/ice-g2p"
+      normalizer_name: "default"
+  }
+}
+voices {
   voice_id: "Karl"
   display_name: "Karl"
   gender: MALE

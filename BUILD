@@ -288,6 +288,8 @@ container_image(
         "--bind", "0.0.0.0:8000",
         "--access-logfile", "-",
         "--error-logfile", "-",
+        "--timeout", "720",
+        "--threads", "5",
         "--access-logformat", "%(l)s %(u)s %(t)s \"%(r)s\" %(s)s %(b)s \"%(f)s\" \"%(a)s\"",
         "main:app",
     ],
