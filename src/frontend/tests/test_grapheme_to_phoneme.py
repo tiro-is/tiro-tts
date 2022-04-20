@@ -1,27 +1,30 @@
+import pytest
 from src.frontend.grapheme_to_phoneme import (
     EmbeddedPhonemeTranslatorBase,
     IceG2PTranslator,
 )
 from src.frontend.words import LangID, Word
 
-
-class TestIceG2PTranslator:
-    _translator = IceG2PTranslator()
-    _lang = LangID("is-IS")
-    _words = [
+@pytest.fixture()
+def words():
+    return [
         Word(original_symbol="kleprar", symbol="kleprar"),
         Word(original_symbol="eru", symbol="eru"),
         Word(original_symbol="kleprar", symbol="{kʰlɛːprar}"),
     ]
+
+class TestIceG2PTranslator:
+    _translator = IceG2PTranslator()
+    _lang = LangID("is-IS")
     _syll_marker = Word(phone_sequence=["."])
 
     def test_ipa_target(self):
         output = self._translator.translate("kleprar", self._lang, alphabet="ipa")
         assert output == ["kʰ", "l", "ɛː", "p", "r", "a", "r"]
 
-    def test_ipa_target_embedded_phonemes(self):
+    def test_ipa_target_embedded_phonemes(self, words):
         output = list(
-            self._translator.translate_words(self._words, self._lang, alphabet="ipa")
+            self._translator.translate_words(words, self._lang, alphabet="ipa")
         )
 
         expected_output = [
@@ -48,10 +51,10 @@ class TestIceG2PTranslator:
         output = self._translator.translate("kleprar", self._lang, alphabet="x-sampa")
         assert output == ["k_h", "l", "E:", "p", "r", "a", "r"]
 
-    def test_x_sampa_target_embedded_phonemes(self):
+    def test_x_sampa_target_embedded_phonemes(self, words):
         output = list(
             self._translator.translate_words(
-                self._words, self._lang, alphabet="x-sampa"
+                words, self._lang, alphabet="x-sampa"
             )
         )
         expected_output = [
@@ -80,10 +83,10 @@ class TestIceG2PTranslator:
         )
         assert output == ["k_h", "l", "E:1", ".", "p", "r", "a0", "r"]
 
-    def test_x_sampa_syll_and_stress_target_embedded_phonemes(self):
+    def test_x_sampa_syll_and_stress_target_embedded_phonemes(self, words):
         output = list(
             self._translator.translate_words(
-                self._words, self._lang, alphabet="x-sampa+syll+stress"
+                words, self._lang, alphabet="x-sampa+syll+stress"
             )
         )
 
