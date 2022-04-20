@@ -90,8 +90,10 @@ class Espnet2Synthesizer:
                 model_info = ModelDownloader(tmpdir).download_and_unpack(name_or_path)
 
                 if vocoder_uri:
-                    if not model_uri.startswith("file://"):
-                        raise ValueError("Unsupported URI scheme for vocoder")
+                    if not vocoder_uri.startswith("file://"):
+                        raise ValueError(
+                            f"Unsupported URI scheme for vocoder: '{vocoder_uri}'"
+                        )
 
                     vocoder_path = vocoder_uri.split("://")[1]
                     with zipfile.ZipFile(vocoder_path, "r") as vocoder_zip:
@@ -99,7 +101,9 @@ class Espnet2Synthesizer:
                             f for f in vocoder_zip.namelist() if f.endswith(".pkl")
                         ][0]
                         vocoder_config = [
-                            f for f in vocoder_zip.namelist() if f.endswith(".yaml")
+                            f
+                            for f in vocoder_zip.namelist()
+                            if f.endswith(".yaml") or f.endswith(".yml")
                         ][0]
                         vocoder_zip.extractall(tmpdir, [vocoder_file, vocoder_config])
 
