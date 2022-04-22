@@ -267,6 +267,7 @@ py3_image(
         ":external_deps_layer",
         requirement("gunicorn"),
         ":app_lib",
+        ":main",
     ],
     base = ":base_image",
 )
