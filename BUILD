@@ -126,7 +126,7 @@ py_library(
 )
 
 py_library(
-    name = "main",
+    name = "main_lib",
     srcs = glob(["src/*.py"], exclude=["*_test.py"]),
     srcs_version = "PY3",
     deps = [
@@ -146,15 +146,15 @@ py_library(
     data = glob(["src/templates/*.dhtml"]) + glob(["conf/*.pbtxt"]),
     srcs_version = "PY3",
     deps = [
-        ":main",
+        ":main_lib",
         ":frontend",
         ":voices",
     ],
 )
 
 py_binary(
-    name = "app",
-    srcs = ["src/app.py"],
+    name = "main",
+    srcs = ["main.py"],
     python_version = "PY3",
     deps = [":app_lib"],
 )
@@ -267,6 +267,7 @@ py3_image(
         ":external_deps_layer",
         requirement("gunicorn"),
         ":app_lib",
+        ":main",
     ],
     base = ":base_image",
 )
@@ -288,7 +289,7 @@ container_image(
         "--access-logfile", "-",
         "--error-logfile", "-",
         "--access-logformat", "%(l)s %(u)s %(t)s \"%(r)s\" %(s)s %(b)s \"%(f)s\" \"%(a)s\"",
-        "app:app",
+        "main:app",
     ],
     visibility = ["//visibility:public"],
 )

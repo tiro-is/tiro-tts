@@ -11,77 +11,30 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import logging
 from pathlib import Path
 
-from apispec import APISpec, BasePlugin
-from apispec.ext.marshmallow import MarshmallowPlugin
-from flask import Flask, Response, jsonify, render_template, stream_with_context
+from flask import Response, current_app, jsonify, render_template, stream_with_context
 from flask_apispec import FlaskApiSpec, doc, marshal_with, use_kwargs
-from flask_cors import CORS
 from webargs.flaskparser import FlaskParser, abort
-from werkzeug.middleware.proxy_fix import ProxyFix
 
-from src import schemas, db
-from src.auth.api_key import require_api_key
-from src.config import EnvvarConfig
-
-app = Flask(__name__)
-app.config["JSON_AS_ASCII"] = False
-app.config["APISPEC_SWAGGER_URL"] = "/v0/swagger.json"
-app.config["APISPEC_SWAGGER_UI_URL"] = None
-app.config.from_object(EnvvarConfig)
-
-if not app.config["AUTH_DISABLED"]:
-    db.setup_db(app)
-
-# Fix access to client remote_addr when running behind proxy
-setattr(app, "wsgi_app", ProxyFix(app.wsgi_app))
-
-app.config["JSON_AS_ASCII"] = False
-app.config["MAX_CONTENT_LENGTH"] = 1 * 1024 * 1024
-
-cors = CORS(app)
-
-# Give everyone access to current_app
-app.app_context().push()
+from src import schemas
 
 # This requires the Flask app context to be initialized. Should probably be refactored a
 # bit.
-from src.voices import OutputFormat, VoiceManager  # noqa:E402 isort:skip
+from src.auth.api_key import require_api_key
 from src.logging_utils import clean_request
 
-g_synthesizers = VoiceManager.from_pbtxt(Path(app.config["SYNTHESIS_SET_PB"]))
+from src.voices import OutputFormat, VoiceManager  # noqa:E402 isort:skip
 
-
-class DisableOptionsOperationPlugin(BasePlugin):
-    # See https://github.com/jmcarp/flask-apispec/issues/155#issuecomment-562542538
-    def operation_helper(self, operations, **kwargs):
-        # flask-apispec auto generates an options operation, which cannot handled by apispec.
-        # apispec.exceptions.DuplicateParameterError: Duplicate parameter with name body and location body
-        # => remove
-        operations.pop("options", None)
-
-
-app.config["APISPEC_SPEC"] = APISpec(
-    title="TTS",
-    version="v0",
-    host=app.config["HOST"],
-    openapi_version="2.0",
-    plugins=[MarshmallowPlugin(), DisableOptionsOperationPlugin()],
-    tags=[{"name": "speech", "description": "Synthesize speech from input text"}],
-)
-docs = FlaskApiSpec(app)
-
+g_synthesizers = VoiceManager.from_pbtxt(Path(current_app.config["SYNTHESIS_SET_PB"]))
+docs = FlaskApiSpec(current_app)
 
 # Use code 400 for invalid requests
 FlaskParser.DEFAULT_VALIDATION_STATUS = 400
 
 # Return validation errors as JSON
-
-
-@app.errorhandler(422)
-@app.errorhandler(400)
+@current_app.errorhandler(422)
+@current_app.errorhandler(400)
 def handle_error(err):
     """Handle request validation errors."""
     headers = err.data.get("headers", None)
@@ -112,19 +65,19 @@ def handle_error(err):
         return jsonify({"message": message}), err.code
 
 
-@app.errorhandler(405)
+@current_app.errorhandler(405)
 def handle_method_not_allowed(err):
     """Handle authorization errors."""
     response_body = jsonify({"message": "Method not allowed."})
     return response_body, err.code
 
 
-@app.errorhandler(500)
-@app.errorhandler(Exception)
+@current_app.errorhandler(500)
+@current_app.errorhandler(Exception)
 def handle_internal_error(err):
     """Handle unknown/internal server errors."""
     if isinstance(err, Exception):
-        app.logger.exception("Hit unhandled internal error", exc_info=err)
+        current_app.logger.exception("Hit unhandled internal error", exc_info=err)
     response_body = jsonify(
         {"message": "An unknown conditon has caused a service failure."}
     )
@@ -132,7 +85,7 @@ def handle_internal_error(err):
     return response_body, 500
 
 
-@app.route("/v0/speech", methods=["POST"])
+@current_app.route("/v0/speech", methods=["POST"])
 @use_kwargs(schemas.SynthesizeSpeechRequest)
 @doc(
     description="Synthesize speech",
@@ -150,7 +103,7 @@ def handle_internal_error(err):
 @marshal_with(schemas.Error, code=500, description="Service error")
 @require_api_key
 def route_synthesize_speech(**kwargs):
-    app.logger.info("Got request: %s", clean_request(kwargs))
+    current_app.logger.info("Got request: %s", clean_request(kwargs))
 
     if "Engine" not in kwargs:
         kwargs["Engine"] = "standard"
@@ -167,7 +120,7 @@ def route_synthesize_speech(**kwargs):
     if (kwargs["OutputFormat"], kwargs["SampleRate"]) not in g_synthesizers[
         voice_id
     ].properties.supported_output_formats:
-        app.logger.info("Client requested unsupported output format")
+        current_app.logger.info("Client requested unsupported output format")
         abort(400)
 
     output_content_type = OutputFormat(
@@ -193,14 +146,14 @@ def route_synthesize_speech(**kwargs):
             content_type=output_content_type,
         )
     except (NotImplementedError, ValueError) as ex:
-        app.logger.warning("Synthesis failed: %s", ex)
+        current_app.logger.warning("Synthesis failed: %s", ex)
         abort(400)
 
 
 docs.register(route_synthesize_speech)
 
 
-@app.route("/v0/voices", methods=["GET"])
+@current_app.route("/v0/voices", methods=["GET"])
 @use_kwargs(schemas.DescribeVoicesRequest, location="query")
 @doc(
     description="Describe/query available voices",
@@ -213,7 +166,7 @@ docs.register(route_synthesize_speech)
 @marshal_with(schemas.Error, code=400, description="Bad request")
 @marshal_with(schemas.Error, code=500, description="Service error")
 def route_describe_voices(**kwargs):
-    app.logger.info("Got request: %s", clean_request(kwargs))
+    current_app.logger.info("Got request: %s", clean_request(kwargs))
 
     def query_filter(elem):
         if "LanguageCode" in kwargs and kwargs["LanguageCode"]:
@@ -243,16 +196,6 @@ def route_describe_voices(**kwargs):
 docs.register(route_describe_voices)
 
 
-@app.route("/")
+@current_app.route("/")
 def route_index():
     return render_template("index.dhtml")
-
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", debug=True)
-
-
-if __name__ != "__main__":
-    gunicorn_logger = logging.getLogger("gunicorn.error")
-    app.logger.handlers = gunicorn_logger.handlers
-    app.logger.setLevel(gunicorn_logger.level)
