@@ -5,8 +5,8 @@ voices {
   language_code: "is-IS"
   fs2melgan {
       alphabet: IPA
-      fastspeech2_uri: "file://../models/dilja/fastspeech_jit.pt"
-      melgan_uri: "file://../models/dilja/melgan_jit.pt"
+      fastspeech2_uri: "file://models/dilja/fastspeech_jit.pt"
+      melgan_uri: "file://models/dilja/melgan_jit.pt"
       phonetizer_name: "phonetizer/is-IS/2021-07-26"
       normalizer_name: "default"
   }
@@ -18,8 +18,8 @@ voices {
   language_code: "is-IS"
   fs2melgan {
       alphabet: IPA
-      fastspeech2_uri: "file://../models/alfur/fastspeech_jit.pt"
-      melgan_uri: "file://../models/alfur/melgan_jit.pt"
+      fastspeech2_uri: "file://models/alfur/fastspeech_jit.pt"
+      melgan_uri: "file://models/alfur/melgan_jit.pt"
       phonetizer_name: "phonetizer/is-IS/2021-07-26"
       normalizer_name: "default"
   }
@@ -31,8 +31,8 @@ voices {
   language_code: "is-IS"
   espnet2 {
       alphabet: XSAMPA_WITH_STRESS_AND_SYLLABIFICATION
-      model_pack_uri: "file://../models/alfur/espnet2.zip"
-      vocoder_uri: "file://../models/universal/mbmelgan.zip"
+      model_pack_uri: "file://models/alfur/espnet2.zip"
+      vocoder_uri: "file://models/universal/mbmelgan.zip"
       phonetizer_name: "phonetizer/ice-g2p"
       normalizer_name: "default"
   }
@@ -44,8 +44,34 @@ voices {
   language_code: "is-IS"
   espnet2 {
       alphabet: XSAMPA_WITH_STRESS_AND_SYLLABIFICATION
-      model_pack_uri: "file://../models/dilja/espnet2.zip"
-      vocoder_uri: "file://../models/universal/mbmelgan.zip"
+      model_pack_uri: "file://models/dilja/espnet2.zip"
+      vocoder_uri: "file://models/universal/mbmelgan.zip"
+      phonetizer_name: "phonetizer/ice-g2p"
+      normalizer_name: "default"
+  }
+}
+voices {
+  voice_id: "Bjartur"
+  display_name: "Bjartur"
+  gender: MALE
+  language_code: "is-IS"
+  espnet2 {
+      alphabet: XSAMPA_WITH_STRESS_AND_SYLLABIFICATION
+      model_pack_uri: "zoo://espnet/GunnarThor_talromur_b_fastspeech2"
+      vocoder_uri: "file://models/universal/mbmelgan.zip"
+      phonetizer_name: "phonetizer/ice-g2p"
+      normalizer_name: "default"
+  }
+}
+voices {
+  voice_id: "Rosa"
+  display_name: "Rósa"
+  gender: FEMALE
+  language_code: "is-IS"
+  espnet2 {
+      alphabet: XSAMPA_WITH_STRESS_AND_SYLLABIFICATION
+      model_pack_uri: "zoo://espnet/GunnarThor_talromur_a_fastspeech2"
+      vocoder_uri: "file://models/universal/mbmelgan.zip"
       phonetizer_name: "phonetizer/ice-g2p"
       normalizer_name: "default"
   }
@@ -71,21 +97,21 @@ phonetizers {
     lexicon {
       language_code: "is-IS"
       alphabet: XSAMPA
-      uri: "file://../models/lexicon.txt"
+      uri: "file://models/lexicon.txt"
     }
   }
   translators {
     sequitur {
       language_code: "is-IS"
       alphabet: IPA
-      uri: "file://../models/sequitur.mdl"
+      uri: "file://models/sequitur.mdl"
     }
   }
   translators {
     sequitur {
       language_code: "is-IS"
       alphabet: IPA
-      uri: "file://../models/sequitur_fail_en.mdl"
+      uri: "file://models/sequitur_fail_en.mdl"
     }
   }
 }
@@ -96,7 +122,7 @@ phonetizers {
     lexicon {
       language_code: "is-IS"
       alphabet: XSAMPA
-      uri: "file://../models/lexicon.txt"
+      uri: "file://models/lexicon.txt"
     }
   }
   translators {
