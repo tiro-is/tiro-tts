@@ -1,7 +1,7 @@
 import pytest
 
 from src.frontend.ssml import OldSSMLParser
-from src.frontend.words import Word
+from src.frontend.words import PhonemeProps, SpeakProps, Word
 
 
 def test_feed_invalid_data_raises():
@@ -33,10 +33,16 @@ def test_one_letter_xsampa():
     words = parser.get_words()
     assert words[0] == Word(
         original_symbol="Halló",
+        ssml_props=SpeakProps("Halló "),
     )
     assert words[1] == Word(
         original_symbol="aa",
         phone_sequence=["a"],
+        ssml_props=PhonemeProps(
+            alphabet="x-sampa",
+            ph="a",
+            data="aa",
+        ),
     )
 
 
@@ -48,10 +54,16 @@ def test_multi_letter_xsampa():
     words = parser.get_words()
     assert words[0] == Word(
         original_symbol="hei",
+        ssml_props=SpeakProps("hei "),
     )
     assert words[1] == Word(
         original_symbol="ABBA",
         phone_sequence=["a", "p", "a"],
+        ssml_props=PhonemeProps(
+            alphabet="x-sampa",
+            ph="apa",
+            data="ABBA"
+        ),
     )
 
 
@@ -65,4 +77,5 @@ def test_no_phonemes():
     for word, word_original in list(zip(parser.get_words(), text.split())):
         assert word == Word(
             original_symbol=word_original,
+            ssml_props=SpeakProps(text)
         )
