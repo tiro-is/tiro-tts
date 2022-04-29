@@ -53,42 +53,42 @@ class TestUtf8ByteLength:
 
 class TestConsumeWhitespace:
     def test_empty_string(self):
-        assert consume_whitespace("") == (0, 0)
+        assert consume_whitespace("", False) == (0, 0)
 
     def test_four_spaces(self):
-        assert consume_whitespace("    ") == (4, 4)
+        assert consume_whitespace("    ", False) == (4, 4)
 
     def test_space(self):
-        assert consume_whitespace(" ") == (1, 1)
+        assert consume_whitespace(" ", False) == (1, 1)
 
     def test_tab_prefix(self):
-        assert consume_whitespace(" ragnar fór á fund") == (1, 1)
+        assert consume_whitespace(" ragnar fór á fund", False) == (1, 1)
 
     def test_two_tab_prefix(self):
-        assert consume_whitespace("\t\tragnar fór á fund") == (2, 2)
+        assert consume_whitespace("\t\tragnar fór á fund", False) == (2, 2)
 
     def test_four_spaces_prefix(self):
-        assert consume_whitespace("    afi minn fór á honum rauð") == (4, 4)
+        assert consume_whitespace("    afi minn fór á honum rauð", False) == (4, 4)
 
     def test_tab_three_spaces_prefix(self):
-        assert consume_whitespace("\t   örlygur") == (4, 4)
+        assert consume_whitespace("\t   örlygur", False) == (4, 4)
 
     def test_space_tab(self):
-        assert consume_whitespace(" \tragnar fór á fund   ") == (2, 2)
+        assert consume_whitespace(" \tragnar fór á fund   ", False) == (2, 2)
 
     def test_space_postfix(self):
-        assert consume_whitespace("100 ") == (0, 0)
+        assert consume_whitespace("100 ", False) == (0, 0)
 
     def test_tab_space_tab_postfix(self):
-        assert consume_whitespace("1001\t  \t") == (0, 0)
+        assert consume_whitespace("1001\t  \t", False) == (0, 0)
 
     def test_incorrect_arg_int(self):
         with raises(TypeError):
-            consume_whitespace(1337)
+            consume_whitespace(1337, False)
 
     def test_incorrect_arg_dict(self):
         with raises(TypeError):
-            consume_whitespace({"meaning": 42})
+            consume_whitespace({"meaning": 42}, False)
 
     def test_no_arg(self):
         with raises(TypeError):
@@ -96,47 +96,47 @@ class TestConsumeWhitespace:
 
     def test_extra_arg(self):
         with raises(TypeError):
-            consume_whitespace(" Marcus", "\tTullius")
+            consume_whitespace(" Marcus", "\tTullius", False)
 
 
 class TestConsumeWhitespaceBytes:
     def test_empty(self):
-        assert consume_whitespace_bytes(b"") == 0
+        assert consume_whitespace_bytes(b"", False) == 0
 
     def test_four_spaces(self):
-        assert consume_whitespace_bytes(b"    ") == 4
+        assert consume_whitespace_bytes(b"    ", False) == 4
 
     def test_space(self):
-        assert consume_whitespace_bytes(b" ") == 1
+        assert consume_whitespace_bytes(b" ", False) == 1
 
     def test_tab_prefix(self):
-        assert consume_whitespace_bytes(b" fiskurinn veiddist vel") == 1
+        assert consume_whitespace_bytes(b" fiskurinn veiddist vel", False) == 1
 
     def test_two_tab_prefix(self):
-        assert consume_whitespace_bytes(b"\t\tstrekkingsvindur") == 2
+        assert consume_whitespace_bytes(b"\t\tstrekkingsvindur", False) == 2
 
     def test_four_spaces_prefix(self):
-        assert consume_whitespace_bytes(b"    baldvin reyndist vera svikari") == 4
+        assert consume_whitespace_bytes(b"    baldvin reyndist vera svikari", False) == 4
 
     def test_tab_three_spaces_prefix(self):
-        assert consume_whitespace_bytes(b"\t   harkalegt") == 4
+        assert consume_whitespace_bytes(b"\t   harkalegt", False) == 4
 
     def test_space_tab(self):
-        assert consume_whitespace_bytes(b" \tkastalakosningar     ") == 2
+        assert consume_whitespace_bytes(b" \tkastalakosningar     ", False) == 2
 
     def test_space_postfix(self):
-        assert consume_whitespace_bytes(b"100 ") == 0
+        assert consume_whitespace_bytes(b"100 ", False) == 0
 
     def test_tab_space_tab_postfix(self):
-        assert consume_whitespace_bytes(b"1001\t \t") == 0
+        assert consume_whitespace_bytes(b"1001\t \t", False) == 0
 
     def test_arg_int(self):
         with raises(TypeError):
-            consume_whitespace_bytes(1337)
+            consume_whitespace_bytes(1337, False)
 
     def test_incorrect_arg_str(self):
         with raises(TypeError):
-            consume_whitespace_bytes("Þessi strengur er ekki í bætum")
+            consume_whitespace_bytes("Þessi strengur er ekki í bætum", False)
 
     def test_no_arg(self):
         with raises(TypeError):
@@ -144,4 +144,4 @@ class TestConsumeWhitespaceBytes:
 
     def test_extra_arg(self):
         with raises(TypeError):
-            consume_whitespace_bytes(b"asdf", b"qwerty")
+            consume_whitespace_bytes(b"asdf", b"qwerty", ssml=False)
