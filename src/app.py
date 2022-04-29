@@ -135,6 +135,7 @@ def route_synthesize_speech(**kwargs):
 
         abort(400)
 
+    # TODO(Smári): Handle requests where TextType is not supplied
     try:
         return Response(
             stream_with_context(

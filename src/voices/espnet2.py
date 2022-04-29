@@ -226,7 +226,7 @@ class Espnet2Voice(VoiceBase):
             if kwargs["OutputFormat"] in ("pcm", "json"):
                 yield chunk
 
-    def synthesize(self, text: str, **kwargs) -> Iterable[bytes]:
+    def synthesize(self, text: str, ssml: bool, **kwargs) -> Iterable[bytes]:
         """Synthesize audio from a string of characters."""
         return self._synthesize(text, **kwargs)
 
