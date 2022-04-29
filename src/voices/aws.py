@@ -45,7 +45,7 @@ class PollyVoice(VoiceBase):
     def _synthesize_speech(self, *args, **kwargs):
         return PollySession.get_client().synthesize_speech(*args, **kwargs)
 
-    def synthesize(self, text: str, ssml: bool, **kwargs) -> Iterable[bytes]:
+    def synthesize(self, text: str, ssml: bool = False, **kwargs) -> Iterable[bytes]:
         resp = self._synthesize_speech(**kwargs)
         if "AudioStream" in resp:
             with contextlib.closing(resp["AudioStream"]) as stream:

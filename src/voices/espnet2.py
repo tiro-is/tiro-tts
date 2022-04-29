@@ -128,6 +128,7 @@ class Espnet2Synthesizer:
     def synthesize(
         self,
         text: str,
+        ssml: bool = False,
         emit_speech_marks: bool = False,
         sample_rate: int = 22050,
         # TODO(rkjaran): remove once we support normalization with SSML in a generic
@@ -149,7 +150,7 @@ class Espnet2Synthesizer:
             )
 
         for segment_words, phone_seq, phone_counts in preprocess_sentences(
-            text, normalize_fn, phonetize_fn
+            text, ssml, normalize_fn, phonetize_fn
         ):
             batch = espnet2_to_device(
                 {
@@ -226,7 +227,7 @@ class Espnet2Voice(VoiceBase):
             if kwargs["OutputFormat"] in ("pcm", "json"):
                 yield chunk
 
-    def synthesize(self, text: str, ssml: bool, **kwargs) -> Iterable[bytes]:
+    def synthesize(self, text: str, ssml: bool = False, **kwargs) -> Iterable[bytes]:
         """Synthesize audio from a string of characters."""
         return self._synthesize(text, **kwargs)
 

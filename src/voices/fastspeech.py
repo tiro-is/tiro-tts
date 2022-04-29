@@ -158,7 +158,7 @@ class FastSpeech2Synthesizer:
     def synthesize(
         self,
         text_string: str,
-        ssml: bool,
+        ssml: bool = False,
         emit_speech_marks=False,
         sample_rate=22050,
     ) -> typing.Iterable[bytes]:
@@ -289,7 +289,7 @@ class FastSpeech2Voice(VoiceBase):
             if kwargs["OutputFormat"] in ("pcm", "json"):
                 yield chunk
 
-    def synthesize(self, text: str, ssml: bool, **kwargs) -> typing.Iterable[bytes]:
+    def synthesize(self, text: str, ssml: bool = False, **kwargs) -> typing.Iterable[bytes]:
         """Synthesize audio from a string of characters or SSML markup."""
         return self._synthesize(text=text, ssml=ssml, **kwargs)
 

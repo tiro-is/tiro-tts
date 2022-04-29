@@ -73,7 +73,7 @@ class VoiceProperties:
 
 class VoiceBase(ABC):
     @abstractmethod
-    def synthesize(self, text: str, ssml: bool, **kwargs) -> Iterable[bytes]:
+    def synthesize(self, text: str, ssml: bool = False, **kwargs) -> Iterable[bytes]:
         return NotImplemented
 
     @abstractproperty

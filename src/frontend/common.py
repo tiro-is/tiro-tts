@@ -11,7 +11,7 @@ def utf8_byte_length(text: str) -> int:
     return len(text.encode("utf-8"))
 
 
-def consume_whitespace(text: str, ssml: bool) -> Tuple[int, int]:
+def consume_whitespace(text: str, ssml: bool = False) -> Tuple[int, int]:
     """Consume non-text (whitespace and/or SSML tags) prefix
 
     Returns:
@@ -24,7 +24,7 @@ def consume_whitespace(text: str, ssml: bool) -> Tuple[int, int]:
     return 0, 0
 
 
-def consume_whitespace_bytes(data: bytes, ssml: bool) -> int:
+def consume_whitespace_bytes(data: bytes, ssml: bool = False) -> int:
     """Consume non-text (whitespace and/or SSML tags) prefix
 
     Returns:
