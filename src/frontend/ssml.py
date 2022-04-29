@@ -15,7 +15,7 @@ from html.parser import HTMLParser
 from typing import List
 
 from src.frontend.phonemes import align_ipa_from_xsampa
-from src.frontend.words import Word
+from src.frontend.words import PhonemeProps, SpeakProps, Word
 
 # TODO(Smári): Does this parser handle illegal input like speak tags within speak tags and phoneme tags within phoneme tags?
 
@@ -53,7 +53,11 @@ class OldSSMLParser(HTMLParser):
             self._words.append(
                 Word(
                     phone_sequence=align_ipa_from_xsampa(attrs_map["ph"])
-                        .split()
+                        .split(),
+                    ssml_props=PhonemeProps(
+                        alphabet=attrs_map.get("alphabet"),
+                        ph=attrs_map["ph"]
+                    )
                 )
             )
         self._tags_queue.append(tag)
@@ -70,10 +74,14 @@ class OldSSMLParser(HTMLParser):
         if self._tags_queue[-1] != "phoneme":
             for word in data.split():
                 self._words.append(
-                    Word(original_symbol=word)
+                    Word(
+                        original_symbol=word,
+                        ssml_props=SpeakProps(data),
+                    )
                 )
         else:
             self._words[-1].original_symbol = data.strip()
+            self._words[-1].ssml_props.data = data
 
 
     def get_words(self) -> List[Word]:

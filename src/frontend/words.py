@@ -12,13 +12,66 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import json
-from typing import Callable, Iterable, List, Tuple
+from typing import Callable, Iterable, List, Literal, Tuple
 
 import tokenizer
 
 from src.frontend.lexicon import LangID
 from src.frontend.phonemes import PhoneSeq
 
+class SSMLProps:
+    tag_type: Literal["speak", "phoneme"] = ""
+    data: str = ""
+
+    def __init__(self):
+        ...
+
+class SpeakProps(SSMLProps):
+    def __init__(
+        self,
+        data: str = "",
+    ):
+        self.tag_type = "speak"
+        self.data = data
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, SpeakProps) and (
+            self.tag_type == other.tag_type
+            and self.data == other.data
+        )
+        
+
+class PhonemeProps(SSMLProps):
+    def __init__(
+        self,
+        alphabet: Literal["x-sampa", "ipa"] = "",
+        ph: str = "",
+        data: str = "",
+    ):
+        self.alphabet = alphabet,
+        self.ph = ph
+        self.tag_type = "phoneme"
+        self.data = data
+
+    def is_multi(self) -> bool:
+        return len(self.data.split()) > 1
+
+    def __repr__(self):
+        return "<PhonemeProps(alphabet='{}', ph='{}', tag_type='{}', data='{}')>".format(
+            self.alphabet,
+            self.ph,
+            self.tag_type,
+            self.data,
+        )
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, PhonemeProps) and (
+            self.alphabet == other.alphabet
+            and self.ph == other.ph
+            and self.tag_type == other.tag_type
+            and self.data == other.data
+        )
+        
 
 class Word:
     """A wrapper for individual symbol and its metadata."""
@@ -34,6 +87,7 @@ class Word:
         start_byte_offset: int = 0,
         end_byte_offset: int = 0,
         start_time_milli: int = 0,
+        ssml_props: SSMLProps = None,
     ):
         self.original_symbol = original_symbol
         self.symbol = symbol
@@ -41,15 +95,17 @@ class Word:
         self.start_byte_offset = start_byte_offset
         self.end_byte_offset = end_byte_offset
         self.start_time_milli = start_time_milli
+        self.ssml_props = ssml_props
 
     def __repr__(self):
-        return "<Word(original_symbol='{}', symbol='{}', phone_sequence={}, start_byte_offset={}, end_byte_offset={}, start_time_milli={})>".format(
+        return "<Word(original_symbol='{}', symbol='{}', phone_sequence={}, start_byte_offset={}, end_byte_offset={}, start_time_milli={}, ssml_props={})>".format(
             self.original_symbol,
             self.symbol,
             self.phone_sequence,
             self.start_byte_offset,
             self.end_byte_offset,
             self.start_time_milli,
+            self.ssml_props,
         )
 
     def __eq__(self, other: object) -> bool:
@@ -60,6 +116,7 @@ class Word:
             and self.start_byte_offset == other.start_byte_offset
             and self.end_byte_offset == other.end_byte_offset
             and self.start_time_milli == other.start_time_milli
+            and self.ssml_props == other.ssml_props
         )
 
     def is_spoken(self):
