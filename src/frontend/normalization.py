@@ -143,8 +143,8 @@ class GrammatekNormalizer(NormalizerBase):
 
     def normalize(self, text: str, text_is_ssml: bool):
         if text_is_ssml:
-            text_ssml = text
-            text, parsed_text = parse_ssml(text)
+            ssml_str = text
+            text, parsed_text = parse_ssml(ssml_str)
 
         response: tts_frontend_message_pb2.TokenBasedNormalizedResponse = (
             self._stub.NormalizeTokenwise(
@@ -162,18 +162,45 @@ class GrammatekNormalizer(NormalizerBase):
                     for token_info in sent.token_info
                 ]
             )
+        
+        if text_is_ssml:
+            return self._normalize_ssml(ssml_str, parsed_text, sentences_with_pairs)
+        else:
+            return self._normalize_text(text, sentences_with_pairs)
+    
+    def _normalize_text(self, text: str, sentences_with_pairs: List[List[Tuple[str, str]]]):
         n_bytes_consumed = 0
-        text_view = text_ssml if text_is_ssml else text
+        text_view = text
+        for sent in sentences_with_pairs:
+            for original, normalized in sent:
+                n_chars_whitespace, n_bytes_whitespace = consume_whitespace(text_view)
+                n_bytes_consumed += n_bytes_whitespace
+                token_byte_len = utf8_byte_length(original)
+
+                yield Word(
+                    original_symbol=original,
+                    symbol=normalized,
+                    start_byte_offset=n_bytes_consumed,
+                    end_byte_offset=n_bytes_consumed + token_byte_len,
+                )
+                n_bytes_consumed += token_byte_len
+                text_view = text_view[n_chars_whitespace + len(original) :]
+            yield WORD_SENTENCE_SEPARATOR
+
+
+    def _normalize_ssml(self, ssml: str, parsed_text: List[Word], sentences_with_pairs: List[List[Tuple[str, str]]]):
+        text_view = ssml
         p_idx: int = 0
+        n_bytes_consumed = 0
         for sent in sentences_with_pairs:
             sent_iter = iter(sent)
             for original, normalized in sent_iter:
-                spoken_ssml: bool = text_is_ssml and Word(original_symbol=original).is_spoken()
+                normalized_is_spoken: bool = Word(original_symbol=original).is_spoken()
 
-                n_chars_whitespace, n_bytes_whitespace = consume_whitespace(text_view, text_is_ssml)
+                n_chars_whitespace, n_bytes_whitespace = consume_whitespace(text_view, ssml=True)
                 n_bytes_consumed += n_bytes_whitespace
 
-                if spoken_ssml:
+                if normalized_is_spoken:
                     phoneme_multi = parsed_text[p_idx].ssml_props.tag_type == "phoneme" and parsed_text[p_idx].ssml_props.is_multi()
                     if phoneme_multi:
                         original = parsed_text[p_idx].original_symbol
@@ -183,17 +210,17 @@ class GrammatekNormalizer(NormalizerBase):
                 yield Word(
                     original_symbol=original,
                     symbol=normalized,  # TODO(Smári): Make none for SSML phoneme tag words
-                    phone_sequence=parsed_text[p_idx].phone_sequence if spoken_ssml else [],
+                    phone_sequence=parsed_text[p_idx].phone_sequence if normalized_is_spoken else [],   # TODO(Smári): Reevaluate the necessity of this check
                     start_byte_offset=n_bytes_consumed,
                     end_byte_offset=n_bytes_consumed + token_byte_len,
                 )
                 n_bytes_consumed += token_byte_len
                 text_view = text_view[n_chars_whitespace + len(original) :]
                 
-                if spoken_ssml:
+                if normalized_is_spoken:
                     p_idx += 1
 
-                if spoken_ssml and phoneme_multi:
+                if normalized_is_spoken and phoneme_multi:
                     skip_length: int = len(original.split())
                     next(islice(sent_iter, skip_length))
                 
