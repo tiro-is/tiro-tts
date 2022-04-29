@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from itertools import islice
 import re
 import string
 import unicodedata
@@ -142,6 +143,7 @@ class GrammatekNormalizer(NormalizerBase):
 
     def normalize(self, text: str, text_is_ssml: bool):
         if text_is_ssml:
+            text_ssml = text
             text, parsed_text = parse_ssml(text)
 
         response: tts_frontend_message_pb2.TokenBasedNormalizedResponse = (
@@ -161,22 +163,38 @@ class GrammatekNormalizer(NormalizerBase):
                 ]
             )
         n_bytes_consumed = 0
-        text_view = text
+        text_view = text_ssml if text_is_ssml else text
         p_idx: int = 0
         for sent in sentences_with_pairs:
-            for original, normalized in sent:
-                n_chars_whitespace, n_bytes_whitespace = consume_whitespace(text_view)
+            sent_iter = iter(sent)
+            for original, normalized in sent_iter:
+                spoken_ssml: bool = text_is_ssml and Word(original_symbol=original).is_spoken()
+
+                n_chars_whitespace, n_bytes_whitespace = consume_whitespace(text_view, text_is_ssml)
                 n_bytes_consumed += n_bytes_whitespace
+
+                if spoken_ssml:
+                    phoneme_multi = parsed_text[p_idx].ssml_props.tag_type == "phoneme" and parsed_text[p_idx].ssml_props.is_multi()
+                    if phoneme_multi:
+                        original = parsed_text[p_idx].original_symbol
+
                 token_byte_len = utf8_byte_length(original)
 
                 yield Word(
                     original_symbol=original,
-                    symbol=normalized,
-                    phone_sequence=parsed_text[p_idx].phone_sequence if text_is_ssml else [],
+                    symbol=normalized,  # TODO(Smári): Make none for SSML phoneme tag words
+                    phone_sequence=parsed_text[p_idx].phone_sequence if spoken_ssml else [],
                     start_byte_offset=n_bytes_consumed,
                     end_byte_offset=n_bytes_consumed + token_byte_len,
                 )
                 n_bytes_consumed += token_byte_len
                 text_view = text_view[n_chars_whitespace + len(original) :]
-                p_idx += 1
+                
+                if spoken_ssml:
+                    p_idx += 1
+
+                if spoken_ssml and phoneme_multi:
+                    skip_length: int = len(original.split())
+                    next(islice(sent_iter, skip_length))
+                
             yield WORD_SENTENCE_SEPARATOR
