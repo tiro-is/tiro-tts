@@ -17,16 +17,16 @@ import string
 import unicodedata
 import urllib.parse
 from abc import ABC, abstractmethod
-from typing import Iterable, List, Tuple, Union, cast
+from typing import Dict, Iterable, List, Tuple, Union, cast
 
 import grpc
 import tokenizer
 from messages import tts_frontend_message_pb2
 from services import tts_frontend_service_pb2, tts_frontend_service_pb2_grpc
 
-from src.frontend.common import consume_whitespace, utf8_byte_length
+from src.frontend.common import consume_whitespace, SSMLConsumer, utf8_byte_length
 from src.frontend.ssml import OldSSMLParser as SSMLParser
-from src.frontend.words import WORD_SENTENCE_SEPARATOR, Word
+from src.frontend.words import WORD_SENTENCE_SEPARATOR, SSMLProps, Word
 
 
 class NormalizerBase(ABC):
@@ -143,6 +143,7 @@ class GrammatekNormalizer(NormalizerBase):
 
     def normalize(self, text: str, text_is_ssml: bool):
         if text_is_ssml:
+            #TODO(Smári): Remove SSML processing from SSMLParser and use it only for two things: 1) Sanitize markup and 2) strip tags away and return text data.
             ssml_str = text
             text, parsed_text = parse_ssml(ssml_str)
 
@@ -164,7 +165,7 @@ class GrammatekNormalizer(NormalizerBase):
             )
         
         if text_is_ssml:
-            return self._normalize_ssml(ssml_str, parsed_text, sentences_with_pairs)
+            return self._normalize_ssml(ssml_str, sentences_with_pairs)
         else:
             return self._normalize_text(text, sentences_with_pairs)
     
@@ -188,7 +189,7 @@ class GrammatekNormalizer(NormalizerBase):
             yield WORD_SENTENCE_SEPARATOR
 
 
-    def _normalize_ssml(self, ssml: str, parsed_text: List[Word], sentences_with_pairs: List[List[Tuple[str, str]]]):
+    def __normalize_ssml(self, ssml: str, parsed_text: List[Word], sentences_with_pairs: List[List[Tuple[str, str]]]):
         text_view = ssml
         p_idx: int = 0
         n_bytes_consumed = 0
@@ -224,4 +225,53 @@ class GrammatekNormalizer(NormalizerBase):
                     skip_length: int = len(original.split())
                     next(islice(sent_iter, skip_length))
                 
+            yield WORD_SENTENCE_SEPARATOR
+
+
+    def _normalize_ssml(self, ssml: str, sentences_with_pairs: List[List[Tuple[str, str]]]):
+        consumer = SSMLConsumer(ssml=ssml)
+        acc_consumption_status: List[Dict] = []
+        for sent in sentences_with_pairs:
+            for original, normalized in sent:
+                consumption_status = consumer.consume(original)
+                ssml_props: SSMLProps = consumption_status["ssml_props"]
+                if ssml_props.tag_type == "speak":
+                    yield Word(
+                        original_symbol=original,
+                        symbol=normalized,
+                        start_byte_offset=consumption_status["start_byte_offset"],
+                        end_byte_offset=consumption_status["end_byte_offset"],
+                        ssml_props=ssml_props,
+                    )
+                elif ssml_props.tag_type == "phoneme":
+                    if ssml_props.is_multi():
+                        # If a phoneme tags contains more than a single word, we must accumulate
+                        # all of them and yield them as a single Word.
+
+                        acc_consumption_status.append(consumption_status)
+                        if not ssml_props.data_last_word:
+                            continue
+
+                        yield Word(
+                            original_symbol=ssml_props.data,
+                            symbol=normalized,
+                            start_byte_offset=acc_consumption_status[0]["start_byte_offset"],
+                            end_byte_offset=acc_consumption_status[-1]["end_byte_offset"],
+                            phone_sequence=ssml_props.get_phone_sequence(),
+                            ssml_props=ssml_props,
+                        )
+                    else:
+                        yield Word(
+                            original_symbol=original,
+
+                            # Will not be used during translation but is required for an edge case where
+                            # a "." or "," token is contained within a phoneme tag.
+                            symbol=normalized,
+
+                            start_byte_offset=consumption_status["start_byte_offset"],
+                            end_byte_offset=consumption_status["end_byte_offset"],
+                            phone_sequence=ssml_props.get_phone_sequence(),
+                            ssml_props=ssml_props,
+                        )
+
             yield WORD_SENTENCE_SEPARATOR

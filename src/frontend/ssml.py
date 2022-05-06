@@ -52,7 +52,7 @@ class OldSSMLParser(HTMLParser):
                 )
             self._words.append(
                 Word(
-                    phone_sequence=align_ipa_from_xsampa(attrs_map["ph"])
+                    phone_sequence=align_ipa_from_xsampa(attrs_map["ph"]) #TODO(Smári): Raise error if ph contains invalid or empty phone sequence.
                         .split(),
                     ssml_props=PhonemeProps(
                         alphabet=attrs_map.get("alphabet"),

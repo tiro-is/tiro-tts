@@ -17,11 +17,12 @@ from typing import Callable, Iterable, List, Literal, Tuple
 import tokenizer
 
 from src.frontend.lexicon import LangID
-from src.frontend.phonemes import PhoneSeq
+from src.frontend.phonemes import PhoneSeq, align_ipa_from_xsampa
 
 class SSMLProps:
     tag_type: Literal["speak", "phoneme"] = ""
     data: str = ""
+    data_last_word: bool = False
 
     def __init__(self):
         ...
@@ -42,6 +43,8 @@ class SpeakProps(SSMLProps):
         
 
 class PhonemeProps(SSMLProps):
+    read: bool
+
     def __init__(
         self,
         alphabet: Literal["x-sampa", "ipa"] = "",
@@ -52,9 +55,16 @@ class PhonemeProps(SSMLProps):
         self.ph = ph
         self.tag_type = "phoneme"
         self.data = data
+        self.read = False
 
     def is_multi(self) -> bool:
         return len(self.data.split()) > 1
+
+    def get_phone_sequence(self) -> List[str]:
+        if not self.read:
+            self.read = True
+            return align_ipa_from_xsampa(self.ph).split()
+        return []
 
     def __repr__(self):
         return "<PhonemeProps(alphabet='{}', ph='{}', tag_type='{}', data='{}')>".format(
@@ -121,6 +131,9 @@ class Word:
 
     def is_spoken(self):
         return self.original_symbol not in tokenizer.definitions.PUNCTUATION
+
+    def is_from_ssml(self):
+        return self.ssml_props != None
 
     def to_json(self):
         """Serialize Word to JSON."""

@@ -66,7 +66,7 @@ class GraphemeToPhonemeTranslatorBase(ABC):
         #   single word inputs. Need to figure out an interface that includes the
         #   necessary context.
         for idx, word in enumerate(words):
-            if word != WORD_SENTENCE_SEPARATOR and len(word.phone_sequence) == 0:
+            if word != WORD_SENTENCE_SEPARATOR and len(word.phone_sequence) == 0:   #TODO(Smári): Make a more elegant check here whether or not to translate while processing SSML requests.
                 # TODO(rkjaran): Cover more punctuation (Unicode)
                 punctuation = re.sub(r"[{}\[\]]", "", string.punctuation)
                 g2p_word = re.sub(r"([{}])".format(punctuation), r" \1 ", word.symbol)
