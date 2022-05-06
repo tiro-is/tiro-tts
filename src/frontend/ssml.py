@@ -19,17 +19,24 @@ from src.frontend.words import PhonemeProps, SpeakProps, Word
 
 # TODO(Smári): Does this parser handle illegal input like speak tags within speak tags and phoneme tags within phoneme tags?
 
+# This parser provides the following service:
+#   1) Tag stripping (text isolation)
+#   2) Markup sanitization:
+#       a) Are all tags matched by closing tags of the same type?
+#       b) Do all tag attributes fullfil their requirements?
+#       c) Are there any tags with no text where it must be present?
+
 class OldSSMLParser(HTMLParser):
     _ALLOWED_TAGS = ["speak", "phoneme"]
     _first_tag_seen: bool
     _tags_queue: List[str]
-    _words: List[Word]
+    _text: List[str]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._first_tag_seen = False
         self._tags_queue = []
-        self._words = []
+        self._text = []
 
     def _check_first_tag(self, tag):
         if not self._first_tag_seen:
@@ -44,22 +51,14 @@ class OldSSMLParser(HTMLParser):
             raise ValueError("Unsupported tag encountered: '{}'".format(tag))
 
         if tag == "phoneme":
+            #TODO(Smári): Raise error if ph contains invalid or empty phone sequence.
+
             attrs_map = dict(attrs)
             if attrs_map.get("alphabet") != "x-sampa" or "ph" not in attrs_map:
                 raise ValueError(
                     "'phoneme' tag has to have 'alphabet' and 'ph' attributes using "
                     "supported alphabets"
                 )
-            self._words.append(
-                Word(
-                    phone_sequence=align_ipa_from_xsampa(attrs_map["ph"]) #TODO(Smári): Raise error if ph contains invalid or empty phone sequence.
-                        .split(),
-                    ssml_props=PhonemeProps(
-                        alphabet=attrs_map.get("alphabet"),
-                        ph=attrs_map["ph"]
-                    )
-                )
-            )
         self._tags_queue.append(tag)
 
     def handle_endtag(self, tag):
@@ -71,34 +70,12 @@ class OldSSMLParser(HTMLParser):
         # Raise a ValueError if we haven't seen the initial <speak> tag
         self._check_first_tag("")
 
-        if self._tags_queue[-1] != "phoneme":
-            for word in data.split():
-                self._words.append(
-                    Word(
-                        original_symbol=word,
-                        ssml_props=SpeakProps(data),
-                    )
-                )
-        else:
-            self._words[-1].original_symbol = data.strip()
-            self._words[-1].ssml_props.data = data
+        active_tag: str = self._tags_queue[-1]
+        if active_tag == "speak":
+            if data.isspace() or len(data) == 0:
+                raise ValueError("speak tags must contain text!")
 
-
-    def get_words(self) -> List[Word]:
-        """
-        Get list of Words that represent the data extracted from the SSML.
-
-        Returns:
-          A list of Words where each Word contains a word from the SSML as original_symbol.
-          <phoneme> enclosed text is given a special treatment where its data is set as a Word's original_symbol but
-          the phoneme tag's ph attribute value is set as the Word's phone_sequence.
-          E.g.:
-          [Word(original_symbol="Halló"), Word(original_symbol="aa", phone_sequence="a")] if the input SSML was "<speak>Halló <phoneme alphabet='x-sampa' ph='a'>aa</phoneme></speak>"
-
-        """
-        if len(self._tags_queue) > 0:
-            raise ValueError("Not all tags were closed, malformed SSML.")
-        return self._words
+        self._text.append(data)
 
     def get_text(self) -> str:
         """
@@ -107,4 +84,11 @@ class OldSSMLParser(HTMLParser):
         Return example:
           "Halló aa" if the input SSML was "<speak>Halló <phoneme alphabet='x-sampa' ph='a'>aa</phoneme></speak>"
         """
-        return " ".join([word.original_symbol for word in self._words])
+
+        if len(self._tags_queue) > 0:
+            raise ValueError("Not all tags were closed, malformed SSML.")
+        
+        text: str = "".join(self._text)
+        if len(text) == 0:
+            raise ValueError("The SSML did not contain any text!")
+        return text

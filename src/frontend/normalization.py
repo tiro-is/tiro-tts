@@ -1,4 +1,4 @@
-# Copyright 2021 Tiro ehf.
+# Copyright 2021-2022 Tiro ehf.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -116,13 +116,13 @@ def _tokenize(text: str) -> Iterable[Word]:
 
 
 def parse_ssml(ssml) -> Tuple[str, List[Word]]:
+    """Sanitizes and isolates text from SSML"""
+    
     parser = SSMLParser()
     parser.feed(ssml)
     text: str = parser.get_text()
-    parsed: List[Word] = parser.get_words()
     parser.close()
-    return text, parsed
-
+    return text
 
 class BasicNormalizer(NormalizerBase):
     def normalize(self, text: str, text_is_ssml: bool = False):
@@ -143,9 +143,8 @@ class GrammatekNormalizer(NormalizerBase):
 
     def normalize(self, text: str, text_is_ssml: bool):
         if text_is_ssml:
-            #TODO(Smári): Remove SSML processing from SSMLParser and use it only for two things: 1) Sanitize markup and 2) strip tags away and return text data.
             ssml_str = text
-            text, parsed_text = parse_ssml(ssml_str)
+            text = parse_ssml(ssml_str)
 
         response: tts_frontend_message_pb2.TokenBasedNormalizedResponse = (
             self._stub.NormalizeTokenwise(
@@ -188,44 +187,6 @@ class GrammatekNormalizer(NormalizerBase):
                 text_view = text_view[n_chars_whitespace + len(original) :]
             yield WORD_SENTENCE_SEPARATOR
 
-
-    def __normalize_ssml(self, ssml: str, parsed_text: List[Word], sentences_with_pairs: List[List[Tuple[str, str]]]):
-        text_view = ssml
-        p_idx: int = 0
-        n_bytes_consumed = 0
-        for sent in sentences_with_pairs:
-            sent_iter = iter(sent)
-            for original, normalized in sent_iter:
-                normalized_is_spoken: bool = Word(original_symbol=original).is_spoken()
-
-                n_chars_whitespace, n_bytes_whitespace = consume_whitespace(text_view, ssml=True)
-                n_bytes_consumed += n_bytes_whitespace
-
-                if normalized_is_spoken:
-                    phoneme_multi = parsed_text[p_idx].ssml_props.tag_type == "phoneme" and parsed_text[p_idx].ssml_props.is_multi()
-                    if phoneme_multi:
-                        original = parsed_text[p_idx].original_symbol
-
-                token_byte_len = utf8_byte_length(original)
-
-                yield Word(
-                    original_symbol=original,
-                    symbol=normalized,  # TODO(Smári): Make none for SSML phoneme tag words
-                    phone_sequence=parsed_text[p_idx].phone_sequence if normalized_is_spoken else [],   # TODO(Smári): Reevaluate the necessity of this check
-                    start_byte_offset=n_bytes_consumed,
-                    end_byte_offset=n_bytes_consumed + token_byte_len,
-                )
-                n_bytes_consumed += token_byte_len
-                text_view = text_view[n_chars_whitespace + len(original) :]
-                
-                if normalized_is_spoken:
-                    p_idx += 1
-
-                if normalized_is_spoken and phoneme_multi:
-                    skip_length: int = len(original.split())
-                    next(islice(sent_iter, skip_length))
-                
-            yield WORD_SENTENCE_SEPARATOR
 
 
     def _normalize_ssml(self, ssml: str, sentences_with_pairs: List[List[Tuple[str, str]]]):

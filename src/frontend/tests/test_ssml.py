@@ -10,11 +10,12 @@ def test_feed_invalid_data_raises():
         parser.feed("hehe")
 
 
-def test_feed_valid_but_empty():
+def test_feed_empty():
     parser = OldSSMLParser()
     parser.feed("<speak></speak>")
+    with pytest.raises(ValueError, match="The SSML did not contain any text!"):
+        parser.get_text()
     parser.close()
-    assert len(parser.get_words()) == 0
 
 
 def test_feed_missing_closing_tags():
@@ -22,60 +23,32 @@ def test_feed_missing_closing_tags():
     parser.feed("<speak>")
     parser.close()
     with pytest.raises(ValueError, match="malformed"):
-        parser.get_words()
+        parser.get_text()
 
 
-def test_one_letter_xsampa():
+def test_get_text_phoneme_01():
     ssml = "<speak>Halló <phoneme alphabet='x-sampa' ph='a'>aa</phoneme></speak>"
     parser = OldSSMLParser()
     parser.feed(ssml)
     parser.close()
-    words = parser.get_words()
-    assert words[0] == Word(
-        original_symbol="Halló",
-        ssml_props=SpeakProps("Halló "),
-    )
-    assert words[1] == Word(
-        original_symbol="aa",
-        phone_sequence=["a"],
-        ssml_props=PhonemeProps(
-            alphabet="x-sampa",
-            ph="a",
-            data="aa",
-        ),
-    )
+    text = parser.get_text()
+    assert text == "Halló aa"
 
 
-def test_multi_letter_xsampa():
+def test_get_text_phoneme_02():
     ssml = "<speak>hei <phoneme alphabet='x-sampa' ph='apa'>ABBA</phoneme></speak>"
     parser = OldSSMLParser()
     parser.feed(ssml)
     parser.close()
-    words = parser.get_words()
-    assert words[0] == Word(
-        original_symbol="hei",
-        ssml_props=SpeakProps("hei "),
-    )
-    assert words[1] == Word(
-        original_symbol="ABBA",
-        phone_sequence=["a", "p", "a"],
-        ssml_props=PhonemeProps(
-            alphabet="x-sampa",
-            ph="apa",
-            data="ABBA"
-        ),
-    )
+    text = parser.get_text()
+    assert text == "hei ABBA"
 
 
-def test_no_phonemes():
-    text = "hei þetta gengur bara ágætlega!"
-    ssml = f"<speak>{text}</speak>"
+def test_get_text_speak():
+    text_original = "hei þetta gengur bara ágætlega!"
+    ssml = f"<speak>{text_original}</speak>"
     parser = OldSSMLParser()
     parser.feed(ssml)
+    text = parser.get_text()
     parser.close()
-
-    for word, word_original in list(zip(parser.get_words(), text.split())):
-        assert word == Word(
-            original_symbol=word_original,
-            ssml_props=SpeakProps(text)
-        )
+    assert text == text_original
