@@ -37,8 +37,6 @@ class SSMLConsumer:
     SSML_WHITESPACE_REGEX: Pattern
 
     def __init__(self, ssml) -> None:
-        #TODO(Smári): Have an instance of SSMLParser as a class variable. Use it here to sanitize markup.
-
         self._ssml = ssml
         self._ssml_view = ssml
         self._data = ""

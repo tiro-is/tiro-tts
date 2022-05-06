@@ -65,8 +65,19 @@ class GraphemeToPhonemeTranslatorBase(ABC):
         # TODO(rkjaran): Syllabification in IceG2PTranslator does not work well with
         #   single word inputs. Need to figure out an interface that includes the
         #   necessary context.
-        for idx, word in enumerate(words):
-            if word != WORD_SENTENCE_SEPARATOR and len(word.phone_sequence) == 0:   #TODO(Smári): Make a more elegant check here whether or not to translate while processing SSML requests.
+
+        ssml_tag_skiplist: List[str] = ["phoneme"]
+        for word in words:
+            should_translate: bool = (
+                (
+                    word.is_from_ssml() and 
+                    word.ssml_props.tag_type not in ssml_tag_skiplist and
+                    word != WORD_SENTENCE_SEPARATOR    
+                ) or 
+                word != WORD_SENTENCE_SEPARATOR
+            )
+
+            if should_translate:
                 # TODO(rkjaran): Cover more punctuation (Unicode)
                 punctuation = re.sub(r"[{}\[\]]", "", string.punctuation)
                 g2p_word = re.sub(r"([{}])".format(punctuation), r" \1 ", word.symbol)
