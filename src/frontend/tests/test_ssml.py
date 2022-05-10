@@ -1,19 +1,18 @@
 import pytest
 
-from src.frontend.ssml import OldSSMLParser
-from src.frontend.words import PhonemeProps, SpeakProps, Word
+from src.frontend.ssml import OldSSMLParser, SSMLValidationException
 
 
 def test_feed_invalid_data_raises():
     parser = OldSSMLParser()
-    with pytest.raises(ValueError, match="Start tag is not <speak>"):
+    with pytest.raises(SSMLValidationException, match="Start tag is not <speak>"):
         parser.feed("hehe")
 
 
 def test_feed_empty():
     parser = OldSSMLParser()
     parser.feed("<speak></speak>")
-    with pytest.raises(ValueError, match="The SSML did not contain any text!"):
+    with pytest.raises(SSMLValidationException, match="The SSML did not contain any text!"):
         parser.get_text()
     parser.close()
 
@@ -22,7 +21,7 @@ def test_feed_missing_closing_tags():
     parser = OldSSMLParser()
     parser.feed("<speak>")
     parser.close()
-    with pytest.raises(ValueError, match="malformed"):
+    with pytest.raises(SSMLValidationException, match="malformed"):
         parser.get_text()
 
 
