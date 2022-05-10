@@ -83,7 +83,15 @@ class SSMLConsumer:
             
 
     def consume(self, original: str) -> Dict:
+        """
+        Consumes whitespace, tags and word. Returns consumption status which contains word byte offset data
+        and SSML properties.
+        """
+
         while(True):
+            # This loop handles the consumption of tags and whitespace. Afterwards, the word itself (original)
+            # will be consumed.
+            
             consumed = re.match(self.SSML_WHITESPACE_REGEX, self._ssml_view)
             tag = re.match(self.TAG_REGEX, self._ssml_view)
             tag_close = re.match(self.TAG_CLOSE_REGEX, self._ssml_view)
@@ -112,16 +120,25 @@ class SSMLConsumer:
 
             self._update_ssml_view(len_consumption)
             self._n_bytes_consumed += len_consumption_bytes
-            self._tag_stack[-1].data_last_word = (re.match(self.TAG_REGEX, self._ssml_view[len(original):]) != None)
 
             if not re.match(self.TAG_REGEX, self._ssml_view):
-                break   # Original symbol reached
+                # If the next part of ssml_view is NOT a tag, we have reached our word in the SSML which corresponds
+                # to original. Therefore, there is no need to consume more tags or whitespace. We break out of the loop
+                # and proceed to consume the word itself.
+                break
+
+        
+        # If we have a tag after current word, that's the last word within current tag. This is relevant when we have 
+        # multiple words within a single phoneme tag.
+        self._tag_stack[-1].data_last_word = (re.match(self.TAG_REGEX, self._ssml_view[len(original):]) != None)
 
         status: Dict = {
             "start_byte_offset": self._n_bytes_consumed,
             "end_byte_offset": self._n_bytes_consumed + utf8_byte_length(original),
             "ssml_props": self._tag_stack[-1],
         }
+
+        # Status package has been assembled, now we update the the status of the consumer before this function is called again for next token (word).
         self._update_ssml_view(len(original))
         self._n_bytes_consumed += utf8_byte_length(original)
 
