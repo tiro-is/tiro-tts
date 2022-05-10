@@ -39,6 +39,7 @@ class SpeakProps(SSMLProps):
         return isinstance(other, SpeakProps) and (
             self.tag_type == other.tag_type
             and self.data == other.data
+            and self.data_last_word == other.data_last_word
         )
         
 
@@ -80,6 +81,7 @@ class PhonemeProps(SSMLProps):
             and self.ph == other.ph
             and self.tag_type == other.tag_type
             and self.data == other.data
+            and self.data_last_word == other.data_last_word
         )
         
 
@@ -126,7 +128,7 @@ class Word:
             and self.start_byte_offset == other.start_byte_offset
             and self.end_byte_offset == other.end_byte_offset
             and self.start_time_milli == other.start_time_milli
-            and self.ssml_props == other.ssml_props
+            # and self.ssml_props == other.ssml_props
         )
 
     def is_spoken(self):

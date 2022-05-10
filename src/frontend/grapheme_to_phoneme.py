@@ -68,13 +68,21 @@ class GraphemeToPhonemeTranslatorBase(ABC):
 
         ssml_tag_skiplist: List[str] = ["phoneme"]
         for word in words:
+            
+            # A translation will occur iff:
+            #   a) We are not dealing with SSML and the Word is not a WORD_SENTENCE_SEPARATOR.
+            #   b) We are dealing with SSML and the Word is not derived from a tag which is 
+            #      listed in the skiplist and the Word must not be a WORD_SENTENCE_SEPARATOR.
             should_translate: bool = (
+                (                                                           #a)
+                    not word.is_from_ssml() and
+                    word != WORD_SENTENCE_SEPARATOR
+                ) or
                 (
-                    word.is_from_ssml() and 
+                    word.is_from_ssml() and                                 #b)
                     word.ssml_props.tag_type not in ssml_tag_skiplist and
                     word != WORD_SENTENCE_SEPARATOR    
-                ) or 
-                word != WORD_SENTENCE_SEPARATOR
+                )
             )
 
             if should_translate:

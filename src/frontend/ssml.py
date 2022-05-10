@@ -70,10 +70,13 @@ class OldSSMLParser(HTMLParser):
         # Raise a ValueError if we haven't seen the initial <speak> tag
         self._check_first_tag("")
 
-        active_tag: str = self._tags_queue[-1]
-        if active_tag == "speak":
-            if data.isspace() or len(data) == 0:
-                raise ValueError("speak tags must contain text!")
+        # active_tag: str = self._tags_queue[-1]
+        # if active_tag == "speak":
+        #     if data.isspace() or len(data) == 0:
+        #         raise ValueError("speak tags must contain text!") 
+        
+                # This should perhaps not be done? Works incorrectly for e.g. <speak><phoneme ...>...</phoneme></speak>
+                #                                                                   ^empty                    ^empty
 
         self._text.append(data)
 
