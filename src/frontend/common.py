@@ -106,7 +106,7 @@ class SSMLConsumer:
             elif tag:
                 self._update_data()
                 tag_val: str = tag.group().strip()
-                if "speak" in tag_val:                              #TODO(Smári): Make these checks safer
+                if "speak" in tag_val:
                     self._tag_stack.append(SpeakProps(self._data))
                 elif "phoneme" in tag_val:
                     attrs: Dict[str, str] = self._extract_tag_attrs(tag_val)

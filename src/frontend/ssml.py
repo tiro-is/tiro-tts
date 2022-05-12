@@ -61,10 +61,11 @@ class OldSSMLParser(HTMLParser):
             # Example:
             #           "<speak>Halló, hvað segir<speak> þú</speak> gott?</speak>"
             raise SSMLValidationException("Illegal SSML! Nesting a tag of the same type as a higher level tag not allowed.")
-
-        if tag == "phoneme":
-            #TODO(Smári): Raise error if ph contains invalid or empty phone sequence.
-
+        
+        if tag == "speak":
+            if len(attrs) > 0:
+                raise SSMLValidationException("Illegal SSML! speak tag does not take any attributes!")
+        elif tag == "phoneme":
             attrs_map = dict(attrs)
             if attrs_map.get("alphabet") != "x-sampa" or "ph" not in attrs_map:
                 raise SSMLValidationException(

@@ -135,13 +135,14 @@ def route_synthesize_speech(**kwargs):
 
         abort(400)
 
-    # TODO(Smári): Handle requests where TextType is not supplied
+    # If TextType is not supplied, we assume by default that we should synthesize normal text.
+    synthesize_ssml: bool = kwargs.get("TextType") != None and kwargs.get("TextType") == "ssml"
     try:
         return Response(
             stream_with_context(
                 voice.synthesize(
                     text=text,
-                    ssml=(kwargs.get("TextType") == "ssml"),
+                    ssml=synthesize_ssml,
                     **kwargs,
                 )
             ),
