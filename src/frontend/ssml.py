@@ -72,11 +72,8 @@ class OldSSMLParser(HTMLParser):
                     "'phoneme' tag has to have 'alphabet' and 'ph' attributes using "
                     "supported alphabets"
                 )
-            try:
-                # We will attempt an alignment (which is required later on). If that fails, the phone sequence (ph) is illegal.
-                align_ipa_from_xsampa(attrs_map.get("ph"))
-            except Exception as e:
-                raise SSMLValidationException("<phoneme> error: Illegal phoneme sequence in 'ph' attribute\n{}".format(e))
+            # A check whether the phone sequence (ph) is valid, is made at a later stage in PhonemeProps:get_phone_sequence
+            # during consumption.
 
         self._tag_stack.append(tag)
 

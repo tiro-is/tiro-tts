@@ -87,6 +87,8 @@ IPA_XSAMPA_MAP = {
 
 XSAMPA_IPA_MAP = {val: key for key, val in IPA_XSAMPA_MAP.items()}
 
+XSAMPA_SYLL_STRESS_PHONEMES = set([*list(XSAMPA_IPA_MAP.keys()), "."])
+
 DEFAULT_PHONEMES = IPA_XSAMPA_MAP.keys()
 
 XSAMPA_VOWELS = {
@@ -193,6 +195,7 @@ class Aligner:
 
 ALIGNER_IPA = Aligner(phoneme_set=set(IPA_XSAMPA_MAP.keys()))
 ALIGNER_XSAMPA = Aligner(phoneme_set=set(XSAMPA_IPA_MAP.keys()))
+ALIGNER_XSAMPA_SYLL_STRESS = Aligner(phoneme_set=XSAMPA_SYLL_STRESS_PHONEMES)
 
 
 def convert_ipa_to_xsampa(phoneme: PhoneSeq) -> PhoneSeq:

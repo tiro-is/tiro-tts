@@ -17,7 +17,7 @@ import string
 import unicodedata
 import urllib.parse
 from abc import ABC, abstractmethod
-from typing import Dict, Iterable, List, Tuple, Union, cast
+from typing import Dict, Iterable, List, Literal, Tuple, cast
 
 import grpc
 import tokenizer
@@ -31,7 +31,7 @@ from src.frontend.words import WORD_SENTENCE_SEPARATOR, SSMLProps, Word
 
 class NormalizerBase(ABC):
     @abstractmethod
-    def normalize(self, text: str, text_is_ssml: bool) -> Iterable[Word]:
+    def normalize(self, text: str, ssml_reqs: Dict) -> Iterable[Word]:
         return NotImplemented
 
 
@@ -125,7 +125,7 @@ def parse_ssml(ssml) -> Tuple[str, List[Word]]:
     return text
 
 class BasicNormalizer(NormalizerBase):
-    def normalize(self, text: str, text_is_ssml: bool = False):
+    def normalize(self, text: str, ssml_reqs: Dict = None):
         return _tokenize(text)
 
 
@@ -141,8 +141,8 @@ class GrammatekNormalizer(NormalizerBase):
             raise ValueError("Unsupported scheme in address '%s'", address)
         self._stub = tts_frontend_service_pb2_grpc.TTSFrontendStub(self._channel)
 
-    def normalize(self, text: str, text_is_ssml: bool):
-        if text_is_ssml:
+    def normalize(self, text: str, ssml_reqs: Dict):
+        if ssml_reqs["process_as_ssml"]:
             ssml_str = text
             text = parse_ssml(ssml_str)
 
@@ -163,8 +163,8 @@ class GrammatekNormalizer(NormalizerBase):
                 ]
             )
         
-        if text_is_ssml:
-            return self._normalize_ssml(ssml_str, sentences_with_pairs)
+        if ssml_reqs["process_as_ssml"]:
+            return self._normalize_ssml(ssml_str, sentences_with_pairs, ssml_reqs["alphabet"])
         else:
             return self._normalize_text(text, sentences_with_pairs)
     
@@ -189,7 +189,10 @@ class GrammatekNormalizer(NormalizerBase):
 
 
 
-    def _normalize_ssml(self, ssml: str, sentences_with_pairs: List[List[Tuple[str, str]]]):
+    def _normalize_ssml(self, ssml: str, sentences_with_pairs: List[List[Tuple[str, str]]], alphabet: Literal["ipa", "x-sampa", "x-sampa+syll+stress"]):
+        if alphabet not in ["ipa", "x-sampa", "x-sampa+syll+stress"]:
+            raise Exception("Illegal alphabet choice: {}".format(alphabet))
+
         consumer = SSMLConsumer(ssml=ssml)
         acc_consumption_status: List[Dict] = []
         for sent in sentences_with_pairs:
@@ -218,7 +221,7 @@ class GrammatekNormalizer(NormalizerBase):
                             symbol=normalized,
                             start_byte_offset=acc_consumption_status[0]["start_byte_offset"],
                             end_byte_offset=acc_consumption_status[-1]["end_byte_offset"],
-                            phone_sequence=ssml_props.get_phone_sequence(),
+                            phone_sequence=ssml_props.get_phone_sequence(alphabet),
                             ssml_props=ssml_props,
                         )
                     else:
@@ -231,7 +234,7 @@ class GrammatekNormalizer(NormalizerBase):
 
                             start_byte_offset=consumption_status["start_byte_offset"],
                             end_byte_offset=consumption_status["end_byte_offset"],
-                            phone_sequence=ssml_props.get_phone_sequence(),
+                            phone_sequence=ssml_props.get_phone_sequence(alphabet),
                             ssml_props=ssml_props,
                         )
 

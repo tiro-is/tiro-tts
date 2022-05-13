@@ -131,26 +131,22 @@ class Espnet2Synthesizer:
         ssml: bool = False,
         emit_speech_marks: bool = False,
         sample_rate: int = 22050,
-        # TODO(rkjaran): remove once we support normalization with SSML in a generic
-        #   way. Also remove it from FastSpeech2Voice
-        handle_embedded_phonemes: bool = False,
     ) -> Iterable[bytes]:
         if emit_speech_marks:
             raise NotImplementedError("This backend doesn't support speech marks!")
-
-        normalize_fn = (
-            self._normalizer.normalize
-            if not handle_embedded_phonemes
-            else BasicNormalizer().normalize
-        )
 
         def phonetize_fn(*args, **kwargs):
             return self._phonetizer.translate_words(
                 *args, **kwargs, alphabet=self._alphabet
             )
 
+        ssml_reqs: Dict = {
+            "process_as_ssml": ssml,
+            "alphabet": self._alphabet
+        }
+
         for segment_words, phone_seq, phone_counts in preprocess_sentences(
-            text, ssml, normalize_fn, phonetize_fn
+            text, ssml_reqs, self._normalizer.normalize, phonetize_fn
         ):
             batch = espnet2_to_device(
                 {
@@ -198,7 +194,7 @@ class Espnet2Voice(VoiceBase):
             return False
 
     def _synthesize(
-        self, text: str, handle_embedded_phonemes=False, **kwargs
+        self, text: str, ssml: bool, **kwargs
     ) -> Iterable[bytes]:
         # TODO(rkjaran): This is mostly the same for all (both) local
         #   backends... Refactor.
@@ -207,9 +203,9 @@ class Espnet2Voice(VoiceBase):
 
         for chunk in self._backend.synthesize(
             text,
+            ssml=ssml,
             emit_speech_marks=kwargs["OutputFormat"] == "json",
             sample_rate=int(kwargs["SampleRate"]),
-            handle_embedded_phonemes=handle_embedded_phonemes,
         ):
             if current_app.config["USE_FFMPEG"]:
                 if kwargs["OutputFormat"] == "ogg_vorbis":
@@ -229,7 +225,7 @@ class Espnet2Voice(VoiceBase):
 
     def synthesize(self, text: str, ssml: bool = False, **kwargs) -> Iterable[bytes]:
         """Synthesize audio from a string of characters."""
-        return self._synthesize(text, **kwargs)
+        return self._synthesize(text=text, ssml=ssml, **kwargs)
 
     @property
     def properties(self) -> VoiceProperties:

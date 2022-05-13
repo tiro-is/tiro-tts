@@ -189,8 +189,13 @@ class FastSpeech2Synthesizer:
                 *args, **kwargs, alphabet=self._alphabet
             )
 
+        ssml_reqs: typing.Dict = {
+            "process_as_ssml": ssml,
+            "alphabet": self._alphabet
+        }
+
         for segment_words, phone_seq, phone_counts in preprocess_sentences(
-            text_string, ssml, self._normalizer.normalize, phonetize_fn
+            text_string, ssml_reqs, self._normalizer.normalize, phonetize_fn
         ):
             text_seq = torch.tensor(
                 [[FASTSPEECH2_SYMBOLS[phoneme] for phoneme in phone_seq]],

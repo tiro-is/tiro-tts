@@ -67,7 +67,7 @@ class SSMLConsumer:
             alphabet: str = re.findall(r"alphabet\s*=\s*(\"|'{1}(x-sampa|ipa)(\"|'){1})", tag_val)
             ph: str = re.findall(r"ph\s*=\s*(\"|'{1}(.*?)(\"|'){1})", tag_val)
 
-            # Note: This should already be sanitized by SSMLPArser during instance initilization of this class.
+            # Note: This should already be sanitized by SSMLParser earlier in the process.
             err_msg: str = "phoneme tag did not supply the required attributes!"
             if len(alphabet) == 0 or len(ph) == 0:
                 raise Exception(err_msg)

@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import json
-from typing import Callable, Iterable, List, Literal, Tuple
+from typing import Callable, Dict, Iterable, List, Literal, Tuple
 
 import tokenizer
 
 from src.frontend.lexicon import LangID
-from src.frontend.phonemes import PhoneSeq, align_ipa_from_xsampa
+from src.frontend.phonemes import ALIGNER_XSAMPA, ALIGNER_XSAMPA_SYLL_STRESS, align_ipa_from_xsampa, PhoneSeq
 
 class SSMLProps:
     tag_type: Literal["speak", "phoneme"] = ""
@@ -61,10 +61,27 @@ class PhonemeProps(SSMLProps):
     def is_multi(self) -> bool:
         return len(self.data.split()) > 1
 
-    def get_phone_sequence(self) -> List[str]:
+    def get_phone_sequence(self, alphabet: Literal["ipa", "x-sampa", "x-sampa+syll+stress"]) -> List[str]:
+        if alphabet not in ["ipa", "x-sampa", "x-sampa+syll+stress"]:
+            raise Exception("Illegal alphabet choice: {}".format(alphabet))
+        
         if not self.read:
             self.read = True
-            return align_ipa_from_xsampa(self.ph).split()
+
+            # SSML markup only allows x-sampa phone sequences in the phoneme tags. Some models,
+            # like Fastspeech, only accept IPA phone sequences and, therefore, this function
+            # offers conversion from x-sampa to IPA if required.
+
+            try:
+                # If alignment fails, the phone sequence (ph) is illegal.
+                if alphabet == "ipa":
+                    return align_ipa_from_xsampa(self.ph).split()
+                if alphabet == "x-sampa":
+                    return ALIGNER_XSAMPA.align(self.ph).split()
+                if alphabet == "x-sampa+syll+stress":
+                    return ALIGNER_XSAMPA_SYLL_STRESS.align(self.ph).split()
+            except Exception as e:
+                raise Exception("<phoneme> error: Illegal phoneme sequence in 'ph' attribute\n{}".format(e))
         return []
 
     def __repr__(self):
@@ -160,7 +177,7 @@ MAX_WORDS_PER_SEGMENT = 30
 
 def preprocess_sentences(
     text_string: str,
-    ssml: bool,
+    ssml_reqs: Dict,
     normalize_fn: Callable[[str], Iterable[Word]],
     translator_fn: Callable[[Iterable[Word]], Iterable[Word]],
 ) -> Iterable[Tuple[List[List[Word]], PhoneSeq, List[int]]]:
@@ -173,7 +190,7 @@ def preprocess_sentences(
 
     """
     # TODO(rkjaran): The language code shouldn't be hardcoded here.
-    words = list(translator_fn(normalize_fn(text_string, ssml), LangID("is-IS")))
+    words = list(translator_fn(normalize_fn(text_string, ssml_reqs), LangID("is-IS")))
     sentences: List[List[Word]] = [[]]
     for idx, word in enumerate(words):
         if word == WORD_SENTENCE_SEPARATOR:
