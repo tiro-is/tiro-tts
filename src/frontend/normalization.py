@@ -23,6 +23,7 @@ import grpc
 import tokenizer
 from messages import tts_frontend_message_pb2
 from services import tts_frontend_service_pb2, tts_frontend_service_pb2_grpc
+from tokenizer import Tok
 
 from src.frontend.common import consume_whitespace, SSMLConsumer, utf8_byte_length
 from src.frontend.ssml import OldSSMLParser as SSMLParser
@@ -33,6 +34,68 @@ class NormalizerBase(ABC):
     @abstractmethod
     def normalize(self, text: str, ssml_reqs: Dict) -> Iterable[Word]:
         return NotImplemented
+
+    def _parse_ssml(self, ssml: str) -> str:
+        """Sanitizes and isolates text from SSML"""
+        parser = SSMLParser()
+        parser.feed(ssml)
+        text: str = parser.get_text()
+        parser.close()
+        return text
+
+    def _normalize_ssml(self,
+                        ssml: str,
+                        sentences_with_pairs: List[List[Tuple[str, str]]],
+                        alphabet: Literal["ipa", "x-sampa", "x-sampa+syll+stress"]):
+        if alphabet not in ["ipa", "x-sampa", "x-sampa+syll+stress"]:
+            raise Exception("Illegal alphabet choice: {}".format(alphabet))
+
+        consumer = SSMLConsumer(ssml=ssml)
+        acc_consumption_status: List[Dict] = []
+        for sent in sentences_with_pairs:
+            for original, normalized in sent:
+                consumption_status = consumer.consume(original)
+                ssml_props: SSMLProps = consumption_status["ssml_props"]
+                if ssml_props.tag_type == "speak":
+                    yield Word(
+                        original_symbol=original,
+                        symbol=normalized,
+                        start_byte_offset=consumption_status["start_byte_offset"],
+                        end_byte_offset=consumption_status["end_byte_offset"],
+                        ssml_props=ssml_props,
+                    )
+                elif ssml_props.tag_type == "phoneme":
+                    if ssml_props.is_multi():
+                        # If a phoneme tags contains more than a single word, we must accumulate
+                        # all of them and yield them as a single Word.
+
+                        acc_consumption_status.append(consumption_status)
+                        if not ssml_props.data_last_word:
+                            continue
+
+                        yield Word(
+                            original_symbol=ssml_props.data,
+                            symbol=normalized,
+                            start_byte_offset=acc_consumption_status[0]["start_byte_offset"],
+                            end_byte_offset=acc_consumption_status[-1]["end_byte_offset"],
+                            phone_sequence=ssml_props.get_phone_sequence(alphabet),
+                            ssml_props=ssml_props,
+                        )
+                    else:
+                        yield Word(
+                            original_symbol=original,
+
+                            # Will not be used during translation but is required for an edge case where
+                            # a "." or "," token is contained within a phoneme tag.
+                            symbol=normalized,
+
+                            start_byte_offset=consumption_status["start_byte_offset"],
+                            end_byte_offset=consumption_status["end_byte_offset"],
+                            phone_sequence=ssml_props.get_phone_sequence(alphabet),
+                            ssml_props=ssml_props,
+                        )
+
+            yield WORD_SENTENCE_SEPARATOR
 
 
 def add_token_offsets(
@@ -114,19 +177,26 @@ def _tokenize(text: str) -> Iterable[Word]:
                     end_byte_offset=end_byte_offset,
                 )
 
-
-def parse_ssml(ssml) -> Tuple[str, List[Word]]:
-    """Sanitizes and isolates text from SSML"""
-    
-    parser = SSMLParser()
-    parser.feed(ssml)
-    text: str = parser.get_text()
-    parser.close()
-    return text
-
 class BasicNormalizer(NormalizerBase):
     def normalize(self, text: str, ssml_reqs: Dict = None):
-        return _tokenize(text)
+        if ssml_reqs != None and ssml_reqs["process_as_ssml"]:
+            ssml_str = text
+            text = self._parse_ssml(ssml_str)
+
+            tok_lis: List[Tok] = list(tokenizer.tokenize_without_annotation(text))
+            sentences_with_pairs: List[List[Tuple[str, str]]] = []
+            for tok in tok_lis:
+                if tok.kind == tokenizer.TOK.S_BEGIN:
+                    sentences_with_pairs.append([])
+                    continue
+                elif tok.kind == tokenizer.TOK.S_END:
+                    continue
+                
+                token: str = tok.original.strip()
+                sentences_with_pairs[-1].append((token, token))
+            return self._normalize_ssml(ssml_str, sentences_with_pairs, ssml_reqs["alphabet"])
+        else:
+            return _tokenize(text)
 
 
 class GrammatekNormalizer(NormalizerBase):
@@ -142,9 +212,11 @@ class GrammatekNormalizer(NormalizerBase):
         self._stub = tts_frontend_service_pb2_grpc.TTSFrontendStub(self._channel)
 
     def normalize(self, text: str, ssml_reqs: Dict):
-        if ssml_reqs["process_as_ssml"]:
+        process_as_ssml: bool = False
+        if ssml_reqs != None and ssml_reqs["process_as_ssml"]:
+            process_as_ssml = True
             ssml_str = text
-            text = parse_ssml(ssml_str)
+            text = self._parse_ssml(ssml_str)
 
         response: tts_frontend_message_pb2.TokenBasedNormalizedResponse = (
             self._stub.NormalizeTokenwise(
@@ -163,7 +235,7 @@ class GrammatekNormalizer(NormalizerBase):
                 ]
             )
         
-        if ssml_reqs["process_as_ssml"]:
+        if process_as_ssml:
             return self._normalize_ssml(ssml_str, sentences_with_pairs, ssml_reqs["alphabet"])
         else:
             return self._normalize_text(text, sentences_with_pairs)
@@ -185,57 +257,4 @@ class GrammatekNormalizer(NormalizerBase):
                 )
                 n_bytes_consumed += token_byte_len
                 text_view = text_view[n_chars_whitespace + len(original) :]
-            yield WORD_SENTENCE_SEPARATOR
-
-
-
-    def _normalize_ssml(self, ssml: str, sentences_with_pairs: List[List[Tuple[str, str]]], alphabet: Literal["ipa", "x-sampa", "x-sampa+syll+stress"]):
-        if alphabet not in ["ipa", "x-sampa", "x-sampa+syll+stress"]:
-            raise Exception("Illegal alphabet choice: {}".format(alphabet))
-
-        consumer = SSMLConsumer(ssml=ssml)
-        acc_consumption_status: List[Dict] = []
-        for sent in sentences_with_pairs:
-            for original, normalized in sent:
-                consumption_status = consumer.consume(original)
-                ssml_props: SSMLProps = consumption_status["ssml_props"]
-                if ssml_props.tag_type == "speak":
-                    yield Word(
-                        original_symbol=original,
-                        symbol=normalized,
-                        start_byte_offset=consumption_status["start_byte_offset"],
-                        end_byte_offset=consumption_status["end_byte_offset"],
-                        ssml_props=ssml_props,
-                    )
-                elif ssml_props.tag_type == "phoneme":
-                    if ssml_props.is_multi():
-                        # If a phoneme tags contains more than a single word, we must accumulate
-                        # all of them and yield them as a single Word.
-
-                        acc_consumption_status.append(consumption_status)
-                        if not ssml_props.data_last_word:
-                            continue
-
-                        yield Word(
-                            original_symbol=ssml_props.data,
-                            symbol=normalized,
-                            start_byte_offset=acc_consumption_status[0]["start_byte_offset"],
-                            end_byte_offset=acc_consumption_status[-1]["end_byte_offset"],
-                            phone_sequence=ssml_props.get_phone_sequence(alphabet),
-                            ssml_props=ssml_props,
-                        )
-                    else:
-                        yield Word(
-                            original_symbol=original,
-
-                            # Will not be used during translation but is required for an edge case where
-                            # a "." or "," token is contained within a phoneme tag.
-                            symbol=normalized,
-
-                            start_byte_offset=consumption_status["start_byte_offset"],
-                            end_byte_offset=consumption_status["end_byte_offset"],
-                            phone_sequence=ssml_props.get_phone_sequence(alphabet),
-                            ssml_props=ssml_props,
-                        )
-
             yield WORD_SENTENCE_SEPARATOR
