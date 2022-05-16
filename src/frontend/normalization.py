@@ -142,40 +142,21 @@ def _tokenize(text: str) -> Iterable[Word]:
         default initialized Word represents a sentence boundary.
 
     """
-    # TODO(rkjaran): This doesn't handle embedded phonemes properly, but the
-    #                previous version didn't either.
     tokens = list(tokenizer.tokenize_without_annotation(text))
 
-    current_word_segments = []
-    phoneme_str_open = False
     for tok, start_byte_offset, end_byte_offset in add_token_offsets(tokens):
         if tok.kind == tokenizer.TOK.S_END:
-            # yield WORD_SENTENCE_SEPARATOR
+            yield WORD_SENTENCE_SEPARATOR
             continue
 
         w = cast(str, tok.original).strip()
-        if phoneme_str_open:
-            current_word_segments.append(w)
-            if w.endswith("}"):
-                yield Word(
-                    original_symbol="".join(current_word_segments),
-                    symbol="".join(current_word_segments),
-                    start_byte_offset=start_byte_offset,
-                    end_byte_offset=end_byte_offset,
-                )
-                phoneme_str_open = False
-                current_word_segments = []
-        elif not phoneme_str_open:
-            if w.startswith("{") and not w.endswith("}"):
-                current_word_segments.append(w)
-                phoneme_str_open = True
-            else:
-                yield Word(
-                    original_symbol=w,
-                    symbol=w,
-                    start_byte_offset=start_byte_offset,
-                    end_byte_offset=end_byte_offset,
-                )
+        yield Word(
+            original_symbol=w,
+            symbol=w,
+            start_byte_offset=start_byte_offset,
+            end_byte_offset=end_byte_offset,
+        )
+                
 
 class BasicNormalizer(NormalizerBase):
     def normalize(self, text: str, ssml_reqs: Dict = None):
