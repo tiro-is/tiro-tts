@@ -144,6 +144,42 @@ def test_synthesize_ssml_phoneme_sanity(client):
     # And each sample is two bytes
     assert len(pcm_data) % 2 == 0
 
+def test_speechmarks_fastspeech(client):
+    res = client.post(
+        "/v0/speech",
+        json={
+            "OutputFormat": "json",
+            "SampleRate": "22050",
+            "Text": "Honum var sagt að grænmetið kostaði kr. 22000 og þótti það ekki mikið.",
+            "TextType": "text",
+            "SpeechMarkTypes": ["word"],
+            "VoiceId": "Alfur",
+        },
+    )
+
+    data = res.get_data(as_text=True).split("\n")
+    marks = [json.loads(line) for line in data if line.strip()]
+    marks_filtered = [{"start": mark["start"], "end": mark["end"], "value": mark["value"]} for mark in marks]
+
+    marks_expected: List[Dict] = [
+        {"start": 0, "end": 5, "value": "Honum"},
+        {"start": 6, "end": 9, "value": "var"},
+        {"start": 10, "end": 14, "value": "sagt"},
+        {"start": 15, "end": 18, "value": "að"},
+        {"start": 19, "end": 30, "value": "grænmetið"},
+        {"start": 31, "end": 39, "value": "kostaði"},
+        {"start": 40, "end": 43, "value": "kr."},
+        {"start": 44, "end": 49, "value": "22000"},
+        {"start": 50, "end": 52, "value": "og"},
+        {"start": 53, "end": 60, "value": "þótti"},
+        {"start": 61, "end": 66, "value": "það"},
+        {"start": 67, "end": 71, "value": "ekki"},
+        {"start": 72, "end": 78, "value": "mikið"},
+    ]
+
+    assert len(marks_filtered) == len(marks_expected)
+    for original_mark, expected_mark in zip(marks_filtered, marks_expected):
+        assert original_mark == expected_mark
 
 def test_ssml_speechmarks_fastspeech_01(client):
     res = client.post(
