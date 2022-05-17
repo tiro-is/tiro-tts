@@ -204,6 +204,7 @@ class TestTokenize:
             '{"time": 0, "type": "word", "start": 10, "end": 17, "value": "notuðu"}',
             '{"time": 0, "type": "word", "start": 18, "end": 27, "value": "áttavita"}',
             '{"time": 0, "type": "word", "start": 27, "end": 28, "value": "."}',
+            '{"time": 0, "type": "word", "start": 0, "end": 0, "value": ""}',
         ]
 
     def test_short_sentence_02(self):
@@ -217,6 +218,7 @@ class TestTokenize:
             '{"time": 0, "type": "word", "start": 20, "end": 25, "value": "mörg"}',
             '{"time": 0, "type": "word", "start": 26, "end": 35, "value": "verðlaun"}',
             '{"time": 0, "type": "word", "start": 35, "end": 36, "value": "."}',
+            '{"time": 0, "type": "word", "start": 0, "end": 0, "value": ""}',
         ]
 
     def test_sentence_01(self):
@@ -245,6 +247,7 @@ class TestTokenize:
             '{"time": 0, "type": "word", "start": 94, "end": 96, "value": "og"}',
             '{"time": 0, "type": "word", "start": 97, "end": 115, "value": "mannætuköngulóm"}',
             '{"time": 0, "type": "word", "start": 115, "end": 116, "value": "."}',
+            '{"time": 0, "type": "word", "start": 0, "end": 0, "value": ""}',
         ]
 
     def test_sentence_02(self):
@@ -274,6 +277,7 @@ class TestTokenize:
             '{"time": 0, "type": "word", "start": 143, "end": 145, "value": "af"}',
             '{"time": 0, "type": "word", "start": 146, "end": 159, "value": "minnihlutanum"}',
             '{"time": 0, "type": "word", "start": 159, "end": 160, "value": "."}',
+            '{"time": 0, "type": "word", "start": 0, "end": 0, "value": ""}',
         ]
 
     def test_sentence_foreign_char(self):
@@ -287,6 +291,7 @@ class TestTokenize:
             '{"time": 0, "type": "word", "start": 19, "end": 24, "value": "nógu"}',
             '{"time": 0, "type": "word", "start": 25, "end": 38, "value": "kдrlmannlegt"}',
             '{"time": 0, "type": "word", "start": 38, "end": 39, "value": "."}',
+            '{"time": 0, "type": "word", "start": 0, "end": 0, "value": ""}',
         ]
 
     def test_num_char(self):
@@ -308,4 +313,5 @@ class TestTokenize:
             '{"time": 0, "type": "word", "start": 25, "end": 27, "value": "í"}',
             '{"time": 0, "type": "word", "start": 28, "end": 29, "value": "7"}',
             '{"time": 0, "type": "word", "start": 29, "end": 30, "value": "."}',
+            '{"time": 0, "type": "word", "start": 0, "end": 0, "value": ""}',
         ]

@@ -104,10 +104,6 @@ class PhonemeProps(SSMLProps):
 
 class Word:
     """A wrapper for individual symbol and its metadata."""
-
-    # Idea|TODO (Smári): Add has_custom_phone_seq: bool for Words derived from <phoneme> SSML tags.
-    # Idea TODO (Smári): Better even: Have a ssml_props dictionary with this information and the possibility to easily add more SSML info as we
-    #                    add more SSML support.
     def __init__(
         self,
         original_symbol: str = "",
