@@ -21,10 +21,11 @@ import pytest
 @pytest.fixture(scope="session")
 def dut_app():
     os.environ["TIRO_TTS_SYNTHESIS_SET_PB"] = "src/tests/synthesis_set_test.pbtxt"
-    
+
     from src import init_app
+
     app = init_app()
-    
+
     app.config.update(
         {
             "TESTING": True,
@@ -144,6 +145,7 @@ def test_synthesize_ssml_phoneme_sanity(client):
     # And each sample is two bytes
     assert len(pcm_data) % 2 == 0
 
+
 def test_speechmarks_fastspeech(client):
     res = client.post(
         "/v0/speech",
@@ -159,7 +161,10 @@ def test_speechmarks_fastspeech(client):
 
     data = res.get_data(as_text=True).split("\n")
     marks = [json.loads(line) for line in data if line.strip()]
-    marks_filtered = [{"start": mark["start"], "end": mark["end"], "value": mark["value"]} for mark in marks]
+    marks_filtered = [
+        {"start": mark["start"], "end": mark["end"], "value": mark["value"]}
+        for mark in marks
+    ]
 
     marks_expected: List[Dict] = [
         {"start": 0, "end": 5, "value": "Honum"},
@@ -181,6 +186,7 @@ def test_speechmarks_fastspeech(client):
     for original_mark, expected_mark in zip(marks_filtered, marks_expected):
         assert original_mark == expected_mark
 
+
 def test_ssml_speechmarks_fastspeech_01(client):
     res = client.post(
         "/v0/speech",
@@ -196,7 +202,10 @@ def test_ssml_speechmarks_fastspeech_01(client):
 
     data = res.get_data(as_text=True).split("\n")
     marks = [json.loads(line) for line in data if line.strip()]
-    marks_filtered = [{"start": mark["start"], "end": mark["end"], "value": mark["value"]} for mark in marks]
+    marks_filtered = [
+        {"start": mark["start"], "end": mark["end"], "value": mark["value"]}
+        for mark in marks
+    ]
 
     marks_expected: List[Dict] = [
         {"start": 7, "end": 10, "value": "Hæ"},
@@ -230,7 +239,10 @@ def test_ssml_speechmarks_fastspeech_02(client):
 
     data = res.get_data(as_text=True).split("\n")
     marks = [json.loads(line) for line in data if line.strip()]
-    marks_filtered = [{"start": mark["start"], "end": mark["end"], "value": mark["value"]} for mark in marks]
+    marks_filtered = [
+        {"start": mark["start"], "end": mark["end"], "value": mark["value"]}
+        for mark in marks
+    ]
 
     marks_expected: List[Dict] = [
         {"start": 7, "end": 11, "value": "Alls"},
@@ -253,6 +265,7 @@ def test_ssml_speechmarks_fastspeech_02(client):
     for original_mark, expected_mark in zip(marks_filtered, marks_expected):
         assert original_mark == expected_mark
 
+
 def test_ssml_speechmarks_fastspeech_03(client):
     res = client.post(
         "/v0/speech",
@@ -268,7 +281,10 @@ def test_ssml_speechmarks_fastspeech_03(client):
 
     data = res.get_data(as_text=True).split("\n")
     marks = [json.loads(line) for line in data if line.strip()]
-    marks_filtered = [{"start": mark["start"], "end": mark["end"], "value": mark["value"]} for mark in marks]
+    marks_filtered = [
+        {"start": mark["start"], "end": mark["end"], "value": mark["value"]}
+        for mark in marks
+    ]
 
     marks_expected: List[Dict] = [
         {"start": 45, "end": 48, "value": "Afi"},

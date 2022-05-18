@@ -140,10 +140,7 @@ class Espnet2Synthesizer:
                 *args, **kwargs, alphabet=self._alphabet
             )
 
-        ssml_reqs: Dict = {
-            "process_as_ssml": ssml,
-            "alphabet": self._alphabet
-        }
+        ssml_reqs: Dict = {"process_as_ssml": ssml, "alphabet": self._alphabet}
 
         for segment_words, phone_seq, phone_counts in preprocess_sentences(
             text, ssml_reqs, self._normalizer.normalize, phonetize_fn
@@ -193,9 +190,7 @@ class Espnet2Voice(VoiceBase):
         except KeyError:
             return False
 
-    def _synthesize(
-        self, text: str, ssml: bool, **kwargs
-    ) -> Iterable[bytes]:
+    def _synthesize(self, text: str, ssml: bool, **kwargs) -> Iterable[bytes]:
         # TODO(rkjaran): This is mostly the same for all (both) local
         #   backends... Refactor.
         if not self._is_valid(**kwargs):

@@ -24,8 +24,10 @@ from src.frontend.words import PhonemeProps, SpeakProps, Word
 #       b) Do all tag attributes fullfil their requirements?
 #       c) Are there any tags with no text where it must be present?
 
+
 class SSMLValidationException(Exception):
     ...
+
 
 class OldSSMLParser(HTMLParser):
     _ALLOWED_TAGS = ["speak", "phoneme"]
@@ -53,18 +55,24 @@ class OldSSMLParser(HTMLParser):
             raise SSMLValidationException("Illegal SSML! Maximum nesting level is 2.")
 
         if tag not in OldSSMLParser._ALLOWED_TAGS:
-            raise SSMLValidationException("Unsupported tag encountered: '{}'".format(tag))
+            raise SSMLValidationException(
+                "Unsupported tag encountered: '{}'".format(tag)
+            )
 
         if tag in self._tag_stack:
             # If tag type is already in the stack, that means that we are adding some type of tag
             # nested within itself, which is illegal.
             # Example:
             #           "<speak>Halló, hvað segir<speak> þú</speak> gott?</speak>"
-            raise SSMLValidationException("Illegal SSML! Nesting a tag of the same type as a higher level tag not allowed.")
-        
+            raise SSMLValidationException(
+                "Illegal SSML! Nesting a tag of the same type as a higher level tag not allowed."
+            )
+
         if tag == "speak":
             if len(attrs) > 0:
-                raise SSMLValidationException("Illegal SSML! speak tag does not take any attributes!")
+                raise SSMLValidationException(
+                    "Illegal SSML! speak tag does not take any attributes!"
+                )
         elif tag == "phoneme":
             attrs_map = dict(attrs)
             if attrs_map.get("alphabet") != "x-sampa" or "ph" not in attrs_map:
@@ -80,7 +88,9 @@ class OldSSMLParser(HTMLParser):
     def handle_endtag(self, tag):
         open_tag = self._tag_stack.pop()
         if open_tag != tag:
-            raise SSMLValidationException("Invalid closing tag '{}' for '{}'".format(tag, open_tag))
+            raise SSMLValidationException(
+                "Invalid closing tag '{}' for '{}'".format(tag, open_tag)
+            )
 
     def handle_data(self, data):
         # Raise a SSMLValidationException if we haven't seen the initial <speak> tag
@@ -88,11 +98,13 @@ class OldSSMLParser(HTMLParser):
 
         if len(self._tag_stack) == 0:
             # An empty tag queue means that all tags have been popped and their contents processed.
-            # If, at this point, we enter this function with some data, it must be outside of the 
+            # If, at this point, we enter this function with some data, it must be outside of the
             # markup, coming after the final speak tag. That is illegal.
             # _check_first_tag() makes sure this doesn't happen in the other end (text outside of markup
             # before the first speak tag).
-            raise SSMLValidationException("Illegal SSML! All text must be contained within SSML tags.")
+            raise SSMLValidationException(
+                "Illegal SSML! All text must be contained within SSML tags."
+            )
 
         self._text.append(data)
 
@@ -106,7 +118,7 @@ class OldSSMLParser(HTMLParser):
 
         if len(self._tag_stack) > 0:
             raise SSMLValidationException("Not all tags were closed, malformed SSML.")
-        
+
         text: str = "".join(self._text)
         if len(text) == 0:
             raise SSMLValidationException("The SSML did not contain any text!")

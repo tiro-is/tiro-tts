@@ -68,21 +68,17 @@ class GraphemeToPhonemeTranslatorBase(ABC):
 
         ssml_tag_skiplist: List[str] = ["phoneme"]
         for word in words:
-            
+
             # A translation will occur iff:
             #   a) We are not dealing with SSML and the Word is not a WORD_SENTENCE_SEPARATOR.
-            #   b) We are dealing with SSML and the Word is not derived from a tag which is 
+            #   b) We are dealing with SSML and the Word is not derived from a tag which is
             #      listed in the skiplist and the Word must not be a WORD_SENTENCE_SEPARATOR.
             should_translate: bool = (
-                (                                                           #a)
-                    not word.is_from_ssml() and
-                    word != WORD_SENTENCE_SEPARATOR
-                ) or
-                (
-                    word.is_from_ssml() and                                 #b)
-                    word.ssml_props.tag_type not in ssml_tag_skiplist and
-                    word != WORD_SENTENCE_SEPARATOR    
-                )
+                not word.is_from_ssml() and word != WORD_SENTENCE_SEPARATOR # a)
+            ) or (
+                word.is_from_ssml()                                         # b)
+                and word.ssml_props.tag_type not in ssml_tag_skiplist
+                and word != WORD_SENTENCE_SEPARATOR
             )
 
             if should_translate:
@@ -141,11 +137,15 @@ class EmbeddedPhonemeTranslatorBase(GraphemeToPhonemeTranslatorBase):
                 phone_seq.append(phone)
             elif not phoneme_str_open:
                 if w.startswith("{") and w.endswith("}"):
-                    cur_phone_seq = aligner.align(w.replace("{", "").replace("}", "")).split(" ")
+                    cur_phone_seq = aligner.align(
+                        w.replace("{", "").replace("}", "")
+                    ).split(" ")
                     if alphabet != "ipa":
                         cur_phone_seq = convert_ipa_to_xsampa(cur_phone_seq)
                         if alphabet == "x-sampa+syll+stress":
-                            cur_phone_seq = convert_xsampa_to_xsampa_with_stress(cur_phone_seq, "")
+                            cur_phone_seq = convert_xsampa_to_xsampa_with_stress(
+                                cur_phone_seq, ""
+                            )
                     phone_seq.extend(cur_phone_seq)
                 elif w.startswith("{"):
                     phone = w.replace("{", "")

@@ -136,7 +136,9 @@ def route_synthesize_speech(**kwargs):
         abort(400)
 
     # If TextType is not supplied, we assume by default that we should synthesize normal text.
-    synthesize_ssml: bool = kwargs.get("TextType") != None and kwargs.get("TextType") == "ssml"
+    synthesize_ssml: bool = (
+        kwargs.get("TextType") != None and kwargs.get("TextType") == "ssml"
+    )
     try:
         return Response(
             stream_with_context(

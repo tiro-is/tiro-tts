@@ -189,10 +189,7 @@ class FastSpeech2Synthesizer:
                 *args, **kwargs, alphabet=self._alphabet
             )
 
-        ssml_reqs: typing.Dict = {
-            "process_as_ssml": ssml,
-            "alphabet": self._alphabet
-        }
+        ssml_reqs: typing.Dict = {"process_as_ssml": ssml, "alphabet": self._alphabet}
 
         for segment_words, phone_seq, phone_counts in preprocess_sentences(
             text_string, ssml_reqs, self._normalizer.normalize, phonetize_fn
@@ -266,9 +263,7 @@ class FastSpeech2Voice(VoiceBase):
         except KeyError:
             return False
 
-    def _synthesize(
-        self, text: str, ssml: bool, **kwargs
-    ) -> typing.Iterable[bytes]:
+    def _synthesize(self, text: str, ssml: bool, **kwargs) -> typing.Iterable[bytes]:
         if not self._is_valid(**kwargs):
             raise ValueError("Synthesize request not valid")
 
@@ -294,7 +289,9 @@ class FastSpeech2Voice(VoiceBase):
             if kwargs["OutputFormat"] in ("pcm", "json"):
                 yield chunk
 
-    def synthesize(self, text: str, ssml: bool = False, **kwargs) -> typing.Iterable[bytes]:
+    def synthesize(
+        self, text: str, ssml: bool = False, **kwargs
+    ) -> typing.Iterable[bytes]:
         """Synthesize audio from a string of characters or SSML markup."""
         return self._synthesize(text=text, ssml=ssml, **kwargs)
 

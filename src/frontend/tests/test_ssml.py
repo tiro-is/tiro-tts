@@ -12,7 +12,9 @@ def test_feed_invalid_data_raises():
 def test_feed_empty():
     parser = OldSSMLParser()
     parser.feed("<speak></speak>")
-    with pytest.raises(SSMLValidationException, match="The SSML did not contain any text!"):
+    with pytest.raises(
+        SSMLValidationException, match="The SSML did not contain any text!"
+    ):
         parser.get_text()
     parser.close()
 

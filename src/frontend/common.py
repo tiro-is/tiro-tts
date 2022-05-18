@@ -44,7 +44,7 @@ class SSMLConsumer:
         self._n_bytes_consumed = 0
 
         self._tag_stack = []
-        
+
         TAG_PATTERN: str = r"<(\"[^\"]*\"|'[^']*'|[^'\">])*>"
         TAG_CLOSE_PATTERN: str = r"^\s*<\s*/\s*.*?\s*>"
         TAG_WHITESPACE_PATTERN: str = f"^\s*({TAG_PATTERN})?\s*"
@@ -62,9 +62,11 @@ class SSMLConsumer:
 
     def _extract_tag_attrs(self, tag_val) -> Dict[str, str]:
         """Extracts tag attributes from tags."""
-        
+
         if "phoneme" in tag_val:
-            alphabet: str = re.findall(r"alphabet\s*=\s*(\"|'{1}(x-sampa|ipa)(\"|'){1})", tag_val)
+            alphabet: str = re.findall(
+                r"alphabet\s*=\s*(\"|'{1}(x-sampa|ipa)(\"|'){1})", tag_val
+            )
             ph: str = re.findall(r"ph\s*=\s*(\"|'{1}(.*?)(\"|'){1})", tag_val)
 
             # Note: This should already be sanitized by SSMLParser earlier in the process.
@@ -79,8 +81,9 @@ class SSMLConsumer:
                 "ph": ph[0][1],
             }
 
-        raise ValueError(f"Unable to extract attributes from unsupported tag: \"{tag_val}\"")
-            
+        raise ValueError(
+            f'Unable to extract attributes from unsupported tag: "{tag_val}"'
+        )
 
     def consume(self, original: str) -> Dict:
         """
@@ -88,16 +91,18 @@ class SSMLConsumer:
         and SSML properties.
         """
 
-        while(True):
+        while True:
             # This loop handles the consumption of tags and whitespace. Afterwards, the word itself (original)
             # will be consumed.
-            
+
             consumed = re.match(self.SSML_WHITESPACE_REGEX, self._ssml_view)
             tag = re.match(self.TAG_REGEX, self._ssml_view)
             tag_close = re.match(self.TAG_CLOSE_REGEX, self._ssml_view)
 
             len_consumption = len(consumed.group()) if consumed else 0
-            len_consumption_bytes = utf8_byte_length(consumed.group()) if consumed else 0
+            len_consumption_bytes = (
+                utf8_byte_length(consumed.group()) if consumed else 0
+            )
 
             if tag_close:
                 self._tag_stack.pop()
@@ -127,10 +132,11 @@ class SSMLConsumer:
                 # and proceed to consume the word itself.
                 break
 
-        
-        # If we have a tag after current word, that's the last word within current tag. This is relevant when we have 
+        # If we have a tag after current word, that's the last word within current tag. This is relevant when we have
         # multiple words within a single phoneme tag.
-        self._tag_stack[-1].data_last_word = (re.match(self.TAG_REGEX, self._ssml_view[len(original):]) != None)
+        self._tag_stack[-1].data_last_word = (
+            re.match(self.TAG_REGEX, self._ssml_view[len(original) :]) != None
+        )
 
         status: Dict = {
             "start_byte_offset": self._n_bytes_consumed,

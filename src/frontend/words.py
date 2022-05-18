@@ -17,7 +17,13 @@ from typing import Callable, Dict, Iterable, List, Literal, Tuple
 import tokenizer
 
 from src.frontend.lexicon import LangID
-from src.frontend.phonemes import ALIGNER_XSAMPA, ALIGNER_XSAMPA_SYLL_STRESS, align_ipa_from_xsampa, PhoneSeq
+from src.frontend.phonemes import (
+    ALIGNER_XSAMPA,
+    ALIGNER_XSAMPA_SYLL_STRESS,
+    align_ipa_from_xsampa,
+    PhoneSeq,
+)
+
 
 class SSMLProps:
     tag_type: Literal["speak", "phoneme"] = ""
@@ -26,6 +32,7 @@ class SSMLProps:
 
     def __init__(self):
         ...
+
 
 class SpeakProps(SSMLProps):
     def __init__(
@@ -41,7 +48,7 @@ class SpeakProps(SSMLProps):
             and self.data == other.data
             and self.data_last_word == other.data_last_word
         )
-        
+
 
 class PhonemeProps(SSMLProps):
     read: bool
@@ -52,7 +59,7 @@ class PhonemeProps(SSMLProps):
         ph: str = "",
         data: str = "",
     ):
-        self.alphabet = alphabet,
+        self.alphabet = alphabet
         self.ph = ph
         self.tag_type = "phoneme"
         self.data = data
@@ -61,10 +68,12 @@ class PhonemeProps(SSMLProps):
     def is_multi(self) -> bool:
         return len(self.data.split()) > 1
 
-    def get_phone_sequence(self, alphabet: Literal["ipa", "x-sampa", "x-sampa+syll+stress"]) -> List[str]:
+    def get_phone_sequence(
+        self, alphabet: Literal["ipa", "x-sampa", "x-sampa+syll+stress"]
+    ) -> List[str]:
         if alphabet not in ["ipa", "x-sampa", "x-sampa+syll+stress"]:
             raise ValueError("Illegal alphabet choice: {}".format(alphabet))
-        
+
         if not self.read:
             self.read = True
 
@@ -81,15 +90,21 @@ class PhonemeProps(SSMLProps):
                 if alphabet == "x-sampa+syll+stress":
                     return ALIGNER_XSAMPA_SYLL_STRESS.align(self.ph).split()
             except Exception as e:
-                raise ValueError("<phoneme> error: Illegal phoneme sequence in 'ph' attribute\n{}".format(e))
+                raise ValueError(
+                    "<phoneme> error: Illegal phoneme sequence in 'ph' attribute\n{}".format(
+                        e
+                    )
+                )
         return []
 
     def __repr__(self):
-        return "<PhonemeProps(alphabet='{}', ph='{}', tag_type='{}', data='{}')>".format(
-            self.alphabet,
-            self.ph,
-            self.tag_type,
-            self.data,
+        return (
+            "<PhonemeProps(alphabet='{}', ph='{}', tag_type='{}', data='{}')>".format(
+                self.alphabet,
+                self.ph,
+                self.tag_type,
+                self.data,
+            )
         )
 
     def __eq__(self, other: object) -> bool:
@@ -100,10 +115,11 @@ class PhonemeProps(SSMLProps):
             and self.data == other.data
             and self.data_last_word == other.data_last_word
         )
-        
+
 
 class Word:
     """A wrapper for individual symbol and its metadata."""
+
     def __init__(
         self,
         original_symbol: str = "",

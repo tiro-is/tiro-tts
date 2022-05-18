@@ -5,6 +5,7 @@ from src.frontend.grapheme_to_phoneme import (
 )
 from src.frontend.words import LangID, Word
 
+
 @pytest.fixture()
 def words():
     return [
@@ -12,6 +13,7 @@ def words():
         Word(original_symbol="eru", symbol="eru"),
         Word(original_symbol="kleprar", symbol="{kʰlɛːprar}"),
     ]
+
 
 class TestIceG2PTranslator:
     _translator = IceG2PTranslator()
@@ -53,9 +55,7 @@ class TestIceG2PTranslator:
 
     def test_x_sampa_target_embedded_phonemes(self, words):
         output = list(
-            self._translator.translate_words(
-                words, self._lang, alphabet="x-sampa"
-            )
+            self._translator.translate_words(words, self._lang, alphabet="x-sampa")
         )
         expected_output = [
             Word(

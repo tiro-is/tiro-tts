@@ -43,10 +43,12 @@ class NormalizerBase(ABC):
         parser.close()
         return text
 
-    def _normalize_ssml(self,
-                        ssml: str,
-                        sentences_with_pairs: List[List[Tuple[str, str]]],
-                        alphabet: Literal["ipa", "x-sampa", "x-sampa+syll+stress"]):
+    def _normalize_ssml(
+        self,
+        ssml: str,
+        sentences_with_pairs: List[List[Tuple[str, str]]],
+        alphabet: Literal["ipa", "x-sampa", "x-sampa+syll+stress"],
+    ):
         if alphabet not in ["ipa", "x-sampa", "x-sampa+syll+stress"]:
             raise ValueError("Illegal alphabet choice: {}".format(alphabet))
 
@@ -76,19 +78,21 @@ class NormalizerBase(ABC):
                         yield Word(
                             original_symbol=ssml_props.data,
                             symbol=normalized,
-                            start_byte_offset=acc_consumption_status[0]["start_byte_offset"],
-                            end_byte_offset=acc_consumption_status[-1]["end_byte_offset"],
+                            start_byte_offset=acc_consumption_status[0][
+                                "start_byte_offset"
+                            ],
+                            end_byte_offset=acc_consumption_status[-1][
+                                "end_byte_offset"
+                            ],
                             phone_sequence=ssml_props.get_phone_sequence(alphabet),
                             ssml_props=ssml_props,
                         )
                     else:
                         yield Word(
                             original_symbol=original,
-
                             # Will not be used during translation but is required for an edge case where
                             # a "." or "," token is contained within a phoneme tag.
                             symbol=normalized,
-
                             start_byte_offset=consumption_status["start_byte_offset"],
                             end_byte_offset=consumption_status["end_byte_offset"],
                             phone_sequence=ssml_props.get_phone_sequence(alphabet),
@@ -156,7 +160,7 @@ def _tokenize(text: str) -> Iterable[Word]:
             start_byte_offset=start_byte_offset,
             end_byte_offset=end_byte_offset,
         )
-                
+
 
 class BasicNormalizer(NormalizerBase):
     def normalize(self, text: str, ssml_reqs: Dict = None):
@@ -172,10 +176,12 @@ class BasicNormalizer(NormalizerBase):
                     continue
                 elif tok.kind == tokenizer.TOK.S_END:
                     continue
-                
+
                 token: str = tok.original.strip()
                 sentences_with_pairs[-1].append((token, token))
-            return self._normalize_ssml(ssml_str, sentences_with_pairs, ssml_reqs["alphabet"])
+            return self._normalize_ssml(
+                ssml_str, sentences_with_pairs, ssml_reqs["alphabet"]
+            )
         else:
             return _tokenize(text)
 
@@ -215,13 +221,17 @@ class GrammatekNormalizer(NormalizerBase):
                     for token_info in sent.token_info
                 ]
             )
-        
+
         if process_as_ssml:
-            return self._normalize_ssml(ssml_str, sentences_with_pairs, ssml_reqs["alphabet"])
+            return self._normalize_ssml(
+                ssml_str, sentences_with_pairs, ssml_reqs["alphabet"]
+            )
         else:
             return self._normalize_text(text, sentences_with_pairs)
-    
-    def _normalize_text(self, text: str, sentences_with_pairs: List[List[Tuple[str, str]]]):
+
+    def _normalize_text(
+        self, text: str, sentences_with_pairs: List[List[Tuple[str, str]]]
+    ):
         n_bytes_consumed = 0
         text_view = text
         for sent in sentences_with_pairs:
