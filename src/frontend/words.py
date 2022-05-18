@@ -26,13 +26,15 @@ from src.frontend.phonemes import (
 
 
 class SSMLProps:
-    tag_type: Literal["speak", "phoneme"] = ""
+    tag_type: Literal["speak", "phoneme", "sub"] = ""
     data: str = ""
     data_last_word: bool = False
 
     def __init__(self):
         ...
 
+    def is_multi(self) -> bool:
+        return len(self.data.split()) > 1
 
 class SpeakProps(SSMLProps):
     def __init__(
@@ -41,6 +43,12 @@ class SpeakProps(SSMLProps):
     ):
         self.tag_type = "speak"
         self.data = data
+
+    def __repr__(self):
+        return "<SpeakProps(tag_type='{}', data='{}')>".format(
+            self.tag_type,
+            self.data,
+        )
 
     def __eq__(self, other: object) -> bool:
         return isinstance(other, SpeakProps) and (
@@ -64,9 +72,6 @@ class PhonemeProps(SSMLProps):
         self.tag_type = "phoneme"
         self.data = data
         self.read = False
-
-    def is_multi(self) -> bool:
-        return len(self.data.split()) > 1
 
     def get_phone_sequence(
         self, alphabet: Literal["ipa", "x-sampa", "x-sampa+syll+stress"]
@@ -116,6 +121,34 @@ class PhonemeProps(SSMLProps):
             and self.data_last_word == other.data_last_word
         )
 
+
+class SubProps(SSMLProps):
+    def __init__(
+        self,
+        data: str,
+        alias: str,
+    ):
+        self.alias = alias
+        self.tag_type = "sub"
+        self.data = data
+
+    def substitute(self):
+        ...
+
+    def __repr__(self):
+        return "<SubProps(alias='{}', tag_type='{}', data='{}')>".format(
+            self.alias,
+            self.tag_type,
+            self.data,
+        )
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, SubProps) and (
+            self.alias == other.alias
+            and self.tag_type == other.tag_type
+            and self.data == other.data
+            and self.data_last_word == other.data_last_word
+        )
 
 class Word:
     """A wrapper for individual symbol and its metadata."""

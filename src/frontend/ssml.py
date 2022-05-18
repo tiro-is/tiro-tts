@@ -30,7 +30,7 @@ class SSMLValidationException(Exception):
 
 
 class OldSSMLParser(HTMLParser):
-    _ALLOWED_TAGS = ["speak", "phoneme"]
+    _ALLOWED_TAGS = ["speak", "phoneme", "sub"]
     _first_tag_seen: bool
     _tag_stack: List[str]
     _text: List[str]
@@ -67,14 +67,14 @@ class OldSSMLParser(HTMLParser):
             raise SSMLValidationException(
                 "Illegal SSML! Nesting a tag of the same type as a higher level tag not allowed."
             )
-
+        
+        attrs_map = dict(attrs)
         if tag == "speak":
-            if len(attrs) > 0:
+            if len(attrs_map) > 0:
                 raise SSMLValidationException(
                     "Illegal SSML! speak tag does not take any attributes!"
                 )
         elif tag == "phoneme":
-            attrs_map = dict(attrs)
             if attrs_map.get("alphabet") != "x-sampa" or "ph" not in attrs_map:
                 raise SSMLValidationException(
                     "'phoneme' tag has to have 'alphabet' and 'ph' attributes using "
@@ -82,6 +82,9 @@ class OldSSMLParser(HTMLParser):
                 )
             # A check whether the phone sequence (ph) is valid, is made at a later stage in PhonemeProps:get_phone_sequence
             # during consumption.
+        elif tag == "sub":
+            if len(attrs_map) == 0 or "alias" not in attrs_map:
+                raise SSMLValidationException("Illegal SSML! sub tag requires the 'alias' attribute.")
 
         self._tag_stack.append(tag)
 

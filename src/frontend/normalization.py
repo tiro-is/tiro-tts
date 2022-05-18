@@ -98,6 +98,8 @@ class NormalizerBase(ABC):
                             phone_sequence=ssml_props.get_phone_sequence(alphabet),
                             ssml_props=ssml_props,
                         )
+                elif ssml_props.tag_type == "sub":
+                    VILJUM VIÐ NORMA SUBBAÐA ORÐIÐ?
 
             yield WORD_SENTENCE_SEPARATOR
 

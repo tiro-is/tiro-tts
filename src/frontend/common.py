@@ -1,7 +1,7 @@
 import re
 from typing import Dict, List, Pattern, Tuple
 
-from src.frontend.words import PhonemeProps, SSMLProps, SpeakProps
+from src.frontend.words import PhonemeProps, SSMLProps, SpeakProps, SubProps
 
 
 def utf8_byte_length(text: str) -> int:
@@ -60,26 +60,31 @@ class SSMLConsumer:
         data = re.findall(r">(.*?)<", self._ssml_view)
         self._data = data[0] if data else ""
 
-    def _extract_tag_attrs(self, tag_val) -> Dict[str, str]:
+    def _extract_tag_attrs(self, tag_val: str) -> Dict[str, str]:
         """Extracts tag attributes from tags."""
-
+        
+        # Note: This should already be sanitized by SSMLParser earlier in the process.
+        err_msg: str = "{} tag did not supply the required attributes!\n{}"
         if "phoneme" in tag_val:
-            alphabet: str = re.findall(
+            alphabet: List[Tuple] = re.findall(
                 r"alphabet\s*=\s*(\"|'{1}(x-sampa|ipa)(\"|'){1})", tag_val
             )
-            ph: str = re.findall(r"ph\s*=\s*(\"|'{1}(.*?)(\"|'){1})", tag_val)
+            ph: List[Tuple] = re.findall(r"ph\s*=\s*(\"|'{1}(.*?)(\"|'){1})", tag_val)
 
-            # Note: This should already be sanitized by SSMLParser earlier in the process.
-            err_msg: str = "phoneme tag did not supply the required attributes!"
             if len(alphabet) == 0 or len(ph) == 0:
-                raise Exception(err_msg)
+                raise AttributeError(err_msg.format("phoneme", tag_val))
             if len(alphabet[0]) < 2 or len(ph[0]) < 2:
-                raise Exception(err_msg)
+                raise AttributeError(err_msg.format("phoneme", tag_val))
 
             return {
                 "alphabet": alphabet[0][1],
                 "ph": ph[0][1],
             }
+        elif "sub" in tag_val:
+            alias: List[Tuple] = re.findall(r"alias\s*=\s*(\"|'{1}(.*?)(\"|'){1})", tag_val)
+            if len(alias) == 0:
+                raise AttributeError(err_msg.format("sub", tag_val))
+            return { "alias": alias[0][1] }
 
         raise ValueError(
             f'Unable to extract attributes from unsupported tag: "{tag_val}"'
@@ -119,6 +124,14 @@ class SSMLConsumer:
                         PhonemeProps(
                             alphabet=attrs["alphabet"],
                             ph=attrs["ph"],
+                            data=self._data,
+                        )
+                    )
+                elif "sub" in tag_val:
+                    attrs: Dict[str, str] = self._extract_tag_attrs(tag_val)
+                    self._tag_stack.append(
+                        SubProps(
+                            alias=attrs["alias"],
                             data=self._data,
                         )
                     )
