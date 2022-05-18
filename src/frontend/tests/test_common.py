@@ -1,6 +1,6 @@
 from pytest import raises
 
-from ..common import consume_whitespace, consume_whitespace_bytes, utf8_byte_length
+from ..common import consume_whitespace, utf8_byte_length
 
 
 class TestUtf8ByteLength:
@@ -97,51 +97,3 @@ class TestConsumeWhitespace:
     def test_extra_arg(self):
         with raises(TypeError):
             consume_whitespace(" Marcus", "\tTullius")
-
-
-class TestConsumeWhitespaceBytes:
-    def test_empty(self):
-        assert consume_whitespace_bytes(b"") == 0
-
-    def test_four_spaces(self):
-        assert consume_whitespace_bytes(b"    ") == 4
-
-    def test_space(self):
-        assert consume_whitespace_bytes(b" ") == 1
-
-    def test_tab_prefix(self):
-        assert consume_whitespace_bytes(b" fiskurinn veiddist vel") == 1
-
-    def test_two_tab_prefix(self):
-        assert consume_whitespace_bytes(b"\t\tstrekkingsvindur") == 2
-
-    def test_four_spaces_prefix(self):
-        assert consume_whitespace_bytes(b"    baldvin reyndist vera svikari") == 4
-
-    def test_tab_three_spaces_prefix(self):
-        assert consume_whitespace_bytes(b"\t   harkalegt") == 4
-
-    def test_space_tab(self):
-        assert consume_whitespace_bytes(b" \tkastalakosningar     ") == 2
-
-    def test_space_postfix(self):
-        assert consume_whitespace_bytes(b"100 ") == 0
-
-    def test_tab_space_tab_postfix(self):
-        assert consume_whitespace_bytes(b"1001\t \t") == 0
-
-    def test_arg_int(self):
-        with raises(TypeError):
-            consume_whitespace_bytes(1337)
-
-    def test_incorrect_arg_str(self):
-        with raises(TypeError):
-            consume_whitespace_bytes("Þessi strengur er ekki í bætum")
-
-    def test_no_arg(self):
-        with raises(TypeError):
-            consume_whitespace_bytes()
-
-    def test_extra_arg(self):
-        with raises(TypeError):
-            consume_whitespace_bytes(b"asdf", b"qwerty")

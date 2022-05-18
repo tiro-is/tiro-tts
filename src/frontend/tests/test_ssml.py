@@ -1,49 +1,55 @@
 import pytest
 
-from src.frontend.ssml import OldSSMLParser
+from src.frontend.ssml import OldSSMLParser, SSMLValidationException
 
 
 def test_feed_invalid_data_raises():
     parser = OldSSMLParser()
-    with pytest.raises(ValueError, match="Start tag is not <speak>"):
+    with pytest.raises(SSMLValidationException, match="Start tag is not <speak>"):
         parser.feed("hehe")
 
 
-def test_feed_valid_but_empty():
+def test_feed_empty():
     parser = OldSSMLParser()
     parser.feed("<speak></speak>")
+    with pytest.raises(
+        SSMLValidationException, match="The SSML did not contain any text!"
+    ):
+        parser.get_text()
     parser.close()
-    assert parser.get_fastspeech_string() == ""
 
 
 def test_feed_missing_closing_tags():
     parser = OldSSMLParser()
     parser.feed("<speak>")
     parser.close()
-    with pytest.raises(ValueError, match="malformed"):
-        parser.get_fastspeech_string()
+    with pytest.raises(SSMLValidationException, match="malformed"):
+        parser.get_text()
 
 
-def test_one_letter_xsampa():
+def test_get_text_phoneme_01():
     ssml = "<speak>Halló <phoneme alphabet='x-sampa' ph='a'>aa</phoneme></speak>"
     parser = OldSSMLParser()
     parser.feed(ssml)
     parser.close()
-    assert parser.get_fastspeech_string() == "Halló {a}"
+    text = parser.get_text()
+    assert text == "Halló aa"
 
 
-def test_multi_letter_xsampa():
+def test_get_text_phoneme_02():
     ssml = "<speak>hei <phoneme alphabet='x-sampa' ph='apa'>ABBA</phoneme></speak>"
     parser = OldSSMLParser()
     parser.feed(ssml)
     parser.close()
-    assert parser.get_fastspeech_string() == "hei {a p a}"
+    text = parser.get_text()
+    assert text == "hei ABBA"
 
 
-def test_no_phonemes():
-    text = "hei þetta gengur bara ágætlega!"
-    ssml = f"<speak>{text}</speak>"
+def test_get_text_speak():
+    text_original = "hei þetta gengur bara ágætlega!"
+    ssml = f"<speak>{text_original}</speak>"
     parser = OldSSMLParser()
     parser.feed(ssml)
+    text = parser.get_text()
     parser.close()
-    assert parser.get_fastspeech_string() == text
+    assert text == text_original

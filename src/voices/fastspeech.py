@@ -158,17 +158,17 @@ class FastSpeech2Synthesizer:
     def synthesize(
         self,
         text_string: str,
+        ssml: bool = False,
         emit_speech_marks=False,
         sample_rate=22050,
-        # TODO(rkjaran): remove once we support normalization with SSML in a generic
-        #   way. Also remove it from FastSpeech2Voice
-        handle_embedded_phonemes=False,
     ) -> typing.Iterable[bytes]:
         """Synthesize 16 bit PCM samples or a stream of JSON speech marks.
 
         Args:
           text_string: Text to be synthesized, can contain embedded phoneme
                        strings in {}
+
+          ssml: Whether text_string is SSML markup or not
 
           emit_speech_marks: Whether to generate speech marks or PCM samples
 
@@ -181,14 +181,6 @@ class FastSpeech2Synthesizer:
         pitch_control = 1.0
         energy_control = 1.0
 
-        # TODO(rkjaran): remove conditional once we remove the
-        #   `handle_embedded_phonemes` argument
-        normalize_fn = (
-            self._normalizer.normalize
-            if not handle_embedded_phonemes
-            else BasicNormalizer().normalize
-        )
-
         # Segment to decrease latency and memory usage
         duration_time_offset = 0
 
@@ -197,8 +189,10 @@ class FastSpeech2Synthesizer:
                 *args, **kwargs, alphabet=self._alphabet
             )
 
+        ssml_reqs: typing.Dict = {"process_as_ssml": ssml, "alphabet": self._alphabet}
+
         for segment_words, phone_seq, phone_counts in preprocess_sentences(
-            text_string, normalize_fn, phonetize_fn
+            text_string, ssml_reqs, self._normalizer.normalize, phonetize_fn
         ):
             text_seq = torch.tensor(
                 [[FASTSPEECH2_SYMBOLS[phoneme] for phoneme in phone_seq]],
@@ -269,17 +263,15 @@ class FastSpeech2Voice(VoiceBase):
         except KeyError:
             return False
 
-    def _synthesize(
-        self, text: str, handle_embedded_phonemes=False, **kwargs
-    ) -> typing.Iterable[bytes]:
+    def _synthesize(self, text: str, ssml: bool, **kwargs) -> typing.Iterable[bytes]:
         if not self._is_valid(**kwargs):
             raise ValueError("Synthesize request not valid")
 
         for chunk in self._backend.synthesize(
             text,
+            ssml=ssml,
             emit_speech_marks=kwargs["OutputFormat"] == "json",
             sample_rate=int(kwargs["SampleRate"]),
-            handle_embedded_phonemes=handle_embedded_phonemes,
         ):
             if current_app.config["USE_FFMPEG"]:
                 if kwargs["OutputFormat"] == "ogg_vorbis":
@@ -297,18 +289,11 @@ class FastSpeech2Voice(VoiceBase):
             if kwargs["OutputFormat"] in ("pcm", "json"):
                 yield chunk
 
-    def synthesize(self, text: str, **kwargs) -> typing.Iterable[bytes]:
-        """Synthesize audio from a string of characters."""
-        return self._synthesize(text, **kwargs)
-
-    def synthesize_from_ssml(self, ssml: str, **kwargs) -> typing.Iterable[bytes]:
-        """Synthesize audio from SSML markup."""
-        # TODO(rkjaran): Move SSML parser out of here and make it more general
-        parser = SSMLParser()
-        parser.feed(ssml)
-        text = parser.get_fastspeech_string()
-        parser.close()
-        return self._synthesize(text=text, handle_embedded_phonemes=True, **kwargs)
+    def synthesize(
+        self, text: str, ssml: bool = False, **kwargs
+    ) -> typing.Iterable[bytes]:
+        """Synthesize audio from a string of characters or SSML markup."""
+        return self._synthesize(text=text, ssml=ssml, **kwargs)
 
     @property
     def properties(self) -> VoiceProperties:

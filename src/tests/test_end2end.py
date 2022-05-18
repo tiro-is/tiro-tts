@@ -13,8 +13,7 @@
 # limitations under the License.
 import json
 import os
-from pathlib import Path
-from typing import List
+from typing import Dict, List
 
 import pytest
 
@@ -22,10 +21,11 @@ import pytest
 @pytest.fixture(scope="session")
 def dut_app():
     os.environ["TIRO_TTS_SYNTHESIS_SET_PB"] = "src/tests/synthesis_set_test.pbtxt"
-    
+
     from src import init_app
+
     app = init_app()
-    
+
     app.config.update(
         {
             "TESTING": True,
@@ -144,3 +144,157 @@ def test_synthesize_ssml_phoneme_sanity(client):
     assert len(pcm_data) > 4000
     # And each sample is two bytes
     assert len(pcm_data) % 2 == 0
+
+
+def test_speechmarks_fastspeech(client):
+    res = client.post(
+        "/v0/speech",
+        json={
+            "OutputFormat": "json",
+            "SampleRate": "22050",
+            "Text": "Honum var sagt að grænmetið kostaði kr. 22000 og þótti það ekki mikið.",
+            "TextType": "text",
+            "SpeechMarkTypes": ["word"],
+            "VoiceId": "Alfur",
+        },
+    )
+
+    data = res.get_data(as_text=True).split("\n")
+    marks = [json.loads(line) for line in data if line.strip()]
+    marks_filtered = [
+        {"start": mark["start"], "end": mark["end"], "value": mark["value"]}
+        for mark in marks
+    ]
+
+    marks_expected: List[Dict] = [
+        {"start": 0, "end": 5, "value": "Honum"},
+        {"start": 6, "end": 9, "value": "var"},
+        {"start": 10, "end": 14, "value": "sagt"},
+        {"start": 15, "end": 18, "value": "að"},
+        {"start": 19, "end": 30, "value": "grænmetið"},
+        {"start": 31, "end": 39, "value": "kostaði"},
+        {"start": 40, "end": 43, "value": "kr."},
+        {"start": 44, "end": 49, "value": "22000"},
+        {"start": 50, "end": 52, "value": "og"},
+        {"start": 53, "end": 60, "value": "þótti"},
+        {"start": 61, "end": 66, "value": "það"},
+        {"start": 67, "end": 71, "value": "ekki"},
+        {"start": 72, "end": 78, "value": "mikið"},
+    ]
+
+    assert len(marks_filtered) == len(marks_expected)
+    for original_mark, expected_mark in zip(marks_filtered, marks_expected):
+        assert original_mark == expected_mark
+
+
+def test_ssml_speechmarks_fastspeech_01(client):
+    res = client.post(
+        "/v0/speech",
+        json={
+            "OutputFormat": "json",
+            "SampleRate": "22050",
+            "Text": "<speak>Hæ! Ég <phoneme alphabet='x-sampa' ph='hei:tI'>heiti</phoneme> Gervimaður Finnland & er hestur. En þú?</speak>",
+            "TextType": "ssml",
+            "SpeechMarkTypes": ["word"],
+            "VoiceId": "Alfur",
+        },
+    )
+
+    data = res.get_data(as_text=True).split("\n")
+    marks = [json.loads(line) for line in data if line.strip()]
+    marks_filtered = [
+        {"start": mark["start"], "end": mark["end"], "value": mark["value"]}
+        for mark in marks
+    ]
+
+    marks_expected: List[Dict] = [
+        {"start": 7, "end": 10, "value": "Hæ"},
+        {"start": 12, "end": 15, "value": "Ég"},
+        {"start": 56, "end": 61, "value": "heiti"},
+        {"start": 72, "end": 83, "value": "Gervimaður"},
+        {"start": 84, "end": 92, "value": "Finnland"},
+        {"start": 95, "end": 97, "value": "er"},
+        {"start": 98, "end": 104, "value": "hestur"},
+        {"start": 106, "end": 108, "value": "En"},
+        {"start": 109, "end": 113, "value": "þú"},
+    ]
+
+    assert len(marks_filtered) == len(marks_expected)
+    for original_mark, expected_mark in zip(marks_filtered, marks_expected):
+        assert original_mark == expected_mark
+
+
+def test_ssml_speechmarks_fastspeech_02(client):
+    res = client.post(
+        "/v0/speech",
+        json={
+            "OutputFormat": "json",
+            "SampleRate": "22050",
+            "Text": "<speak>Alls náðu 22 konur að sigla með <phoneme alphabet='x-sampa' ph='t_hai:t_hanIk'>Titanic halló. Hæ </phoneme> og borguðu fyrir það 57006 kr.</speak>",
+            "TextType": "ssml",
+            "SpeechMarkTypes": ["word"],
+            "VoiceId": "Alfur",
+        },
+    )
+
+    data = res.get_data(as_text=True).split("\n")
+    marks = [json.loads(line) for line in data if line.strip()]
+    marks_filtered = [
+        {"start": mark["start"], "end": mark["end"], "value": mark["value"]}
+        for mark in marks
+    ]
+
+    marks_expected: List[Dict] = [
+        {"start": 7, "end": 11, "value": "Alls"},
+        {"start": 12, "end": 18, "value": "náðu"},
+        {"start": 19, "end": 21, "value": "22"},
+        {"start": 22, "end": 27, "value": "konur"},
+        {"start": 28, "end": 31, "value": "að"},
+        {"start": 32, "end": 37, "value": "sigla"},
+        {"start": 38, "end": 42, "value": "með"},
+        {"start": 90, "end": 109, "value": "Titanic halló. Hæ "},
+        {"start": 121, "end": 123, "value": "og"},
+        {"start": 124, "end": 132, "value": "borguðu"},
+        {"start": 133, "end": 138, "value": "fyrir"},
+        {"start": 139, "end": 144, "value": "það"},
+        {"start": 145, "end": 150, "value": "57006"},
+        {"start": 151, "end": 154, "value": "kr."},
+    ]
+
+    assert len(marks_filtered) == len(marks_expected)
+    for original_mark, expected_mark in zip(marks_filtered, marks_expected):
+        assert original_mark == expected_mark
+
+
+def test_ssml_speechmarks_fastspeech_03(client):
+    res = client.post(
+        "/v0/speech",
+        json={
+            "OutputFormat": "json",
+            "SampleRate": "22050",
+            "Text": "<speak><phoneme alphabet='x-sampa' ph='a:fI'>Afi</phoneme> minn fór á honum <phoneme alphabet='x-sampa' ph='t9i:D'>rauð</phoneme></speak>",
+            "TextType": "ssml",
+            "SpeechMarkTypes": ["word"],
+            "VoiceId": "Alfur",
+        },
+    )
+
+    data = res.get_data(as_text=True).split("\n")
+    marks = [json.loads(line) for line in data if line.strip()]
+    marks_filtered = [
+        {"start": mark["start"], "end": mark["end"], "value": mark["value"]}
+        for mark in marks
+    ]
+
+    marks_expected: List[Dict] = [
+        {"start": 45, "end": 48, "value": "Afi"},
+        {"start": 59, "end": 63, "value": "minn"},
+        {"start": 64, "end": 68, "value": "fór"},
+        {"start": 69, "end": 71, "value": "á"},
+        {"start": 72, "end": 77, "value": "honum"},
+        {"start": 117, "end": 122, "value": "rauð"},
+    ]
+
+    assert len(marks_filtered) == len(marks_expected)
+    for original_mark, expected_mark in zip(marks_filtered, marks_expected):
+        assert original_mark == expected_mark
