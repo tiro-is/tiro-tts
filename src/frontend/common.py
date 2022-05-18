@@ -79,7 +79,7 @@ class SSMLConsumer:
                 "ph": ph[0][1],
             }
 
-        raise Exception(f"Unable to extract attributes from unsupported tag: \"{tag_val}\"")
+        raise ValueError(f"Unable to extract attributes from unsupported tag: \"{tag_val}\"")
             
 
     def consume(self, original: str) -> Dict:

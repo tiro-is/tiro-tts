@@ -48,7 +48,7 @@ class NormalizerBase(ABC):
                         sentences_with_pairs: List[List[Tuple[str, str]]],
                         alphabet: Literal["ipa", "x-sampa", "x-sampa+syll+stress"]):
         if alphabet not in ["ipa", "x-sampa", "x-sampa+syll+stress"]:
-            raise Exception("Illegal alphabet choice: {}".format(alphabet))
+            raise ValueError("Illegal alphabet choice: {}".format(alphabet))
 
         consumer = SSMLConsumer(ssml=ssml)
         acc_consumption_status: List[Dict] = []

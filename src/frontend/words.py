@@ -63,7 +63,7 @@ class PhonemeProps(SSMLProps):
 
     def get_phone_sequence(self, alphabet: Literal["ipa", "x-sampa", "x-sampa+syll+stress"]) -> List[str]:
         if alphabet not in ["ipa", "x-sampa", "x-sampa+syll+stress"]:
-            raise Exception("Illegal alphabet choice: {}".format(alphabet))
+            raise ValueError("Illegal alphabet choice: {}".format(alphabet))
         
         if not self.read:
             self.read = True
@@ -81,7 +81,7 @@ class PhonemeProps(SSMLProps):
                 if alphabet == "x-sampa+syll+stress":
                     return ALIGNER_XSAMPA_SYLL_STRESS.align(self.ph).split()
             except Exception as e:
-                raise Exception("<phoneme> error: Illegal phoneme sequence in 'ph' attribute\n{}".format(e))
+                raise ValueError("<phoneme> error: Illegal phoneme sequence in 'ph' attribute\n{}".format(e))
         return []
 
     def __repr__(self):
