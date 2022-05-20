@@ -53,10 +53,12 @@ class NormalizerBase(ABC):
             raise ValueError("Illegal alphabet choice: {}".format(alphabet))
 
         consumer = SSMLConsumer(ssml=ssml)
+
         acc_consumption_status: List[Dict] = []
+        acc_normalized: List[str] = []
         for sent in sentences_with_pairs:
             for original, normalized in sent:
-                consumption_status = consumer.consume(original)
+                consumption_status: Dict = consumer.consume(original)
                 ssml_props: SSMLProps = consumption_status["ssml_props"]
                 if ssml_props.tag_type == "speak":
                     yield Word(
@@ -72,11 +74,11 @@ class NormalizerBase(ABC):
                         # all of them and yield them as a single Word.
 
                         acc_consumption_status.append(consumption_status)
-                        if not ssml_props.data_last_word:
+                        if not consumption_status["last_word"]:
                             continue
 
                         yield Word(
-                            original_symbol=ssml_props.data,
+                            original_symbol=ssml_props.get_data(),
                             symbol=normalized,
                             start_byte_offset=acc_consumption_status[0][
                                 "start_byte_offset"
@@ -87,6 +89,7 @@ class NormalizerBase(ABC):
                             phone_sequence=ssml_props.get_phone_sequence(alphabet),
                             ssml_props=ssml_props,
                         )
+                        acc_consumption_status.clear()
                     else:
                         yield Word(
                             original_symbol=original,
@@ -99,7 +102,28 @@ class NormalizerBase(ABC):
                             ssml_props=ssml_props,
                         )
                 elif ssml_props.tag_type == "sub":
-                    VILJUM VIÐ NORMA SUBBAÐA ORÐIÐ?
+                    sub_multi: bool = ssml_props.is_multi(
+                        alternate_data=ssml_props.get_alias()
+                    )
+
+                    if sub_multi:
+                        # If a sub tag's alias attribute contains more than a single word, we only need the consumption status
+                        # from the first consumption_status, it contains all the data necessary. For the rest of them, we only
+                        # need to accumulate the normalized words before joining them and assigning them to Word:symbol before
+                        # yielding.
+
+                        acc_normalized.append(normalized)
+                        if not consumption_status["tag_specific"]["sub"]["alias_last_word"]:
+                            continue
+
+                    yield Word(
+                        original_symbol=ssml_props.get_data(),
+                        symbol=" ".join(acc_normalized) if sub_multi else normalized,
+                        start_byte_offset=consumption_status["start_byte_offset"],
+                        end_byte_offset=consumption_status["end_byte_offset"],
+                        ssml_props=ssml_props,
+                    )
+                    acc_normalized.clear()
 
             yield WORD_SENTENCE_SEPARATOR
 
