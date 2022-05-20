@@ -35,11 +35,18 @@ class OldSSMLParser(HTMLParser):
     _tag_stack: List[str]
     _text: List[str]
 
+    # Tag specific variables
+
+    # <sub>
+    _sub_alias: str
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._first_tag_seen = False
         self._tag_stack = []
         self._text = []
+
+        self._sub_alias = ""
 
     def _check_first_tag(self, tag):
         if not self._first_tag_seen:
@@ -85,6 +92,7 @@ class OldSSMLParser(HTMLParser):
         elif tag == "sub":
             if len(attrs_map) == 0 or "alias" not in attrs_map:
                 raise SSMLValidationException("Illegal SSML! sub tag requires the 'alias' attribute.")
+            self._sub_alias = attrs_map.get("alias")
 
         self._tag_stack.append(tag)
 
@@ -108,6 +116,8 @@ class OldSSMLParser(HTMLParser):
             raise SSMLValidationException(
                 "Illegal SSML! All text must be contained within SSML tags."
             )
+        if self._tag_stack[-1] == "sub":
+            data = self._sub_alias
 
         self._text.append(data)
 
