@@ -9,3 +9,4 @@ build --action_env=PATH=/usr/local/bin:/usr/bin:/bin
 build --test_env=PATH=/usr/local/bin:/usr/bin:/bin
 build --action_env=LD_LIBRARY_PATH=
 build --test_env=LD_LIBRARY_PATH=
+test --build_tests_only

@@ -126,6 +126,12 @@ py_library(
 )
 
 py_library(
+    name = "middleware",
+    srcs = glob(["src/middleware/**/*.py"], exclude=["**/tests"]),
+    srcs_version = "PY3",
+)
+
+py_library(
     name = "main_lib",
     srcs = glob(["src/*.py"], exclude=["*_test.py"]),
     srcs_version = "PY3",
@@ -138,6 +144,7 @@ py_library(
         requirement("flask-sqlalchemy"),
         ":voices",
         ":auth",
+        ":middleware",
     ],
 )
 
