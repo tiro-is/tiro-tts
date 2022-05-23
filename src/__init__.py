@@ -9,6 +9,7 @@ from flask_sqlalchemy import SQLAlchemy
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from src.config import EnvvarConfig
+from src.middleware import RequestIdWrapper
 
 db: SQLAlchemy = SQLAlchemy()
 
@@ -65,13 +66,14 @@ def init_app():
     if not app.config["AUTH_DISABLED"]:
         setup_db(app)
 
+    request_id = RequestIdWrapper(app)
+
     with app.app_context():
         if not app.config["AUTH_DISABLED"]:
             from src.models.user import User  # noqa:E402 isort:skip
             from src.models.project import Project  # noqa:E402 isort:skip
             from src.models.key import Key  # noqa:E402 isort:skip
             from src.models.tts_request import TTSRequest  # noqa:E402 isort:skip
-
             # Create tables if they don't exist
             db.create_all()
 
