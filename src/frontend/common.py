@@ -244,12 +244,13 @@ class SSMLConsumer:
 
                     len_token_consumption = len(self._data.strip())
                     len_token_consumption_bytes = utf8_byte_length(self._data.strip())
-                    
-                    needs_sub_consumption: bool = self._tag_stack[-1].is_multi(alternate_data=attrs["alias"])
+
+                    alias: str = attrs["alias"].lstrip()[len(original):].rstrip()
+                    needs_sub_consumption: bool = len(alias) > 0
                     if needs_sub_consumption:
                         self._tag_metadata[self.SUB]["needs_sub_consumption"] = needs_sub_consumption
                         self._tag_metadata[self.SUB]["alias_last_word"] = False
-                        self._tag_metadata[self.SUB]["alias_view"] = attrs["alias"].lstrip()[len(original):].rstrip()
+                        self._tag_metadata[self.SUB]["alias_view"] = alias
 
             self._update_ssml_view(len_consumption)
             if not re.match(self.TAG_REGEX, self._ssml_view):

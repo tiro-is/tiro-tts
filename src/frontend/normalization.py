@@ -115,7 +115,7 @@ class NormalizerBase(ABC):
                             continue
 
                     yield Word(
-                        original_symbol=ssml_props.get_data(),
+                        original_symbol=ssml_props.get_data().strip(),
                         symbol=" ".join(acc_normalized) if sub_consumption else normalized,
                         start_byte_offset=consumption_status["start_byte_offset"],
                         end_byte_offset=consumption_status["end_byte_offset"],
