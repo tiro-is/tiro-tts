@@ -30,7 +30,7 @@ class SSMLValidationException(Exception):
 
 
 class OldSSMLParser(HTMLParser):
-    _ALLOWED_TAGS = ["speak", "phoneme", "sub"]
+    _ALLOWED_TAGS = ["speak", "phoneme", "sub", "say-as"]
     _first_tag_seen: bool
     _tag_stack: List[str]
     _text: List[str]
@@ -48,6 +48,9 @@ class OldSSMLParser(HTMLParser):
     # This is done because we normalize the tag-stripped text and that text must contain the alias rather than the
     # data.
     _sub_alias: str
+
+    # <say-as>
+    _SAY_AS_SUPPORTED_INTRPRT_VALS: str = ["characters", "spell-out"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -104,6 +107,17 @@ class OldSSMLParser(HTMLParser):
                     "Illegal SSML! sub tag requires the 'alias' attribute."
                 )
             self._sub_alias = attrs_map.get("alias")
+        elif tag == "say-as":
+            if len(attrs_map) == 0 or "interpret-as" not in attrs_map:  
+                # TODO(Smári): Add checks for possible other attributes that are required when 
+                # "interpret-as" is something such as "date", then the "format" attribute is required.
+                # We should probably too add a constant list of allowed attribute values as they are
+                # quite many for this tag.
+                raise SSMLValidationException("Illegal SSML! <say-as> tag requires the 'interpret-as' attribute.")
+
+            interpret_as_val: str = attrs_map.get("interpret-as")
+            if interpret_as_val not in self._SAY_AS_SUPPORTED_INTRPRT_VALS:
+                raise SSMLValidationException('Illegal SSML! Encountered unsupported "interpret-as" attribute value in <say-as> tag: {}'.format(interpret_as_val))
 
         self._tag_stack.append(tag)
 
@@ -144,6 +158,6 @@ class OldSSMLParser(HTMLParser):
             raise SSMLValidationException("Not all tags were closed, malformed SSML.")
 
         text: str = "".join(self._text)
-        if len(text) == 0:
+        if len(text) == 0 or text.isspace():
             raise SSMLValidationException("The SSML did not contain any text!")
         return text
