@@ -40,6 +40,7 @@ class SSMLProps:
         data = alternate_data if alternate_data else self.data
         return len(data.split()) > 1
 
+
 class SpeakProps(SSMLProps):
     def __init__(
         self,
@@ -112,14 +113,12 @@ class PhonemeProps(SSMLProps):
         return []
 
     def __repr__(self):
-        return (
-            "<PhonemeProps(alphabet='{}', ph='{}', tag_type='{}', tag_val='{}', data='{}')>".format(
-                self.alphabet,
-                self.ph,
-                self.tag_type,
-                self.tag_val,
-                self.data,
-            )
+        return "<PhonemeProps(alphabet='{}', ph='{}', tag_type='{}', tag_val='{}', data='{}')>".format(
+            self.alphabet,
+            self.ph,
+            self.tag_type,
+            self.tag_val,
+            self.data,
         )
 
     def __eq__(self, other: object) -> bool:
@@ -162,6 +161,7 @@ class SubProps(SSMLProps):
             and self.tag_val == other.tag_val
             and self.data == other.data
         )
+
 
 class Word:
     """A wrapper for individual symbol and its metadata."""

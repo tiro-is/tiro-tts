@@ -102,7 +102,9 @@ class NormalizerBase(ABC):
                             ssml_props=ssml_props,
                         )
                 elif ssml_props.tag_type == "sub":
-                    sub_consumption: bool = consumption_status["tag_metadata"]["needs_sub_consumption"]
+                    sub_consumption: bool = consumption_status["tag_metadata"][
+                        "needs_sub_consumption"
+                    ]
 
                     if sub_consumption:
                         # If a sub tag's alias attribute contains more than a single word, we only need the consumption status
@@ -116,7 +118,9 @@ class NormalizerBase(ABC):
 
                     yield Word(
                         original_symbol=ssml_props.get_data().strip(),
-                        symbol=" ".join(acc_normalized) if sub_consumption else normalized,
+                        symbol=" ".join(acc_normalized)
+                        if sub_consumption
+                        else normalized,
                         start_byte_offset=consumption_status["start_byte_offset"],
                         end_byte_offset=consumption_status["end_byte_offset"],
                         ssml_props=ssml_props,

@@ -69,7 +69,9 @@ class SSMLConsumer:
 
         self._reset_tag_metadata()
 
-    def _reset_tag_metadata(self, tag: Literal["all", "speak", "phoneme", "sub"] = "all"):
+    def _reset_tag_metadata(
+        self, tag: Literal["all", "speak", "phoneme", "sub"] = "all"
+    ):
         if tag not in ["all", self.SPEAK, self.PHONEME, self.SUB]:
             raise ValueError(f"Unsupported tag: {tag} - Unable to reset metadata.")
 
@@ -82,12 +84,12 @@ class SSMLConsumer:
                 "alias_view": "",
             },
         }
-        
+
         if tag == "all":
             self._tag_metadata = {
                 self.SPEAK: INITIAL_STATE[self.SPEAK],
                 self.PHONEME: INITIAL_STATE[self.PHONEME],
-                self.SUB: INITIAL_STATE[self.SUB]
+                self.SUB: INITIAL_STATE[self.SUB],
             }
         else:
             self._tag_metadata[tag] = INITIAL_STATE[tag]
@@ -102,7 +104,7 @@ class SSMLConsumer:
 
     def _extract_tag_attrs(self, tag_val: str) -> Dict[str, str]:
         """Extracts tag attributes from tags."""
-        
+
         # Note: This should already be sanitized by SSMLParser earlier in the process.
         err_msg: str = "{} tag did not supply the required attributes!\n{}"
         if self.PHONEME in tag_val:
@@ -121,10 +123,12 @@ class SSMLConsumer:
                 "ph": ph[0][1],
             }
         elif self.SUB in tag_val:
-            alias: List[Tuple] = re.findall(r"alias\s*=\s*(\"|'{1}(.*?)(\"|'){1})", tag_val)
+            alias: List[Tuple] = re.findall(
+                r"alias\s*=\s*(\"|'{1}(.*?)(\"|'){1})", tag_val
+            )
             if len(alias) == 0:
                 raise AttributeError(err_msg.format(self.SUB, tag_val))
-            return { "alias": alias[0][1] }
+            return {"alias": alias[0][1]}
 
         raise ValueError(
             f'Unable to extract attributes from unsupported tag: "{tag_val}"'
@@ -140,24 +144,29 @@ class SSMLConsumer:
         # If we have consumed the entirety of the alias value, we have processed all of the incoming
         # originals for the currently active sub tag.
         whitespace: str = re.compile(r"^\s*", re.UNICODE)
-        whitespace_len: int = len(re.match(whitespace, self._tag_metadata[self.SUB]["alias_view"]).group())
-        self._tag_metadata[self.SUB]["alias_view"] = self._tag_metadata[self.SUB]["alias_view"][whitespace_len + len(original):]
+        whitespace_len: int = len(
+            re.match(whitespace, self._tag_metadata[self.SUB]["alias_view"]).group()
+        )
+        self._tag_metadata[self.SUB]["alias_view"] = self._tag_metadata[self.SUB][
+            "alias_view"
+        ][whitespace_len + len(original) :]
 
-        self._tag_metadata[self.SUB]["alias_last_word"] = len(self._tag_metadata[self.SUB]["alias_view"]) == 0
+        self._tag_metadata[self.SUB]["alias_last_word"] = (
+            len(self._tag_metadata[self.SUB]["alias_view"]) == 0
+        )
 
-        
         # We need to make corrections of the offsets here as the data has already been consumed at this point.
-        len_token_consumption_bytes: int = utf8_byte_length(self._tag_stack[-1].get_data().strip())
+        len_token_consumption_bytes: int = utf8_byte_length(
+            self._tag_stack[-1].get_data().strip()
+        )
         n_bytes_consumed: int = self._n_bytes_consumed - len_token_consumption_bytes
 
         status: Dict = {
             "start_byte_offset": n_bytes_consumed,
             "end_byte_offset": self._n_bytes_consumed,
-            "last_word": None,                              # only relevant when consuming main SSML string
+            "last_word": None,  # only relevant when consuming main SSML string
             "ssml_props": self._tag_stack[-1],
-            "tag_metadata": self._tag_metadata[
-                self._tag_stack[-1].tag_type
-            ],
+            "tag_metadata": self._tag_metadata[self._tag_stack[-1].tag_type],
         }
 
         if self._tag_metadata[self.SUB]["alias_last_word"]:
@@ -238,17 +247,19 @@ class SSMLConsumer:
                     # Because the alias tokens are normalized, we receive these tokens here as "original".
                     # We don't want to consume ssml_view using those tokens as we rather want the token
                     # offsets for the data ("HR" in this instance).
-                    # 
+                    #
                     # If the alias value yielded multiple tokens during normalization, we need to subconsume
                     # each one. See self._sub_consume().
 
                     len_token_consumption = len(self._data.strip())
                     len_token_consumption_bytes = utf8_byte_length(self._data.strip())
 
-                    alias: str = attrs["alias"].lstrip()[len(original):].rstrip()
+                    alias: str = attrs["alias"].lstrip()[len(original) :].rstrip()
                     needs_sub_consumption: bool = len(alias) > 0
                     if needs_sub_consumption:
-                        self._tag_metadata[self.SUB]["needs_sub_consumption"] = needs_sub_consumption
+                        self._tag_metadata[self.SUB][
+                            "needs_sub_consumption"
+                        ] = needs_sub_consumption
                         self._tag_metadata[self.SUB]["alias_last_word"] = False
                         self._tag_metadata[self.SUB]["alias_view"] = alias
 
@@ -264,11 +275,12 @@ class SSMLConsumer:
         status: Dict = {
             "start_byte_offset": self._n_bytes_consumed,
             "end_byte_offset": self._n_bytes_consumed + len_token_consumption_bytes,
-            "last_word": re.match(self.TAG_REGEX, self._ssml_view[len_token_consumption :]) != None,
+            "last_word": re.match(
+                self.TAG_REGEX, self._ssml_view[len_token_consumption:]
+            )
+            != None,
             "ssml_props": self._tag_stack[-1],
-            "tag_metadata": self._tag_metadata[
-                self._tag_stack[-1].tag_type
-            ],
+            "tag_metadata": self._tag_metadata[self._tag_stack[-1].tag_type],
         }
 
         # Status package has been assembled, now we update the the status of the consumer before this function is called again for next token (word).

@@ -74,7 +74,7 @@ class OldSSMLParser(HTMLParser):
             raise SSMLValidationException(
                 "Illegal SSML! Nesting a tag of the same type as a higher level tag not allowed."
             )
-        
+
         attrs_map = dict(attrs)
         if tag == "speak":
             if len(attrs_map) > 0:
@@ -91,7 +91,9 @@ class OldSSMLParser(HTMLParser):
             # during consumption.
         elif tag == "sub":
             if len(attrs_map) == 0 or "alias" not in attrs_map:
-                raise SSMLValidationException("Illegal SSML! sub tag requires the 'alias' attribute.")
+                raise SSMLValidationException(
+                    "Illegal SSML! sub tag requires the 'alias' attribute."
+                )
             self._sub_alias = attrs_map.get("alias")
 
         self._tag_stack.append(tag)
