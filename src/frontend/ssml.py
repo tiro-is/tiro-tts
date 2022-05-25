@@ -38,6 +38,15 @@ class OldSSMLParser(HTMLParser):
     # Tag specific variables
 
     # <sub>
+
+    # When we isolate the text (by removing the tags) from the SSML, we must take a special care of text extracted
+    # from <sub> tags. Usually we only want to extract the data (>the text between the opening and closing tags<) but
+    # for <sub> tags, we rather want the text that the alias attribute defines in the opening tag. Because
+    # we don't have access to this information (the alias attribute value) in handle_data(), we put it into this variable
+    # while in handle_starttag() and keep it there until it is needed in a subsequent call to handle_data(). That way,
+    # we are able to substitute the >data value< for the alias value.
+    # This is done because we normalize the tag-stripped text and that text must contain the alias rather than the
+    # data.
     _sub_alias: str
 
     def __init__(self, *args, **kwargs):

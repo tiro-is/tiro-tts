@@ -1,5 +1,5 @@
 import re
-from typing import Dict, List, Literal, Pattern, Tuple
+from typing import Any, Dict, List, Literal, Pattern, Tuple
 
 from regex import Match
 
@@ -40,11 +40,11 @@ class SSMLConsumer:
     SSML_WHITESPACE_REGEX: Pattern
 
     # Keys
-    SPEAK: str
-    PHONEME: str
-    SUB: str
+    SPEAK: str = "speak"
+    PHONEME: str = "phoneme"
+    SUB: str = "sub"
 
-    _tag_metadata: Dict
+    _tag_metadata: Dict[str, Dict[str, Any]]
 
     def __init__(self, ssml) -> None:
         # General consumption variables
@@ -62,11 +62,6 @@ class SSMLConsumer:
         self.TAG_CLOSE_REGEX = re.compile(TAG_CLOSE_PATTERN, re.UNICODE)
         self.SSML_WHITESPACE_REGEX = re.compile(TAG_WHITESPACE_PATTERN, re.UNICODE)
 
-        # Keys
-        self.SPEAK = "speak"
-        self.PHONEME = "phoneme"
-        self.SUB = "sub"
-
         self._reset_tag_metadata()
 
     def _reset_tag_metadata(
@@ -75,7 +70,7 @@ class SSMLConsumer:
         if tag not in ["all", self.SPEAK, self.PHONEME, self.SUB]:
             raise ValueError(f"Unsupported tag: {tag} - Unable to reset metadata.")
 
-        INITIAL_STATE: Dict = {
+        INITIAL_STATE: Dict[str, Any] = {
             self.SPEAK: {},
             self.PHONEME: {},
             self.SUB: {
@@ -134,7 +129,7 @@ class SSMLConsumer:
             f'Unable to extract attributes from unsupported tag: "{tag_val}"'
         )
 
-    def _sub_consume(self, original: str) -> Dict:
+    def _sub_consume(self, original: str) -> Dict[str, Any]:
         """
         Consumes the tokens present in the alias attribute of the sub tag.
         This function may be generalized for future implementations of other tags that may need specialized
@@ -176,7 +171,7 @@ class SSMLConsumer:
 
         return status
 
-    def consume(self, original: str) -> Dict:
+    def consume(self, original: str) -> Dict[str, Any]:
         """
         Consumes whitespace, tags and word. Returns consumption status which contains word byte offset data
         and SSML properties.
