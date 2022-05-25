@@ -43,6 +43,7 @@ class SSMLConsumer:
     SPEAK: str = "speak"
     PHONEME: str = "phoneme"
     SUB: str = "sub"
+    SAY_AS: str = "say-as"
 
     _tag_metadata: Dict[str, Dict[str, Any]]
 
@@ -65,9 +66,9 @@ class SSMLConsumer:
         self._reset_tag_metadata()
 
     def _reset_tag_metadata(
-        self, tag: Literal["all", "speak", "phoneme", "sub"] = "all"
+        self, tag: Literal["all", "speak", "phoneme", "sub", "say-as"] = "all"
     ):
-        if tag not in ["all", self.SPEAK, self.PHONEME, self.SUB]:
+        if tag not in ["all", self.SPEAK, self.PHONEME, self.SUB, self.SAY_AS]:
             raise ValueError(f"Unsupported tag: {tag} - Unable to reset metadata.")
 
         INITIAL_STATE: Dict[str, Any] = {
@@ -78,6 +79,7 @@ class SSMLConsumer:
                 "alias_last_word": False,
                 "alias_view": "",
             },
+            self.SAY_AS: {},
         }
 
         if tag == "all":
@@ -85,6 +87,7 @@ class SSMLConsumer:
                 self.SPEAK: INITIAL_STATE[self.SPEAK],
                 self.PHONEME: INITIAL_STATE[self.PHONEME],
                 self.SUB: INITIAL_STATE[self.SUB],
+                self.SAY_AS: INITIAL_STATE[self.SAY_AS],
             }
         else:
             self._tag_metadata[tag] = INITIAL_STATE[tag]
@@ -124,6 +127,13 @@ class SSMLConsumer:
             if len(alias) == 0:
                 raise AttributeError(err_msg.format(self.SUB, tag_val))
             return {"alias": alias[0][1]}
+        elif self.SAY_AS in tag_val:
+            interpret_as: List[Tuple] = re.findall(
+                r"interpret-as\s*=\s*(\"|'{1}(.*?)(\"|'){1})", tag_val
+            )
+            if len(interpret_as) == 0:
+                raise AttributeError(err_msg.format(self.SAY_AS, tag_val))
+            return {"interpret-as": interpret_as[0][1]}
 
         raise ValueError(
             f'Unable to extract attributes from unsupported tag: "{tag_val}"'
@@ -173,8 +183,8 @@ class SSMLConsumer:
 
     def consume(self, original: str) -> Dict[str, Any]:
         """
-        Consumes whitespace, tags and word. Returns consumption status which contains word byte offset data
-        and SSML properties.
+        Consumes whitespace, tags and word. Returns consumption status which contains word byte offset data,
+        SSML properties and additional required processing metadata.
         """
         if self._tag_metadata[self.SUB]["needs_sub_consumption"]:
             return self._sub_consume(original)
@@ -257,6 +267,10 @@ class SSMLConsumer:
                         ] = needs_sub_consumption
                         self._tag_metadata[self.SUB]["alias_last_word"] = False
                         self._tag_metadata[self.SUB]["alias_view"] = alias
+                elif self.SAY_AS in tag_val:
+                    attrs: Dict[str, str] = self._extract_tag_attrs(tag_val)
+                    # KOMINN HÉR
+
 
             self._update_ssml_view(len_consumption)
             if not re.match(self.TAG_REGEX, self._ssml_view):

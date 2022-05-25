@@ -54,6 +54,7 @@ class NormalizerBase(ABC):
 
         consumer = SSMLConsumer(ssml=ssml)
 
+        # TODO(Smári): See if I can move these two variables to SSMLConsumer:_tag_metadata.
         acc_consumption_status: List[Dict] = []
         acc_normalized: List[str] = []
         for sent in sentences_with_pairs:
