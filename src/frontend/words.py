@@ -26,27 +26,43 @@ from src.frontend.phonemes import (
 
 
 class SSMLProps:
-    tag_type: Literal["speak", "phoneme"] = ""
+    tag_type: Literal["speak", "phoneme", "sub"] = ""
+    tag_val: str
     data: str = ""
-    data_last_word: bool = False
 
     def __init__(self):
         ...
+
+    def get_data(self):
+        return self.data
+
+    def is_multi(self, alternate_data: str = None) -> bool:
+        data = alternate_data if alternate_data else self.data
+        return len(data.split()) > 1
 
 
 class SpeakProps(SSMLProps):
     def __init__(
         self,
+        tag_val: str,
         data: str = "",
     ):
         self.tag_type = "speak"
+        self.tag_val = tag_val
         self.data = data
+
+    def __repr__(self):
+        return "<SpeakProps(tag_type='{}', tag_val='{}', data='{}')>".format(
+            self.tag_type,
+            self.tag_val,
+            self.data,
+        )
 
     def __eq__(self, other: object) -> bool:
         return isinstance(other, SpeakProps) and (
             self.tag_type == other.tag_type
+            and self.tag_val == other.tag_val
             and self.data == other.data
-            and self.data_last_word == other.data_last_word
         )
 
 
@@ -55,18 +71,17 @@ class PhonemeProps(SSMLProps):
 
     def __init__(
         self,
+        tag_val: str,
         alphabet: Literal["x-sampa", "ipa"] = "",
         ph: str = "",
         data: str = "",
     ):
+        self.tag_val = tag_val
         self.alphabet = alphabet
         self.ph = ph
         self.tag_type = "phoneme"
         self.data = data
         self.read = False
-
-    def is_multi(self) -> bool:
-        return len(self.data.split()) > 1
 
     def get_phone_sequence(
         self, alphabet: Literal["ipa", "x-sampa", "x-sampa+syll+stress"]
@@ -98,13 +113,12 @@ class PhonemeProps(SSMLProps):
         return []
 
     def __repr__(self):
-        return (
-            "<PhonemeProps(alphabet='{}', ph='{}', tag_type='{}', data='{}')>".format(
-                self.alphabet,
-                self.ph,
-                self.tag_type,
-                self.data,
-            )
+        return "<PhonemeProps(alphabet='{}', ph='{}', tag_type='{}', tag_val='{}', data='{}')>".format(
+            self.alphabet,
+            self.ph,
+            self.tag_type,
+            self.tag_val,
+            self.data,
         )
 
     def __eq__(self, other: object) -> bool:
@@ -112,8 +126,40 @@ class PhonemeProps(SSMLProps):
             self.alphabet == other.alphabet
             and self.ph == other.ph
             and self.tag_type == other.tag_type
+            and self.tag_val == other.tag_val
             and self.data == other.data
-            and self.data_last_word == other.data_last_word
+        )
+
+
+class SubProps(SSMLProps):
+    def __init__(
+        self,
+        tag_val: str,
+        data: str,
+        alias: str,
+    ):
+        self.tag_val = tag_val
+        self.alias = alias
+        self.tag_type = "sub"
+        self.data = data
+
+    def get_alias(self):
+        return self.alias
+
+    def __repr__(self):
+        return "<SubProps(alias='{}', tag_type='{}', tag_val='{}', data='{}')>".format(
+            self.alias,
+            self.tag_type,
+            self.tag_val,
+            self.data,
+        )
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, SubProps) and (
+            self.alias == other.alias
+            and self.tag_type == other.tag_type
+            and self.tag_val == other.tag_val
+            and self.data == other.data
         )
 
 

@@ -30,16 +30,32 @@ class SSMLValidationException(Exception):
 
 
 class OldSSMLParser(HTMLParser):
-    _ALLOWED_TAGS = ["speak", "phoneme"]
+    _ALLOWED_TAGS = ["speak", "phoneme", "sub"]
     _first_tag_seen: bool
     _tag_stack: List[str]
     _text: List[str]
+
+    # Tag specific variables
+
+    # <sub>
+
+    # When we isolate the text (by removing the tags) from the SSML, we must take a special care of text extracted
+    # from <sub> tags. Usually we only want to extract the data (>the text between the opening and closing tags<) but
+    # for <sub> tags, we rather want the text that the alias attribute defines in the opening tag. Because
+    # we don't have access to this information (the alias attribute value) in handle_data(), we put it into this variable
+    # while in handle_starttag() and keep it there until it is needed in a subsequent call to handle_data(). That way,
+    # we are able to substitute the >data value< for the alias value.
+    # This is done because we normalize the tag-stripped text and that text must contain the alias rather than the
+    # data.
+    _sub_alias: str
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._first_tag_seen = False
         self._tag_stack = []
         self._text = []
+
+        self._sub_alias = ""
 
     def _check_first_tag(self, tag):
         if not self._first_tag_seen:
@@ -68,13 +84,13 @@ class OldSSMLParser(HTMLParser):
                 "Illegal SSML! Nesting a tag of the same type as a higher level tag not allowed."
             )
 
+        attrs_map = dict(attrs)
         if tag == "speak":
-            if len(attrs) > 0:
+            if len(attrs_map) > 0:
                 raise SSMLValidationException(
                     "Illegal SSML! speak tag does not take any attributes!"
                 )
         elif tag == "phoneme":
-            attrs_map = dict(attrs)
             if attrs_map.get("alphabet") != "x-sampa" or "ph" not in attrs_map:
                 raise SSMLValidationException(
                     "'phoneme' tag has to have 'alphabet' and 'ph' attributes using "
@@ -82,6 +98,12 @@ class OldSSMLParser(HTMLParser):
                 )
             # A check whether the phone sequence (ph) is valid, is made at a later stage in PhonemeProps:get_phone_sequence
             # during consumption.
+        elif tag == "sub":
+            if len(attrs_map) == 0 or "alias" not in attrs_map:
+                raise SSMLValidationException(
+                    "Illegal SSML! sub tag requires the 'alias' attribute."
+                )
+            self._sub_alias = attrs_map.get("alias")
 
         self._tag_stack.append(tag)
 
@@ -105,6 +127,8 @@ class OldSSMLParser(HTMLParser):
             raise SSMLValidationException(
                 "Illegal SSML! All text must be contained within SSML tags."
             )
+        if self._tag_stack[-1] == "sub":
+            data = self._sub_alias
 
         self._text.append(data)
 
