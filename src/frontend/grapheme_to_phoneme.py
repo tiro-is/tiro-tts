@@ -85,7 +85,11 @@ class GraphemeToPhonemeTranslatorBase(ABC):
                 # TODO(rkjaran): Cover more punctuation (Unicode)
                 punctuation = re.sub(r"[{}\[\]]", "", string.punctuation)
                 g2p_word = re.sub(r"([{}])".format(punctuation), r" \1 ", word.symbol)
-                word.phone_sequence = self.translate(g2p_word, lang, alphabet=alphabet)
+                word.phone_sequence = []
+                for g2p_w in g2p_word.split():
+                    word.phone_sequence.extend(
+                        self.translate(g2p_w, lang, alphabet=alphabet)
+                    )
             yield word
             if word.is_spoken() and alphabet == "x-sampa+syll+stress":
                 yield Word(phone_sequence=["."])
