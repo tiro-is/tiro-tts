@@ -273,19 +273,17 @@ class FastSpeech2Voice(VoiceBase):
             emit_speech_marks=kwargs["OutputFormat"] == "json",
             sample_rate=int(kwargs["SampleRate"]),
         ):
-            if current_app.config["USE_FFMPEG"]:
-                if kwargs["OutputFormat"] == "ogg_vorbis":
-                    yield ffmpeg.to_ogg_vorbis(
-                        chunk,
-                        src_sample_rate=kwargs["SampleRate"],
-                        sample_rate=kwargs["SampleRate"],
-                    )
-                elif kwargs["OutputFormat"] == "mp3":
-                    yield ffmpeg.to_mp3(
-                        chunk,
-                        src_sample_rate=kwargs["SampleRate"],
-                        sample_rate=kwargs["SampleRate"],
-                    )
+            if current_app.config["USE_FFMPEG"] and kwargs["OutputFormat"] in (
+                "mp3",
+                "ogg_vorbis",
+                "pcm",
+            ):
+                yield ffmpeg.to_format(
+                    out_format=kwargs["OutputFormat"],
+                    audio_content=chunk,
+                    src_sample_rate=kwargs["SampleRate"],
+                    sample_rate=kwargs["SampleRate"],
+                )
             if kwargs["OutputFormat"] in ("pcm", "json"):
                 yield chunk
 
