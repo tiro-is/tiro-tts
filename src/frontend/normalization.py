@@ -71,7 +71,7 @@ class NormalizerBase(ABC):
                     )
                 elif ssml_props.tag_type == "phoneme":
                     if ssml_props.is_multi():
-                        # If a phoneme tags contains more than a single word, we must accumulate
+                        # If a phoneme tag contains more than a single word, we must accumulate
                         # all of them and yield them as a single Word.
 
                         acc_consumption_status.append(consumption_status)
@@ -127,7 +127,35 @@ class NormalizerBase(ABC):
                         ssml_props=ssml_props,
                     )
                     acc_normalized.clear()
+                elif ssml_props.tag_type == "say-as":
+                    if ssml_props.is_multi():
+                        # If a say-as tag contains more than a single word, we must accumulate
+                        # all of them and yield them as a single Word.
 
+                        acc_consumption_status.append(consumption_status)
+                        if not consumption_status["last_word"]:
+                            continue
+
+                        yield Word(
+                            original_symbol=ssml_props.get_data(),
+                            symbol=ssml_props.get_interpretation(),
+                            start_byte_offset=acc_consumption_status[0][
+                                "start_byte_offset"
+                            ],
+                            end_byte_offset=acc_consumption_status[-1][
+                                "end_byte_offset"
+                            ],
+                            ssml_props=ssml_props,
+                        )
+                        acc_consumption_status.clear()
+                    else:
+                        yield Word(
+                            original_symbol=original,
+                            symbol=ssml_props.get_interpretation(),
+                            start_byte_offset=consumption_status["start_byte_offset"],
+                            end_byte_offset=consumption_status["end_byte_offset"],
+                            ssml_props=ssml_props
+                        )
             yield WORD_SENTENCE_SEPARATOR
 
 

@@ -163,6 +163,107 @@ class SubProps(SSMLProps):
         )
 
 
+class SayAsProps(SSMLProps):
+    interpret_as: str
+
+    DIGITS_DIC: Dict[str, str] = {
+        "0": "núll",
+        "1": "einn",
+        "2": "tveir",
+        "3": "þrír",
+        "4": "fjórir",
+        "5": "fimm",
+        "6": "sex",
+        "7": "sjö",
+        "8": "átta",
+        "9": "níu",
+    }
+
+    CHARACTERS_DIC: Dict[str, str] = {
+        '.': "punktur",
+        ',': "komma",
+        ' ': "bil",
+        ':': "tvípunktur",
+        ';': "semi komma",
+        '?': "spurningarmerki",
+        '!': "upphrópunarmerki",
+        '+': "plús",
+        '-': "bandstrik",
+        '/': "skástrik",
+        '*': "stjarna",
+        '%': "prósentumerki",
+        '„': "gæsalappir opnast",
+        '“': "gæsalappir lokast",
+        '"': "gæsalappir",
+        '\'': "gæsalappir",
+        "#": "myllumerki",
+        "$": "dollaramerki",
+        "&": "og, merki",
+        "(": "svigi opnast",
+        ")": "svigi lokast",
+        "[": "hornklofi opnast",
+        "]": "hornklofi lokast",
+        "{": "slaufusvigi opnast",
+        "}": "slaufusvigi lokast",
+        "=": "jafnaðarmerki",
+        "~": "tilda",
+        "°": "gráðumerki",
+    }
+
+    DELIMITER: str = ", "
+
+
+    def __init__(
+        self,
+        tag_val: str,
+        interpret_as: str,
+        data: str,
+    ):
+        self.tag_val = tag_val
+        self.interpret_as = interpret_as
+        self.data = data
+        self.tag_type = "say-as"
+
+        self.CHARACTERS_DIC.update(self.DIGITS_DIC)
+
+    def get_interpret_as(self):
+        return self.interpret_as
+
+    def get_interpretation(self):
+        type: Literal["characters", "spell-out"] = self.get_interpret_as()
+        if type in ["characters", "spell-out"]:
+            return self.DELIMITER.join(
+                [
+                    self.CHARACTERS_DIC[char] 
+                    if char in self.CHARACTERS_DIC
+                    else char.lower()
+                    for char in self.get_data()
+                ]
+            )
+        raise ValueError(
+            "<say-as> error: Encountered unsupported interpretation type: \"{}\"".format(
+                type
+            )
+        )
+
+    def __repr__(self):
+        return "<SayAsProps(interpret-as='{}', tag_type='{}', tag_val='{}', data='{}')>".format(
+            self.interpret_as,
+            self.tag_type,
+            self.tag_val,
+            self.data,
+        )
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, SayAsProps) and (
+            self.interpret_as == other.interpret_as
+            and self.tag_type == other.tag_type
+            and self.tag_val == other.tag_val
+            and self.data == other.data
+        )
+
+
+
 class Word:
     """A wrapper for individual symbol and its metadata."""
 

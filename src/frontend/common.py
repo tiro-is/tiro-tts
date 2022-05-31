@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Literal, Pattern, Tuple
 
 from regex import Match
 
-from src.frontend.words import PhonemeProps, SSMLProps, SpeakProps, SubProps
+from src.frontend.words import PhonemeProps, SSMLProps, SayAsProps, SpeakProps, SubProps
 
 
 def utf8_byte_length(text: str) -> int:
@@ -269,8 +269,13 @@ class SSMLConsumer:
                         self._tag_metadata[self.SUB]["alias_view"] = alias
                 elif self.SAY_AS in tag_val:
                     attrs: Dict[str, str] = self._extract_tag_attrs(tag_val)
-                    # KOMINN HÉR
-
+                    self._tag_stack.append(
+                        SayAsProps(
+                            tag_val=tag_val,
+                            interpret_as=attrs["interpret-as"],
+                            data=self._data,
+                        )
+                    )
 
             self._update_ssml_view(len_consumption)
             if not re.match(self.TAG_REGEX, self._ssml_view):
