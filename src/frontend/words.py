@@ -13,6 +13,7 @@
 # limitations under the License.
 import json
 from typing import Callable, Dict, Iterable, List, Literal, Tuple
+from abc import ABC
 
 import tokenizer
 
@@ -25,13 +26,12 @@ from src.frontend.phonemes import (
 )
 
 
-class SSMLProps:
-    tag_type: Literal["speak", "phoneme", "sub"] = ""
+# TODO(rkjaran): There are cases where we have to support nested SSML tags, e.g. we can
+#   have nested prosody tags.
+class SSMLProps(ABC):
+    tag_type: str
     tag_val: str
-    data: str = ""
-
-    def __init__(self):
-        ...
+    data: str
 
     def get_data(self):
         return self.data
