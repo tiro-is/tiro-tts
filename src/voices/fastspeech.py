@@ -17,6 +17,7 @@ import re
 import sys
 import typing
 from pathlib import Path
+from typing import Literal
 
 import torch
 from flask import current_app
@@ -32,7 +33,7 @@ from src.frontend.normalization import (
 )
 from src.frontend.phonemes import Alphabet
 from src.frontend.ssml import OldSSMLParser as SSMLParser
-from src.frontend.words import preprocess_sentences
+from src.frontend.words import ProsodyProps, preprocess_sentences
 
 from .utils import wavarray_to_pcm
 from .voice_base import OutputFormat, VoiceBase, VoiceProperties
@@ -159,8 +160,10 @@ class FastSpeech2Synthesizer:
         self,
         text_string: str,
         ssml: bool = False,
-        emit_speech_marks=False,
         sample_rate=22050,
+        output_format: Literal["json", "pcm", "mp3", "ogg_vorbis"] = "pcm",
+        *,
+        use_ffmpeg: bool = True,
     ) -> typing.Iterable[bytes]:
         """Synthesize 16 bit PCM samples or a stream of JSON speech marks.
 
@@ -170,19 +173,21 @@ class FastSpeech2Synthesizer:
 
           ssml: Whether text_string is SSML markup or not
 
-          emit_speech_marks: Whether to generate speech marks or PCM samples
-
           sample_rate: Sample rate of the returned PCM chunks
+
+          output_format: The output format is either one of the audio formats or json
+                         for speech marks
 
         Yields:
           bytes: PCM chunk of synthesized audio, or JSON encoded speech marks
+
         """
+        # Segment to decrease latency and memory usage
+        duration_time_offset = 0
+
         duration_control = 1.0
         pitch_control = 1.0
         energy_control = 1.0
-
-        # Segment to decrease latency and memory usage
-        duration_time_offset = 0
 
         def phonetize_fn(*args, **kwargs):
             return self._phonetizer.translate_words(
@@ -194,6 +199,22 @@ class FastSpeech2Synthesizer:
         for segment_words, phone_seq, phone_counts in preprocess_sentences(
             text_string, ssml_reqs, self._normalizer.normalize, phonetize_fn
         ):
+            prosody = ffmpeg.Prosody()
+
+            if ssml and isinstance(segment_words[0].ssml_props, ProsodyProps):
+                ssml_props = segment_words[0].ssml_props
+                prosody.rate = ssml_props.rate
+                prosody.pitch = ssml_props.pitch
+                prosody.volume = ssml_props.volume
+
+            # TODO(rkjaran): This is a "workaround" for the models we're using which
+            #   can't handle synthesizing pauses/silence.
+            if len(segment_words) == 1 and segment_words[0].phone_sequence[0] in (
+                "sp",
+                "sil",
+            ):
+                continue
+
             text_seq = torch.tensor(
                 [[FASTSPEECH2_SYMBOLS[phoneme] for phoneme in phone_seq]],
                 dtype=torch.int64,
@@ -211,7 +232,7 @@ class FastSpeech2Synthesizer:
                 e_control=energy_control,
             )
 
-            if emit_speech_marks:
+            if output_format == "json":
                 # The model uses 10 ms as the unit (or, technically, log(dur*10ms))
                 phone_durations = (
                     10 * torch.exp(log_duration_output.detach()[0].to(torch.float32))
@@ -228,7 +249,14 @@ class FastSpeech2Synthesizer:
                 segment_duration_time_offset: int = duration_time_offset
                 for idx, dur in enumerate(word_durations):
                     segment_words[idx].start_time_milli = segment_duration_time_offset
-                    segment_duration_time_offset += dur
+                    segment_duration_time_offset += int(
+                        dur
+                        / (
+                            segment_words[idx].ssml_props.rate  # type: ignore
+                            if isinstance(segment_words[idx].ssml_props, ProsodyProps)
+                            else 1
+                        )
+                    )
 
                 for word in segment_words:
                     if word.is_spoken():
@@ -238,9 +266,20 @@ class FastSpeech2Synthesizer:
             else:
                 # 22050 Hz 16 bit linear PCM chunks
                 wav = self._do_vocoder_pass(mel_postnet).numpy()
-                yield wavarray_to_pcm(
+                chunk = wavarray_to_pcm(
                     wav, src_sample_rate=22050, dst_sample_rate=sample_rate
                 )
+
+                if use_ffmpeg:
+                    yield ffmpeg.to_format(
+                        out_format=output_format,
+                        audio_content=chunk,
+                        src_sample_rate=str(sample_rate),
+                        sample_rate=str(sample_rate),
+                        prosody=prosody,
+                    )
+                else:
+                    yield chunk
 
 
 class FastSpeech2Voice(VoiceBase):
@@ -267,25 +306,13 @@ class FastSpeech2Voice(VoiceBase):
         if not self._is_valid(**kwargs):
             raise ValueError("Synthesize request not valid")
 
-        for chunk in self._backend.synthesize(
+        return self._backend.synthesize(
             text,
             ssml=ssml,
-            emit_speech_marks=kwargs["OutputFormat"] == "json",
             sample_rate=int(kwargs["SampleRate"]),
-        ):
-            if current_app.config["USE_FFMPEG"] and kwargs["OutputFormat"] in (
-                "mp3",
-                "ogg_vorbis",
-                "pcm",
-            ):
-                yield ffmpeg.to_format(
-                    out_format=kwargs["OutputFormat"],
-                    audio_content=chunk,
-                    src_sample_rate=kwargs["SampleRate"],
-                    sample_rate=kwargs["SampleRate"],
-                )
-            if kwargs["OutputFormat"] in ("pcm", "json"):
-                yield chunk
+            output_format=kwargs["OutputFormat"],
+            use_ffmpeg=current_app.config["USE_FFMPEG"],
+        )
 
     def synthesize(
         self, text: str, ssml: bool = False, **kwargs

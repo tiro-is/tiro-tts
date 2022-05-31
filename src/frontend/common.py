@@ -16,7 +16,14 @@ from typing import Any, Dict, List, Literal, Pattern, Tuple
 
 from regex import Match
 
-from src.frontend.words import PhonemeProps, SSMLProps, SayAsProps, SpeakProps, SubProps
+from src.frontend.words import (
+    PhonemeProps,
+    ProsodyProps,
+    SayAsProps,
+    SpeakProps,
+    SSMLProps,
+    SubProps,
+)
 
 
 def utf8_byte_length(text: str) -> int:
@@ -37,11 +44,13 @@ def consume_whitespace(text: str) -> Tuple[int, int]:
         return len(m.group()), utf8_byte_length(m.group())
     return 0, 0
 
+
 def is_partially_numeric(string: str) -> bool:
     for char in string:
         if char.isdecimal():
             return True
     return False
+
 
 class SSMLConsumer:
     # General consumption variables
@@ -62,6 +71,7 @@ class SSMLConsumer:
     PHONEME: str = "phoneme"
     SUB: str = "sub"
     SAY_AS: str = "say-as"
+    PROSODY: str = "prosody"
 
     _tag_metadata: Dict[str, Dict[str, Any]]
 
@@ -86,7 +96,14 @@ class SSMLConsumer:
     def _reset_tag_metadata(
         self, tag: Literal["all", "speak", "phoneme", "sub", "say-as"] = "all"
     ):
-        if tag not in ["all", self.SPEAK, self.PHONEME, self.SUB, self.SAY_AS]:
+        if tag not in [
+            "all",
+            self.SPEAK,
+            self.PHONEME,
+            self.SUB,
+            self.SAY_AS,
+            self.PROSODY,
+        ]:
             raise ValueError(f"Unsupported tag: {tag} - Unable to reset metadata.")
 
         INITIAL_STATE: Dict[str, Any] = {
@@ -98,6 +115,7 @@ class SSMLConsumer:
                 "alias_view": "",
             },
             self.SAY_AS: {},
+            self.PROSODY: {},
         }
 
         if tag == "all":
@@ -106,6 +124,7 @@ class SSMLConsumer:
                 self.PHONEME: INITIAL_STATE[self.PHONEME],
                 self.SUB: INITIAL_STATE[self.SUB],
                 self.SAY_AS: INITIAL_STATE[self.SAY_AS],
+                self.PROSODY: INITIAL_STATE[self.PROSODY],
             }
         else:
             self._tag_metadata[tag] = INITIAL_STATE[tag]
@@ -152,6 +171,13 @@ class SSMLConsumer:
             if len(interpret_as) == 0:
                 raise AttributeError(err_msg.format(self.SAY_AS, tag_val))
             return {"interpret-as": interpret_as[0][1]}
+        elif self.PROSODY in tag_val:
+            matches: List[Tuple] = re.findall(
+                r"(\w+)\s*=\s*(\"|'{1}(.*?)(\"|'){1})", tag_val
+            )
+            if len(matches) == 0:
+                raise AttributeError(err_msg.format(self.PROSODY, tag_val))
+            return {m[0]: m[2] for m in matches}
 
         raise ValueError(
             f'Unable to extract attributes from unsupported tag: "{tag_val}"'
@@ -292,6 +318,17 @@ class SSMLConsumer:
                             tag_val=tag_val,
                             interpret_as=attrs["interpret-as"],
                             data=self._data,
+                        )
+                    )
+                elif self.PROSODY in tag_val:
+                    attrs = self._extract_tag_attrs(tag_val)
+                    self._tag_stack.append(
+                        ProsodyProps(
+                            tag_val=tag_val,
+                            data=self._data,
+                            rate=attrs.get("rate"),
+                            pitch=attrs.get("pitch"),
+                            volume=attrs.get("volume"),
                         )
                     )
 
