@@ -154,7 +154,7 @@ class NormalizerBase(ABC):
                             symbol=ssml_props.get_interpretation(),
                             start_byte_offset=consumption_status["start_byte_offset"],
                             end_byte_offset=consumption_status["end_byte_offset"],
-                            ssml_props=ssml_props
+                            ssml_props=ssml_props,
                         )
             yield WORD_SENTENCE_SEPARATOR
 

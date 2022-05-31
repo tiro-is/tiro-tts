@@ -180,22 +180,22 @@ class SayAsProps(SSMLProps):
     }
 
     CHARACTERS_DIC: Dict[str, str] = {
-        '.': "punktur",
-        ',': "komma",
-        ' ': "bil",
-        ':': "tvípunktur",
-        ';': "semi komma",
-        '?': "spurningarmerki",
-        '!': "upphrópunarmerki",
-        '+': "plús",
-        '-': "bandstrik",
-        '/': "skástrik",
-        '*': "stjarna",
-        '%': "prósentumerki",
-        '„': "gæsalappir opnast",
-        '“': "gæsalappir lokast",
+        ".": "punktur",
+        ",": "komma",
+        " ": "bil",
+        ":": "tvípunktur",
+        ";": "semi komma",
+        "?": "spurningarmerki",
+        "!": "upphrópunarmerki",
+        "+": "plús",
+        "-": "bandstrik",
+        "/": "skástrik",
+        "*": "stjarna",
+        "%": "prósentumerki",
+        "„": "gæsalappir opnast",
+        "“": "gæsalappir lokast",
         '"': "gæsalappir",
-        '\'': "gæsalappir",
+        "'": "gæsalappir",
         "#": "myllumerki",
         "$": "dollaramerki",
         "&": "og, merki",
@@ -211,7 +211,6 @@ class SayAsProps(SSMLProps):
     }
 
     DELIMITER: str = ", "
-
 
     def __init__(
         self,
@@ -234,14 +233,14 @@ class SayAsProps(SSMLProps):
         if type in ["characters", "spell-out"]:
             return self.DELIMITER.join(
                 [
-                    self.CHARACTERS_DIC[char] 
+                    self.CHARACTERS_DIC[char]
                     if char in self.CHARACTERS_DIC
                     else char.lower()
                     for char in self.get_data()
                 ]
             )
         raise ValueError(
-            "<say-as> error: Encountered unsupported interpretation type: \"{}\"".format(
+            '<say-as> error: Encountered unsupported interpretation type: "{}"'.format(
                 type
             )
         )
@@ -261,7 +260,6 @@ class SayAsProps(SSMLProps):
             and self.tag_val == other.tag_val
             and self.data == other.data
         )
-
 
 
 class Word:

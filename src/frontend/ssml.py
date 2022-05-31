@@ -108,16 +108,22 @@ class OldSSMLParser(HTMLParser):
                 )
             self._sub_alias = attrs_map.get("alias")
         elif tag == "say-as":
-            if len(attrs_map) == 0 or "interpret-as" not in attrs_map:  
-                # TODO(Smári): Add checks for possible other attributes that are required when 
+            if len(attrs_map) == 0 or "interpret-as" not in attrs_map:
+                # TODO(Smári): Add checks for possible other attributes that are required when
                 # "interpret-as" is something such as "date", then the "format" attribute is required.
                 # We should probably too add a constant list of allowed attribute values as they are
                 # quite many for this tag.
-                raise SSMLValidationException("Illegal SSML! <say-as> tag requires the 'interpret-as' attribute.")
+                raise SSMLValidationException(
+                    "Illegal SSML! <say-as> tag requires the 'interpret-as' attribute."
+                )
 
             interpret_as_val: str = attrs_map.get("interpret-as")
             if interpret_as_val not in self._SAY_AS_SUPPORTED_INTRPRT_VALS:
-                raise SSMLValidationException('Illegal SSML! Encountered unsupported "interpret-as" attribute value in <say-as> tag: {}'.format(interpret_as_val))
+                raise SSMLValidationException(
+                    'Illegal SSML! Encountered unsupported "interpret-as" attribute value in <say-as> tag: {}'.format(
+                        interpret_as_val
+                    )
+                )
 
         self._tag_stack.append(tag)
 
