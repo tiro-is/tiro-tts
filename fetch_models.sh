@@ -17,6 +17,7 @@ STORAGE_ROOT="https://storage.googleapis.com/tiro-is-public-assets/models"
 
 dl() {
   set -x
+  mkdir -p $(dirname $2)
   curl "$1" -o "$2"
   set +x
 }

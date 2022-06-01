@@ -2,9 +2,9 @@
 
 Tiro TTS is a text-to-speech API server which works with various TTS backends. By default it expects a FastSpeech2+Melgan+Sequitur backend. See the [cadia-lvl/FastSpeech2](https://github.com/cadia-lvl/FastSpeech2/tree/080603e6707ae4b8eae6832db7220116e4b4df3b) repo. 
 
-The service can accept either unnormalized text or a [SSML](https://www.w3.org/TR/speech-synthesis11/) document and respond with audio (MP3, Ogg Vorbis or raw 16 bit PCM) or speech marks, indicating the byte and time offset of each synthesized word in the request. At the moment the SSML support is limited to the <phoneme> tag where the caller can use a subset of X-SAMPA to control the pronunciation of individual words or phrases in the request.
+The service can accept either unnormalized text or a [SSML](https://www.w3.org/TR/speech-synthesis11/) document and respond with audio (MP3, Ogg Vorbis or raw 16 bit PCM) or speech marks, indicating the byte and time offset of each synthesized word in the request. 
 
-The full API documentation is available on [tts.tiro.is](https://tts.tiro.is/).
+The full API documentation is available online at [tts.tiro.is](https://tts.tiro.is/).
 
 ## Voices
 
