@@ -11,12 +11,24 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import shutil
 import subprocess as sp
 from dataclasses import dataclass
 from typing import List, Literal, Optional
 
+
+def _find_ffmpeg() -> str:
+    path = shutil.which("external/ffmpeg/ffmpeg")
+    if path:
+        return path
+    path = shutil.which("ffmpeg")
+    if path:
+        return path
+    raise RuntimeError("ffmpeg not found")
+
+
 _FFMPEG_ARGS = [
-    "ffmpeg",
+    _find_ffmpeg(),
     "-hide_banner",
     "-loglevel",
     "error",
