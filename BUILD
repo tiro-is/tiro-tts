@@ -135,6 +135,7 @@ py_library(
     name = "main_lib",
     srcs = glob(["src/*.py"], exclude=["*_test.py"]),
     srcs_version = "PY3",
+    data = ["@ffmpeg//:cli"],
     deps = [
         requirement("flask"),
         requirement("flask-apispec"),

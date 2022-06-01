@@ -19,7 +19,7 @@ import sys
 import tempfile
 import zipfile
 from pathlib import Path
-from typing import Dict, Iterable, Optional
+from typing import Dict, Iterable, Literal, Optional
 
 import numpy as np
 import resampy
@@ -35,7 +35,12 @@ from src.frontend.grapheme_to_phoneme import GraphemeToPhonemeTranslatorBase
 from src.frontend.normalization import BasicNormalizer, NormalizerBase
 from src.frontend.phonemes import Alphabet
 from src.frontend.ssml import OldSSMLParser as SSMLParser
-from src.frontend.words import WORD_SENTENCE_SEPARATOR, Word, preprocess_sentences
+from src.frontend.words import (
+    WORD_SENTENCE_SEPARATOR,
+    ProsodyProps,
+    Word,
+    preprocess_sentences,
+)
 
 from .utils import wavarray_to_pcm
 from .voice_base import OutputFormat, VoiceBase, VoiceProperties
@@ -129,10 +134,12 @@ class Espnet2Synthesizer:
         self,
         text: str,
         ssml: bool = False,
-        emit_speech_marks: bool = False,
         sample_rate: int = 22050,
+        output_format: Literal["json", "pcm", "mp3", "ogg_vorbis"] = "pcm",
+        *,
+        use_ffmpeg: bool = True,
     ) -> Iterable[bytes]:
-        if emit_speech_marks:
+        if output_format == "json":
             raise NotImplementedError("This backend doesn't support speech marks!")
 
         def phonetize_fn(*args, **kwargs):
@@ -145,6 +152,13 @@ class Espnet2Synthesizer:
         for segment_words, phone_seq, phone_counts in preprocess_sentences(
             text, ssml_reqs, self._normalizer.normalize, phonetize_fn
         ):
+            prosody = ffmpeg.Prosody()
+            if ssml and isinstance(segment_words[0].ssml_props, ProsodyProps):
+                ssml_props = segment_words[0].ssml_props
+                prosody.rate = ssml_props.rate
+                prosody.pitch = ssml_props.pitch
+                prosody.volume = ssml_props.volume
+
             batch = espnet2_to_device(
                 {
                     "text": self._tts_internal.preprocess_fn(
@@ -152,8 +166,10 @@ class Espnet2Synthesizer:
                     )["text"]
                 }
             )
+
+            decode_conf = self._tts_internal.decode_conf
             out = self._tts_internal.model.inference(
-                **batch, **self._tts_internal.decode_conf
+                **batch, **{**self._tts_internal.decode_conf}
             )
             wav = self._tts_internal.vocoder(out["feat_gen"])
 
@@ -162,11 +178,22 @@ class Espnet2Synthesizer:
             wav = wav.clamp(min=-max_wav_value, max=max_wav_value - 1)
             wav = wav.to(dtype=torch.int16)
 
-            yield wavarray_to_pcm(
+            chunk = wavarray_to_pcm(
                 wav.cpu().numpy(),
                 src_sample_rate=self._tts_internal.fs,
                 dst_sample_rate=sample_rate,
             )
+
+            if use_ffmpeg:
+                yield ffmpeg.to_format(
+                    out_format=output_format,
+                    audio_content=chunk,
+                    src_sample_rate=str(sample_rate),
+                    sample_rate=str(sample_rate),
+                    prosody=prosody,
+                )
+            else:
+                yield chunk
 
 
 class Espnet2Voice(VoiceBase):
@@ -196,27 +223,13 @@ class Espnet2Voice(VoiceBase):
         if not self._is_valid(**kwargs):
             raise ValueError("Synthesize request not valid")
 
-        for chunk in self._backend.synthesize(
+        return self._backend.synthesize(
             text,
             ssml=ssml,
-            emit_speech_marks=kwargs["OutputFormat"] == "json",
             sample_rate=int(kwargs["SampleRate"]),
-        ):
-            if current_app.config["USE_FFMPEG"]:
-                if kwargs["OutputFormat"] == "ogg_vorbis":
-                    yield ffmpeg.to_ogg_vorbis(
-                        chunk,
-                        src_sample_rate=kwargs["SampleRate"],
-                        sample_rate=kwargs["SampleRate"],
-                    )
-                elif kwargs["OutputFormat"] == "mp3":
-                    yield ffmpeg.to_mp3(
-                        chunk,
-                        src_sample_rate=kwargs["SampleRate"],
-                        sample_rate=kwargs["SampleRate"],
-                    )
-            if kwargs["OutputFormat"] in ("pcm", "json"):
-                yield chunk
+            output_format=kwargs["OutputFormat"],
+            use_ffmpeg=current_app.config["USE_FFMPEG"],
+        )
 
     def synthesize(self, text: str, ssml: bool = False, **kwargs) -> Iterable[bytes]:
         """Synthesize audio from a string of characters."""

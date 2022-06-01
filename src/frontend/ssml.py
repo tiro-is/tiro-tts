@@ -27,9 +27,11 @@ class SSMLValidationException(Exception):
 
 
 class OldSSMLParser(HTMLParser):
-    _ALLOWED_TAGS = ["speak", "phoneme", "sub", "say-as"]
+    _ALLOWED_TAGS = ["speak", "phoneme", "sub", "say-as", "prosody"]
     _first_tag_seen: bool
-    _tag_stack: List[Dict[str, Any]]   # [{"tag": "tag_val", "attrs": {"tag_attr_01": "tag_attr_01_val", "tag_attr_02": "tag_attrs_02_val"}}, {"tag": ...}, ...]
+    _tag_stack: List[
+        Dict[str, Any]
+    ]  # [{"tag": "tag_val", "attrs": {"tag_attr_01": "tag_attr_01_val", "tag_attr_02": "tag_attrs_02_val"}}, {"tag": ...}, ...]
     _text: List[str]
 
     # Tag specific variables

@@ -11,13 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from itertools import islice
 import re
 import string
 import unicodedata
 import urllib.parse
 from abc import ABC, abstractmethod
-from typing import Dict, Iterable, List, Literal, Tuple, cast
+from typing import Dict, Iterable, List, Literal, Optional, Tuple, cast
 
 import grpc
 import tokenizer
@@ -25,9 +24,20 @@ from messages import tts_frontend_message_pb2
 from services import tts_frontend_service_pb2, tts_frontend_service_pb2_grpc
 from tokenizer import Tok
 
-from src.frontend.common import consume_whitespace, SSMLConsumer, is_partially_numeric, utf8_byte_length
+from src.frontend.common import (
+    SSMLConsumer,
+    consume_whitespace,
+    is_partially_numeric,
+    utf8_byte_length,
+)
 from src.frontend.ssml import OldSSMLParser as SSMLParser
-from src.frontend.words import WORD_SENTENCE_SEPARATOR, SSMLProps, Word
+from src.frontend.words import (
+    WORD_SENTENCE_SEPARATOR,
+    PhonemeProps,
+    ProsodyProps,
+    SSMLProps,
+    Word,
+)
 
 
 class NormalizerBase(ABC):
@@ -58,10 +68,32 @@ class NormalizerBase(ABC):
         acc_consumption_status: List[Dict] = []
         acc_normalized: List[str] = []
         for sent in sentences_with_pairs:
+            last_ssml_props: Optional[SSMLProps] = None
             for original, normalized in sent:
                 consumption_status: Dict = consumer.consume(original)
                 ssml_props: SSMLProps = consumption_status["ssml_props"]
-                if ssml_props.tag_type == "speak":
+
+                if (
+                    (
+                        isinstance(last_ssml_props, ProsodyProps)
+                        and not isinstance(ssml_props, ProsodyProps)
+                    )
+                    or (
+                        isinstance(last_ssml_props, ProsodyProps)
+                        and isinstance(ssml_props, ProsodyProps)
+                        and ssml_props != last_ssml_props
+                    )
+                    or (
+                        not isinstance(last_ssml_props, ProsodyProps)
+                        and isinstance(ssml_props, ProsodyProps)
+                    )
+                ):
+                    # TODO(rkjaran): This will fail if the current <prosody>
+                    #   includes nested tags. Fix once we can accumulate SSML
+                    #   properties
+                    yield WORD_SENTENCE_SEPARATOR
+
+                if ssml_props.tag_type in ("speak", "prosody"):
                     yield Word(
                         original_symbol=original,
                         symbol=normalized,
@@ -131,7 +163,7 @@ class NormalizerBase(ABC):
                     if ssml_props.get_interpret_as() == "digits":
                         # Nonnumeric tokens within say-as->digits are yielded without any special treatment.                                    (symbol=normalized)
                         # Partially (or fully) numeric tokens, however, are interpreted and yielded as individual digits and characters.        (symbol=ssml_props.get_interpretation(original))
-                        
+
                         # Note: A multitoken say-as->digits tag does not yield a multitoken Word instance as is done for say-as->characters for example.
                         #       Example: "<say-as interpret-as="digits">förum kl. 18</say-as>" yields
                         #           [
@@ -184,6 +216,7 @@ class NormalizerBase(ABC):
                             end_byte_offset=consumption_status["end_byte_offset"],
                             ssml_props=ssml_props,
                         )
+                last_ssml_props = ssml_props
             yield WORD_SENTENCE_SEPARATOR
 
 

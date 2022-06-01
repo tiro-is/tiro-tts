@@ -110,12 +110,18 @@ def ffmpeg():
         build_file_content = """
 load("@rules_pkg//:pkg.bzl", "pkg_tar")
 
+filegroup(
+  name = "cli",
+  srcs = ["ffmpeg"],
+  visibility = ["//visibility:public"],
+)
+
 pkg_tar(
   name = "cli_pkg",
   strip_prefix = "external/ffmpeg",
   package_dir = "/usr/bin",
   mode = "0755",
-  srcs = ["ffmpeg"],
+  srcs = [":cli"],
   visibility = ["//visibility:public"],
 )
 """

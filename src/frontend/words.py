@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import json
-from typing import Callable, Dict, Iterable, List, Literal, Tuple
+import re
+from abc import ABC
+from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Tuple
 
 import tokenizer
 
@@ -20,18 +22,17 @@ from src.frontend.lexicon import LangID
 from src.frontend.phonemes import (
     ALIGNER_XSAMPA,
     ALIGNER_XSAMPA_SYLL_STRESS,
-    align_ipa_from_xsampa,
     PhoneSeq,
+    align_ipa_from_xsampa,
 )
 
 
-class SSMLProps:
-    tag_type: Literal["speak", "phoneme", "sub"] = ""
+# TODO(rkjaran): There are cases where we have to support nested SSML tags, e.g. we can
+#   have nested prosody tags.
+class SSMLProps(ABC):
+    tag_type: str
     tag_val: str
-    data: str = ""
-
-    def __init__(self):
-        ...
+    data: str
 
     def get_data(self):
         return self.data
@@ -276,6 +277,159 @@ class SayAsProps(SSMLProps):
         )
 
 
+class ProsodyProps(SSMLProps):
+    rate: float
+    PREDEFINED_RATES: Dict[str, float] = {
+        "x-slow": 0.5,
+        "slow": 0.75,
+        "medium": 1.0,
+        "fast": 1.25,
+        "x-fast": 1.75,
+    }
+    RATE_MIN = 0.2
+    RATE_MAX = 2.0
+
+    pitch: float
+    PREDEFINED_PITCH: Dict[str, float] = {
+        "default": 1.0,
+        "x-low": 0.8,
+        "low": 0.9,
+        "medium": 1.0,
+        "high": 1.1,
+        "x-high": 1.2,
+    }
+    PITCH_MIN = 0.5
+    PITCH_MAX = 2.0
+
+    # in decibels
+    volume: float
+    PREDEFINED_VOLUME: Dict[str, float] = {
+        "default": 0.0,
+        "silent": -20.0,
+        "x-soft": -10.0,
+        "soft": -6.0,
+        "medium": 0.0,
+        "loud": 6.0,
+        "x-loud": 10.0,
+    }
+
+    def __init__(
+        self,
+        *,
+        tag_val: str,
+        data: str,
+        rate: Optional[str] = None,
+        pitch: Optional[str] = None,
+        volume: Optional[str] = None,
+    ):
+        """Prosody properties
+
+        Args:
+          rate:
+            x-slow, slow, medium, fast, x-fast. Sets the pitch to a predefined value for
+            the selected voice.
+
+            n%: A non-negative percentage change in the speaking rate. For example, a
+            value of 100% means no change in speaking rate, a value of 200% means a
+            speaking rate twice the default rate, and a value of 50% means a speaking
+            rate of half the default rate. This value has a range of 20-200%.
+
+          pitch:
+            default: Resets pitch to the default level for the current voice.
+
+            x-low, low, medium, high, x-high: Sets the pitch to a predefined value for
+            the current voice.
+
+            +n% or -n%: Adjusts pitch by a relative percentage. For example, a value of
+            +0% means no baseline pitch change, +5% gives a little higher baseline
+            pitch, and -5% results in a little lower baseline pitch.
+
+          volume:
+            default: Resets volume to the default level for the current voice.
+
+            silent, x-soft, soft, medium, loud, x-loud: Sets the volume to a predefined
+            value for the current voice.
+
+            +ndB, -ndB: Changes volume relative to the current level. A value of +0dB
+            means no change, +6dB means approximately twice the current volume, and -6dB
+            means approximately half the current volume.
+
+
+        NOTE: "default" is supposed to reset the pitch/volume, while everything else
+          accumulates. We do not currently support nested <prosody> tags so there's
+          nothing to accumulate.
+
+        """
+        self.tag_val = tag_val
+        self.tag_type = "prosody"
+        self.data = data
+
+        if rate is not None:
+            if rate.endswith("%"):
+                self.rate = float(rate[:-1]) / 100
+                if self.rate > ProsodyProps.RATE_MAX:
+                    self.rate = ProsodyProps.RATE_MAX
+                elif self.rate < ProsodyProps.RATE_MIN:
+                    self.rate = ProsodyProps.RATE_MIN
+            else:
+                try:
+                    self.rate = ProsodyProps.PREDEFINED_RATES[rate]
+                except KeyError:
+                    raise ValueError("Non-existent prosody rate specifier")
+        else:
+            self.rate = 1.0
+
+        if pitch is not None:
+            try:
+                m = re.match(r"([\-+])([0-9]{1,3})%", pitch)
+                if not m:
+                    self.pitch = ProsodyProps.PREDEFINED_PITCH[pitch]
+                else:
+                    op, percent = m[1], m[2]
+                    adjustment = float(percent) / 100
+                    self.pitch = 1.0 + (-adjustment if op == "-" else adjustment)
+                    if self.pitch < ProsodyProps.PITCH_MIN:
+                        self.pitch = ProsodyProps.PITCH_MIN
+                    elif self.pitch > ProsodyProps.PITCH_MAX:
+                        self.pitch = ProsodyProps.PITCH_MAX
+            except (KeyError, ValueError):
+                raise ValueError("Non-existent prosody pitch specifier")
+        else:
+            self.pitch = 1.0
+
+        if volume is not None:
+            try:
+                m = re.match(r"([\-+][0-9]{1,2})d[Bb]", volume)
+                if not m:
+                    self.volume = ProsodyProps.PREDEFINED_VOLUME[volume]
+                else:
+                    self.volume = float(m[1])
+            except (KeyError, ValueError):
+                raise ValueError("Non-existent prosody volume specifier")
+        else:
+            self.volume = 0.0
+
+    def __repr__(self):
+        return "<ProsodyProps(rate='{}', pitch='{}', volume='{}', tag_type='{}', tag_val='{}', data='{}')>".format(
+            self.rate,
+            self.pitch,
+            self.volume,
+            self.tag_type,
+            self.tag_val,
+            self.data,
+        )
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, ProsodyProps) and (
+            self.rate == other.rate
+            and self.pitch == other.pitch
+            and self.volume == other.volume
+            and self.tag_type == other.tag_type
+            and self.tag_val == other.tag_val
+            and self.data == other.data
+        )
+
+
 class Word:
     """A wrapper for individual symbol and its metadata."""
 
@@ -351,7 +505,7 @@ def preprocess_sentences(
     ssml_reqs: Dict,
     normalize_fn: Callable[[str], Iterable[Word]],
     translator_fn: Callable[[Iterable[Word]], Iterable[Word]],
-) -> Iterable[Tuple[List[List[Word]], PhoneSeq, List[int]]]:
+) -> Iterable[Tuple[List[Word], PhoneSeq, List[int]]]:
     """Preprocess text into sentences of phonetized words
 
     Yields:
