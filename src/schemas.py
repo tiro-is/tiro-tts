@@ -88,6 +88,9 @@ class SynthesizeSpeechRequest(Schema):
                 {"time": 1905, "type": "word", "start": 37, "end": 39, "value": "en"}
                 {"time": 2055, "type": "word", "start": 40, "end": 44, "value": "þú"}
 
+            On tts.tiro.is speech marks are only available for the voices: Alfur, Dilja,
+            Karl and Dora.
+
             """
         ),
         example=["word"],
@@ -100,14 +103,130 @@ class SynthesizeSpeechRequest(Schema):
     )
     TextType = fields.Str(
         required=False,
-        description=(
-            "Specifies whether the input text is plain text or SSML. "
-            + "The default value is plain text. "
-            + "\n\n"
-            + "Currently the SSML support is restricted to just `<phoneme>` tags, e.g:<br>"
-            + "`<speak>Ég er <phoneme alphabet='x-sampa' ph='...'>gervimaður</phoneme></speak>`"
-            + "\n\n"
-            + "Currently only plain text requests are normalized before synthesis."
+        description=textwrap.dedent(
+            """\
+            Specifies whether the input text is plain text or SSML. The default value is
+            plain text.
+
+            <a name="supported-ssml-tags"></a>
+            ## Supported SSML tags
+
+            The following tags are supported:
+
+            ### `<speak>`
+
+            This is the required root element of all SSML requests.
+
+            ```xml
+            <speak>Hæ! Ég heiti Gervimaður Finnland, en þú?</speak>
+            ```
+
+            Note that nesting tags is currently not supported. That means that the
+            following is not supported, where we try to increase the speech rate of a
+            sentence that uses a custom phonetic pronunciation:
+
+            ```xml
+            <speak>
+              <prosody rate='150%'>Ég er <phoneme alphabet='x-sampa' ph='cErvIm9i:r'>
+              gervimaður</phoneme></prosody>.
+            </speak>
+            ```
+
+            ### `<phoneme>`
+
+            This tag can be used to specify a certain phonetic pronunciation of a word
+            or phrase. It requires the use of two attributes:
+
+            - `alphabet`: We currently only support `x-sampa` which indicates the use
+              of X-SAMPA, or the specific subset the voice supports.
+            - `ph`: Specifies the phonetic symbols.
+
+            ```xml
+            <speak>
+              Ég er <phoneme alphabet='x-sampa' ph='cErvIm9i:r'>gervimaður</phoneme>
+            </speak>
+            ```
+
+            ### `<prosody>`
+
+            The prosody tag can be used to control the pitch, volume and rate of
+            speech. Each of these attributes vary somewhat beetween voices, so they are
+            all relative.
+
+            The availabe attributes are:
+
+            - `volume`:
+              - `silent`, `x-soft`, `soft`, `medium`, `loud`, `x-loud`
+              - `+ndB` or `-ndB`: Change the volume relative to the current volume in
+                decibels.
+
+            ```xml
+            <speak>
+              <prosody volume='loud'>Hæ!</prosody> Ég heiti Gervimaður Finnland, en þú?
+            </speak>
+            ```
+
+            - `rate`:
+              - `x-slow`, `slow`, `medium`, `fast`, `x-fast`
+              - `n%`: A percentage in the range 20-200% where 50% means half of the
+                default speaking rate and 200% means twice the default speaking rate.
+
+            ```xml
+            <speak>
+              Hæ! Ég heiti Gervimaður Finnland, en þú? <prosody rate='150%'>Hvað
+              sagðirðu?</prosody>
+            </speak>
+            ```
+
+            - `pitch`:
+              - `x-low`, `low`, `medium`, `high`, `x-high`
+              - `+n%` or `-n%`: Shift the pitch up or down by a specific percentage.
+
+            ```xml
+            <speak>
+              Hæ! Ég heiti Gervimaður Finnland, en þú? <prosody pitch='x-low'>Ég er bara
+              Gervimaður Útlönd</prosody>
+            </speak>
+            ```
+
+            These three attributes can be combined, as so:
+
+            ```xml
+            <speak>
+              <prosody volume='x-loud' pitch='high' rate='140%'>Hæ!</prosody> Ég heiti
+              Gervimaður Finnland, en þú?
+            </speak>
+            ```
+
+            ### `<say-as>`
+
+            It is possible to control how certain words are interpreted with the
+            `interpret-as` attribute of the `<say-as>` tag. The following values
+            currently supported for `interpret-as`:
+
+            - `digits`: Spells out each digit individually.
+            - `characters` or `spell-out`: Spells out each letter individually.
+
+            ```xml
+            <speak>
+              Gervimaður Útlönd vill ekki sjá <say-as interpret-as='spell-out'>ehf
+              </say-as>. Hann hringir bara í <say-as interpret-as='digits'>112</say-as>.
+            </speak>
+            ```
+
+            ### `<sub>`
+
+            The `alias` attribute of the `<sub>` tag can used to substitute a different
+            word for a word or phrase, an abbreviation for example.
+
+            ```xml
+            <speak>
+              Gervimaður Finnland vill setja 10 <sub alias='míkrópasköl á
+              rúmsentímetra'>µPa/cc</sub> af þessu í vatnið.
+            </speak>
+            ```
+
+            """
         ),
         validate=validate.OneOf(["text", "ssml"]),
     )
