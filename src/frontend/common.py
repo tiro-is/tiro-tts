@@ -24,6 +24,11 @@ def consume_whitespace(text: str) -> Tuple[int, int]:
         return len(m.group()), utf8_byte_length(m.group())
     return 0, 0
 
+def is_partially_numeric(string: str) -> bool:
+    for char in string:
+        if char.isdecimal():
+            return True
+    return False
 
 class SSMLConsumer:
     # General consumption variables

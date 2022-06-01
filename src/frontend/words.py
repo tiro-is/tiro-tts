@@ -212,6 +212,10 @@ class SayAsProps(SSMLProps):
 
     DELIMITER: str = ", "
 
+    CHARACTERS: str = "characters"
+    SPELL_OUT: str = "spell-out"
+    DIGITS: str = "digits"
+
     def __init__(
         self,
         tag_val: str,
@@ -228,9 +232,9 @@ class SayAsProps(SSMLProps):
     def get_interpret_as(self):
         return self.interpret_as
 
-    def get_interpretation(self):
-        type: Literal["characters", "spell-out"] = self.get_interpret_as()
-        if type in ["characters", "spell-out"]:
+    def get_interpretation(self, token: str = ""):
+        type: Literal["characters", "spell-out", "digits"] = self.get_interpret_as()
+        if type in [self.CHARACTERS, self.SPELL_OUT]:
             return self.DELIMITER.join(
                 [
                     self.CHARACTERS_DIC[char]
@@ -239,6 +243,16 @@ class SayAsProps(SSMLProps):
                     for char in self.get_data()
                 ]
             )
+        elif type == self.DIGITS:
+            return self.DELIMITER.join(
+                [
+                    self.CHARACTERS_DIC[char]
+                    if char in self.CHARACTERS_DIC
+                    else char.lower()
+                    for char in token
+                ]
+            )
+
         raise ValueError(
             '<say-as> error: Encountered unsupported interpretation type: "{}"'.format(
                 type

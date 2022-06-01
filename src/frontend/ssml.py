@@ -130,13 +130,6 @@ class OldSSMLParser(HTMLParser):
             )
         if self._tag_stack[-1]["tag"] == "sub":
             data = self._tag_stack[-1]["attrs"]["alias"]
-        elif self._tag_stack[-1]["tag"] == "say-as":
-            if self._tag_stack[-1]["attrs"]["interpret-as"] == "digits" and not data.isnumeric():
-                raise SSMLValidationException(
-                    'Illegal SSML! <say-as> tag with "digits" as "interpret-as" attribute value may only contain digits as data.\nFor alphanumeric spell-out, please use "characters" or "spell-out".\nReceived <say-as> data: {}'.format(
-                        data
-                    )
-                )
 
         self._text.append(data)
 
