@@ -25,7 +25,7 @@ from messages import tts_frontend_message_pb2
 from services import tts_frontend_service_pb2, tts_frontend_service_pb2_grpc
 from tokenizer import Tok
 
-from src.frontend.common import consume_whitespace, SSMLConsumer, utf8_byte_length
+from src.frontend.common import consume_whitespace, SSMLConsumer, is_partially_numeric, utf8_byte_length
 from src.frontend.ssml import OldSSMLParser as SSMLParser
 from src.frontend.words import WORD_SENTENCE_SEPARATOR, SSMLProps, Word
 
@@ -54,6 +54,7 @@ class NormalizerBase(ABC):
 
         consumer = SSMLConsumer(ssml=ssml)
 
+        # TODO(Smári): See if I can move these two variables to SSMLConsumer:_tag_metadata.
         acc_consumption_status: List[Dict] = []
         acc_normalized: List[str] = []
         for sent in sentences_with_pairs:
@@ -70,7 +71,7 @@ class NormalizerBase(ABC):
                     )
                 elif ssml_props.tag_type == "phoneme":
                     if ssml_props.is_multi():
-                        # If a phoneme tags contains more than a single word, we must accumulate
+                        # If a phoneme tag contains more than a single word, we must accumulate
                         # all of them and yield them as a single Word.
 
                         acc_consumption_status.append(consumption_status)
@@ -126,7 +127,63 @@ class NormalizerBase(ABC):
                         ssml_props=ssml_props,
                     )
                     acc_normalized.clear()
+                elif ssml_props.tag_type == "say-as":
+                    if ssml_props.get_interpret_as() == "digits":
+                        # Nonnumeric tokens within say-as->digits are yielded without any special treatment.                                    (symbol=normalized)
+                        # Partially (or fully) numeric tokens, however, are interpreted and yielded as individual digits and characters.        (symbol=ssml_props.get_interpretation(original))
+                        
+                        # Note: A multitoken say-as->digits tag does not yield a multitoken Word instance as is done for say-as->characters for example.
+                        #       Example: "<say-as interpret-as="digits">förum kl. 18</say-as>" yields
+                        #           [
+                        #               Word({ original: "förum", normalized: "förum" }),
+                        #               Word({ original: "kl.", normalized: "klukkan" }),
+                        #               Word({ original: "18", normalized: "einn, átta" }),
+                        #           ]
+                        #
+                        #       Example: "<say-as interpret-as="digits">18b</say-as>" yields
+                        #           [
+                        #               Word({ original: "18b", normalized: "einn, átta, b" })
+                        #           ]
+                        #
+                        #       Example: "<say-as interpret-as="digits">112</say-as>" yields
+                        #           [
+                        #               Word({ original: "112", normalized: "einn, einn, tveir" })
+                        #           ]
+                        yield Word(
+                            original_symbol=original,
+                            symbol=ssml_props.get_interpretation(original) if is_partially_numeric(original) else normalized,
+                            start_byte_offset=consumption_status["start_byte_offset"],
+                            end_byte_offset=consumption_status["end_byte_offset"],
+                            ssml_props=ssml_props,
+                        )
+                    elif ssml_props.is_multi():
+                        # If a say-as tag contains more than a single word, we must accumulate
+                        # all of them and yield them as a single Word.
 
+                        acc_consumption_status.append(consumption_status)
+                        if not consumption_status["last_word"]:
+                            continue
+
+                        yield Word(
+                            original_symbol=ssml_props.get_data(),
+                            symbol=ssml_props.get_interpretation(),
+                            start_byte_offset=acc_consumption_status[0][
+                                "start_byte_offset"
+                            ],
+                            end_byte_offset=acc_consumption_status[-1][
+                                "end_byte_offset"
+                            ],
+                            ssml_props=ssml_props,
+                        )
+                        acc_consumption_status.clear()
+                    else:
+                        yield Word(
+                            original_symbol=original,
+                            symbol=ssml_props.get_interpretation(),
+                            start_byte_offset=consumption_status["start_byte_offset"],
+                            end_byte_offset=consumption_status["end_byte_offset"],
+                            ssml_props=ssml_props,
+                        )
             yield WORD_SENTENCE_SEPARATOR
 
 

@@ -12,10 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from html.parser import HTMLParser
-from typing import List
-
-from src.frontend.phonemes import align_ipa_from_xsampa
-from src.frontend.words import PhonemeProps, SpeakProps, Word
+from typing import Any, Dict, List
 
 # This parser provides the following service:
 #   1) Tag stripping (text isolation)
@@ -30,32 +27,20 @@ class SSMLValidationException(Exception):
 
 
 class OldSSMLParser(HTMLParser):
-    _ALLOWED_TAGS = ["speak", "phoneme", "sub"]
+    _ALLOWED_TAGS = ["speak", "phoneme", "sub", "say-as"]
     _first_tag_seen: bool
-    _tag_stack: List[str]
+    _tag_stack: List[Dict[str, Any]]   # [{"tag": "tag_val", "attrs": {"tag_attr_01": "tag_attr_01_val", "tag_attr_02": "tag_attrs_02_val"}}, {"tag": ...}, ...]
     _text: List[str]
 
     # Tag specific variables
-
-    # <sub>
-
-    # When we isolate the text (by removing the tags) from the SSML, we must take a special care of text extracted
-    # from <sub> tags. Usually we only want to extract the data (>the text between the opening and closing tags<) but
-    # for <sub> tags, we rather want the text that the alias attribute defines in the opening tag. Because
-    # we don't have access to this information (the alias attribute value) in handle_data(), we put it into this variable
-    # while in handle_starttag() and keep it there until it is needed in a subsequent call to handle_data(). That way,
-    # we are able to substitute the >data value< for the alias value.
-    # This is done because we normalize the tag-stripped text and that text must contain the alias rather than the
-    # data.
-    _sub_alias: str
+    # <say-as>
+    _SAY_AS_SUPPORTED_INTRPRT_VALS: str = ["characters", "spell-out", "digits"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._first_tag_seen = False
         self._tag_stack = []
         self._text = []
-
-        self._sub_alias = ""
 
     def _check_first_tag(self, tag):
         if not self._first_tag_seen:
@@ -75,7 +60,7 @@ class OldSSMLParser(HTMLParser):
                 "Unsupported tag encountered: '{}'".format(tag)
             )
 
-        if tag in self._tag_stack:
+        if tag in [tag["tag"] for tag in self._tag_stack]:
             # If tag type is already in the stack, that means that we are adding some type of tag
             # nested within itself, which is illegal.
             # Example:
@@ -103,15 +88,31 @@ class OldSSMLParser(HTMLParser):
                 raise SSMLValidationException(
                     "Illegal SSML! sub tag requires the 'alias' attribute."
                 )
-            self._sub_alias = attrs_map.get("alias")
+        elif tag == "say-as":
+            if len(attrs_map) == 0 or "interpret-as" not in attrs_map:
+                # TODO(Smári): Add checks for possible other attributes that are required when
+                # "interpret-as" is something such as "date", then the "format" attribute is required.
+                # We should probably too add a constant list of allowed attribute values as they are
+                # quite many for this tag.
+                raise SSMLValidationException(
+                    "Illegal SSML! <say-as> tag requires the 'interpret-as' attribute."
+                )
 
-        self._tag_stack.append(tag)
+            interpret_as_val: str = attrs_map["interpret-as"]
+            if interpret_as_val not in self._SAY_AS_SUPPORTED_INTRPRT_VALS:
+                raise SSMLValidationException(
+                    'Illegal SSML! Encountered unsupported "interpret-as" attribute value in <say-as> tag: {}'.format(
+                        interpret_as_val
+                    )
+                )
+
+        self._tag_stack.append({"tag": tag, "attrs": attrs_map})
 
     def handle_endtag(self, tag):
         open_tag = self._tag_stack.pop()
-        if open_tag != tag:
+        if open_tag["tag"] != tag:
             raise SSMLValidationException(
-                "Invalid closing tag '{}' for '{}'".format(tag, open_tag)
+                "Invalid closing tag '{}' for '{}'".format(tag, open_tag["tag"])
             )
 
     def handle_data(self, data):
@@ -127,8 +128,8 @@ class OldSSMLParser(HTMLParser):
             raise SSMLValidationException(
                 "Illegal SSML! All text must be contained within SSML tags."
             )
-        if self._tag_stack[-1] == "sub":
-            data = self._sub_alias
+        if self._tag_stack[-1]["tag"] == "sub":
+            data = self._tag_stack[-1]["attrs"]["alias"]
 
         self._text.append(data)
 
@@ -144,6 +145,6 @@ class OldSSMLParser(HTMLParser):
             raise SSMLValidationException("Not all tags were closed, malformed SSML.")
 
         text: str = "".join(self._text)
-        if len(text) == 0:
+        if len(text) == 0 or text.isspace():
             raise SSMLValidationException("The SSML did not contain any text!")
         return text
