@@ -505,7 +505,7 @@ def preprocess_sentences(
     ssml_reqs: Dict,
     normalize_fn: Callable[[str], Iterable[Word]],
     translator_fn: Callable[[Iterable[Word]], Iterable[Word]],
-) -> Iterable[Tuple[List[List[Word]], PhoneSeq, List[int]]]:
+) -> Iterable[Tuple[List[Word], PhoneSeq, List[int]]]:
     """Preprocess text into sentences of phonetized words
 
     Yields:
