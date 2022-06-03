@@ -45,6 +45,12 @@ message Voice {
   }
 }
 
+// A backend for models created with
+// [cadia-lvl/FastSpeech2](https://github.com/cadia-lvl/FastSpeech2/tree/080603e6707ae4b8eae6832db7220116e4b4df3b)
+// and a vocoder created with
+// [seungwonpark/melgan](https://github.com/seungwonpark/melgan). Both the
+// FastSpeech2 and MelGAN models have to be converted to TorchScript models
+// before use.
 message Fastspeech2MelganBackend {
   // *optional* The BCP-47 language code
   string language_code = 1;
@@ -90,8 +96,11 @@ message Espnet2Backend {
   // - zoo://   to download a model from the HuggingFace or Zenodo Model Zoo
   string model_pack_uri = 3;
 
-  // A vocoder compatible with compatible the model referenced in
+  // A Zip file containing a vocoder compatible with the model referenced in
   // `model_pack_uri`
+  //
+  // The Zip should contain the model in Pickle file with a .pkl extension and a
+  // YAML config file with a .yaml extension.
   //
   // This is only required if the the model pack does not include a vocoder, or
   // does not include a vocoder we want to use.
