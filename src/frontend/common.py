@@ -322,10 +322,14 @@ class SSMLConsumer:
                         )
                     )
 
-                    # If kennitala token length is less than 10 (min. length of a whole kennitala), it has been
-                    # broken into more than one token: "060655-3499" -> ["060655", "-", "3499"].
-                    # This happens during Regina normalization for some kennitalas and is out of our control.
-                    self._tag_metadata[self.SAY_AS]["kennitala_multi_token"] = len_token_consumption < 10
+                    # If we look past the current token and there is no tag there, there are more tokens left to consume
+                    # within the tag. This means that the kennitala has been broken into more than one token: "060655-3499" -> ["060655", "-", "3499"].
+                    # This happens during Regina normalization for some kennitalas and is out of our control.                        
+                    # Note: This boolean evaluation may evaluate as true for any kind of token, kennitala or not.
+                    # In that case, a sanity check made at SaysAsProps:_process_kennitala will prevent further processing.
+                    self._tag_metadata[self.SAY_AS]["kennitala_multi_token"] = re.match(
+                        self.TAG_REGEX, self._ssml_view[(len_consumption + len_token_consumption):]
+                    ) == None
                 elif self.PROSODY in tag_val:
                     attrs = self._extract_tag_attrs(tag_val)
                     self._tag_stack.append(

@@ -145,7 +145,7 @@ class OldSSMLParser(HTMLParser):
             # b) "##########"
             # 
             # and not allowing this one: "###### ####"
-            raise SSMLValidationException("Illegal SSML data format! Malformed 'kennitala' value in <say-as interpret-as='kennitala'> tag: {}\n\nAllowed formats are:\n1. ######-####\n2. ##########".format(data))
+            raise SSMLValidationException("Illegal SSML data format! Malformed 'kennitala' value in <say-as interpret-as='kennitala'> tag: '{}'\n\nAllowed formats are:\n1. ######-####\n2. ##########".format(data))
 
         self._text.append(data)
 

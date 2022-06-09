@@ -270,7 +270,7 @@ class SayAsProps(SSMLProps):
         if self.get_interpret_as() != self.KENNITALA:
             raise ValueError("Incorrect usage! say-as->interpret-as value must be 'kennitala' for kennitala processing.")
 
-        err_msg: str = "Malformed 'kennitala' value in <say-as interpret-as='kennitala'> tag: {}\n\n Allowed formats are:\n1. ######-####\n2. ##########"
+        err_msg: str = "Malformed 'kennitala' value in <say-as interpret-as='kennitala'> tag: '{}'\n\n Allowed formats are:\n1. ######-####\n2. ##########"
 
         # TODO(Smári): Strip internal whitespace chars too when Regina has been patched.
         #                                                                        and not char.isspace()
