@@ -114,7 +114,7 @@ class SSMLConsumer:
                 "alias_last_word": False,
                 "alias_view": "",
             },
-            self.SAY_AS: {},
+            self.SAY_AS: { "kennitala_multi_token": False },
             self.PROSODY: {},
         }
 
@@ -252,9 +252,10 @@ class SSMLConsumer:
             self._n_bytes_consumed += len_consumption_bytes
 
             if tag_close:
-                self._tag_stack.pop()
+                closed_tag: SSMLProps = self._tag_stack.pop()
                 self._update_data()
                 self._tag_stack[-1].data = self._data
+                self._reset_tag_metadata(closed_tag.tag_type)
             elif tag:
                 self._update_data()
                 tag_val: str = tag.group().strip()
@@ -320,6 +321,11 @@ class SSMLConsumer:
                             data=self._data,
                         )
                     )
+
+                    # If kennitala token length is less than 10 (min. length of a whole kennitala), it has been
+                    # broken into more than one token: "060655-3499" -> ["060655", "-", "3499"].
+                    # This happens during Regina normalization for some kennitalas and is out of our control.
+                    self._tag_metadata[self.SAY_AS]["kennitala_multi_token"] = len_token_consumption < 10
                 elif self.PROSODY in tag_val:
                     attrs = self._extract_tag_attrs(tag_val)
                     self._tag_stack.append(

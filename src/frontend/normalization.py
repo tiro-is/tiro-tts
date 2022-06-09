@@ -188,7 +188,7 @@ class NormalizerBase(ABC):
                             end_byte_offset=consumption_status["end_byte_offset"],
                             ssml_props=ssml_props,
                         )
-                    elif ssml_props.is_multi():
+                    elif ssml_props.is_multi() or consumption_status["tag_metadata"]["kennitala_multi_token"]:
                         # If a say-as tag contains more than a single word, we must accumulate
                         # all of them and yield them as a single Word.
 

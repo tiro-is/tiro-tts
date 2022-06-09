@@ -133,6 +133,20 @@ class OldSSMLParser(HTMLParser):
         if self._tag_stack[-1]["tag"] == "sub":
             data = self._tag_stack[-1]["attrs"]["alias"]
 
+        if self._tag_stack[-1]["tag"] == "say-as"                           \
+        and self._tag_stack[-1]["attrs"]["interpret-as"] == "kennitala"     \
+        and len(data.split()) > 1:
+            # Kennitalas including a whitespace are currently not allowed.
+            # The reason for this restriction is that currently (08.06.22), Regina normalizer crashes during
+            # handling of such kennitalas containing whitespace (this format: "###### ####").
+            # 
+            # As a result, the easiest solution is to enforce usage of either of those two formats:
+            # a) "######-####"
+            # b) "##########"
+            # 
+            # and not allowing this one: "###### ####"
+            raise SSMLValidationException("Illegal SSML data format! Malformed 'kennitala' value in <say-as interpret-as='kennitala'> tag: {}\n\nAllowed formats are:\n1. ######-####\n2. ##########".format(data))
+
         self._text.append(data)
 
     def get_text(self) -> str:

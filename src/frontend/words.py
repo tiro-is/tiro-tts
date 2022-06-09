@@ -262,7 +262,7 @@ class SayAsProps(SSMLProps):
         1. "######-####"
         2. "##########"
 
-        # "###### ####" is not allowed for now, as Regina normalizer crashes during its processing. It also complicates the consumption progress.
+        # "###### ####" is not allowed for now, as Regina normalizer crashes during its processing.
         
         Used for validation and processing of <say-as interpret-as='kennitala'> tags.
         """
@@ -272,6 +272,8 @@ class SayAsProps(SSMLProps):
 
         err_msg: str = "Malformed 'kennitala' value in <say-as interpret-as='kennitala'> tag: {}\n\n Allowed formats are:\n1. ######-####\n2. ##########"
 
+        # TODO(Smári): Strip internal whitespace chars too when Regina has been patched.
+        #                                                                        and not char.isspace()
         data = "".join([char for char in self.get_data().strip() if char != "-"])                           # We strip all leading and trailing whitespace characters along with any dash characters, leaving only digits.
         if len(data) != 10 or not data.isdecimal():                                                         # 10 is min. length for kennitala. If there are nonnumerical characters present, the string is illegal.
             raise ValueError(err_msg.format(data))
