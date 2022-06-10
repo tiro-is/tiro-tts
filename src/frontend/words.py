@@ -257,48 +257,59 @@ class SayAsProps(SSMLProps):
         Determines if data is on an Icelandic kennitala format.
         Does NOT determine if kennitala is an actual legal kennitala.
         A kennitala should consist of exactly 10 digits with leading and trailing whitespace characters and dashes optionally allowed.
-        
+
         Therefore, these formats are legal:
         1. "######-####"
         2. "##########"
 
         # "###### ####" is not allowed for now, as Regina normalizer crashes during its processing.
-        
+
         Used for validation and processing of <say-as interpret-as='kennitala'> tags.
         """
 
         if self.get_interpret_as() != self.KENNITALA:
-            raise ValueError("Incorrect usage! say-as->interpret-as value must be 'kennitala' for kennitala processing.")
+            raise ValueError(
+                "Incorrect usage! say-as->interpret-as value must be 'kennitala' for kennitala processing."
+            )
 
         err_msg: str = "Malformed 'kennitala' value in <say-as interpret-as='kennitala'> tag: '{}'\n\n Allowed formats are:\n1. ######-####\n2. ##########"
 
-        # TODO(Smári): Strip internal whitespace chars too when Regina has been patched.
-        #                                                                        and not char.isspace()
-        data = "".join([char for char in self.get_data().strip() if char != "-"])                           # We strip all leading and trailing whitespace characters along with any dash characters, leaving only digits.
-        if len(data) != 10 or not data.isdecimal():                                                         # 10 is min. length for kennitala. If there are nonnumerical characters present, the string is illegal.
+        # TODO(Smári): Strip internal whitespace chars too when Regina has been patched. (and not char.isspace())
+        data = "".join(
+            [char for char in self.get_data().strip() if char != "-"]   # We strip all leading and trailing whitespace characters along with any dash characters, leaving only digits.
+        )
+        if (
+            len(data) != 10 or not data.isdecimal()                     # 10 is min. length for kennitala. If there are nonnumerical characters present, the string is illegal.
+        ):
             raise ValueError(err_msg.format(data))
-                 
+
         PAIR_SIZE: int = 2
-        kt_pairs: List[Tuple[str, str]] = [(data[i], data[i+1]) for i in range(0, len(data), PAIR_SIZE)]   # We split the string into pairs: "2810895479" -> [('2', '8'), ('1', '0'), ('8', '9'), ('5', '4'), ('7', '9')]
-        
+        kt_pairs: List[Tuple[str, str]] = [
+            (data[i], data[i + 1]) for i in range(0, len(data), PAIR_SIZE)  # We split the string into pairs: "2810895479" -> [('2', '8'), ('1', '0'), ('8', '9'), ('5', '4'), ('7', '9')]
+        ]
+
         # Now we map the digit pairs to their spoken text strings.
         kt_text_vals: List[str] = []
         for pair in kt_pairs:
-            if pair[0] == '0':
-                kt_text_vals.extend([
-                    self.DIGITS_DIC[pair[0]],
-                    self.DIGITS_DIC[pair[1]],
-                ])
-            elif pair[0] == "1":
-                kt_text_vals.append(
-                    self.KENNITALA_DIC[f"{pair[0]}{pair[1]}"]
+            if pair[0] == "0":
+                kt_text_vals.extend(
+                    [
+                        self.DIGITS_DIC[pair[0]],
+                        self.DIGITS_DIC[pair[1]],
+                    ]
                 )
+            elif pair[0] == "1":
+                kt_text_vals.append(self.KENNITALA_DIC[f"{pair[0]}{pair[1]}"])
             else:
                 kt_text_vals.append(
                     f"{self.KENNITALA_DIC[pair[0]]} {self.DIGITS_DIC[pair[1]]}"
                 )
-                                                                                                            #                                        [('2', '8'), ('1', '0'), ('8', '9'), ('5', '4'), ('7', '9')]
-        return self.DELIMITER.join(kt_text_vals)                                                            # Finally, we return a string like this: "tuttugu og átta, tíu, áttatíu og níu, fimmtíu og fjórir, sjötíu og níu"
+                
+        #                                        [('2', '8'), ('1', '0'), ('8', '9'), ('5', '4'), ('7', '9')]
+        # Finally, we return a string like this: "tuttugu og átta, tíu, áttatíu og níu, fimmtíu og fjórir, sjötíu og níu"
+        return self.DELIMITER.join(
+            kt_text_vals
+        )
 
     def get_interpret_as(self):
         return self.interpret_as
