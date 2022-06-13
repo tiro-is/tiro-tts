@@ -55,14 +55,19 @@ spec:
         ports:
         - containerPort: 8000
           protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /v0/voices
+            port: 8000
+          initialDelaySeconds: 20
+          periodSeconds: 20
         volumeMounts:
         - name: models
           mountPath: /models
           readOnly: true
         resources:
-          requests:
-            memory: "2000Mi"
-            cpu: "1000m"
+            cpu: "4"
+            memory: "8000Mi"
         env:
         - name: TIRO_TTS_AWS_ACCESS_KEY_ID
           valueFrom:
