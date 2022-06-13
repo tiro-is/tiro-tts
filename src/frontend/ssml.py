@@ -36,7 +36,12 @@ class OldSSMLParser(HTMLParser):
 
     # Tag specific variables
     # <say-as>
-    _SAY_AS_SUPPORTED_INTRPRT_VALS: str = ["characters", "spell-out", "digits"]
+    _SAY_AS_SUPPORTED_INTRPRT_VALS: str = [
+        "characters",
+        "spell-out",
+        "digits",
+        "kennitala",
+    ]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -53,7 +58,7 @@ class OldSSMLParser(HTMLParser):
     def handle_starttag(self, tag, attrs):
         self._check_first_tag(tag)
         if len(self._tag_stack) == 2:
-            # We are about to push a third tag to the stack. If there are already two, the SSML
+            # We are about to push a third tag to the stack. If there are already two, the SSML         # TODO(Smári): Apparently, the <prosody> tag should allow nested tags. This has to be allowed and implemented.
             # contains a 3-level (perhaps deeper!) nesting which is illegal.
             raise SSMLValidationException("Illegal SSML! Maximum nesting level is 2.")
 
@@ -94,8 +99,6 @@ class OldSSMLParser(HTMLParser):
             if len(attrs_map) == 0 or "interpret-as" not in attrs_map:
                 # TODO(Smári): Add checks for possible other attributes that are required when
                 # "interpret-as" is something such as "date", then the "format" attribute is required.
-                # We should probably too add a constant list of allowed attribute values as they are
-                # quite many for this tag.
                 raise SSMLValidationException(
                     "Illegal SSML! <say-as> tag requires the 'interpret-as' attribute."
                 )
@@ -107,6 +110,8 @@ class OldSSMLParser(HTMLParser):
                         interpret_as_val
                     )
                 )
+
+        # TODO: Add start-tag attribute validation for <prosody> tag.
 
         self._tag_stack.append({"tag": tag, "attrs": attrs_map})
 
@@ -132,6 +137,26 @@ class OldSSMLParser(HTMLParser):
             )
         if self._tag_stack[-1]["tag"] == "sub":
             data = self._tag_stack[-1]["attrs"]["alias"]
+
+        if (
+            self._tag_stack[-1]["tag"] == "say-as"
+            and self._tag_stack[-1]["attrs"]["interpret-as"] == "kennitala"
+            and len(data.split()) > 1
+        ):
+            # Kennitalas including a whitespace are currently not allowed.
+            # The reason for this restriction is that currently (08.06.22), Regina normalizer crashes during
+            # handling of such kennitalas containing whitespace (this format: "###### ####").
+            #
+            # As a result, the easiest solution is to enforce usage of either of those two formats:
+            # a) "######-####"
+            # b) "##########"
+            #
+            # and not allowing this one: "###### ####"
+            raise SSMLValidationException(
+                "Illegal SSML data format! Malformed 'kennitala' value in <say-as interpret-as='kennitala'> tag: '{}'\n\nAllowed formats are:\n1. ######-####\n2. ##########".format(
+                    data
+                )
+            )
 
         self._text.append(data)
 

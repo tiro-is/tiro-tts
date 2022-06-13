@@ -183,12 +183,17 @@ class NormalizerBase(ABC):
                         #           ]
                         yield Word(
                             original_symbol=original,
-                            symbol=ssml_props.get_interpretation(original) if is_partially_numeric(original) else normalized,
+                            symbol=ssml_props.get_interpretation(original)
+                            if is_partially_numeric(original)
+                            else normalized,
                             start_byte_offset=consumption_status["start_byte_offset"],
                             end_byte_offset=consumption_status["end_byte_offset"],
                             ssml_props=ssml_props,
                         )
-                    elif ssml_props.is_multi():
+                    elif (
+                        ssml_props.is_multi()
+                        or consumption_status["tag_metadata"]["kennitala_multi_token"]
+                    ):
                         # If a say-as tag contains more than a single word, we must accumulate
                         # all of them and yield them as a single Word.
 
@@ -197,7 +202,7 @@ class NormalizerBase(ABC):
                             continue
 
                         yield Word(
-                            original_symbol=ssml_props.get_data(),
+                            original_symbol=ssml_props.get_data().strip(),
                             symbol=ssml_props.get_interpretation(),
                             start_byte_offset=acc_consumption_status[0][
                                 "start_byte_offset"
