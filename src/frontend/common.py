@@ -327,15 +327,16 @@ class SSMLConsumer:
                     # This happens during Regina normalization for some kennitalas and is out of our control.
                     # Note: This boolean evaluation may evaluate as true for any kind of token, kennitala or not.
                     # In that case, a sanity check made at SaysAsProps:_process_kennitala will prevent further processing.
-                    self._tag_metadata[self.SAY_AS]["kennitala_multi_token"] = (
-                        re.match(
-                            self.TAG_REGEX,
-                            self._ssml_view[
-                                (len_consumption + len_token_consumption) :
-                            ],
+                    if attrs["interpret-as"] == "kennitala":
+                        self._tag_metadata[self.SAY_AS]["kennitala_multi_token"] = (
+                            re.match(
+                                self.TAG_REGEX,
+                                self._ssml_view[
+                                    (len_consumption + len_token_consumption) :
+                                ],
+                            )
+                            == None
                         )
-                        == None
-                    )
                 elif self.PROSODY in tag_val:
                     attrs = self._extract_tag_attrs(tag_val)
                     self._tag_stack.append(
