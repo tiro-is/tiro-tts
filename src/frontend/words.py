@@ -232,12 +232,18 @@ class SayAsProps(SSMLProps):
         "°": "gráðumerki",
     }
 
+    TELEPHONE_SPECIAL_CASES: Dict[str, str] = {
+        "118": "hundrað og átján",
+        "5885522": "fimm, átta, átta, fimm, fimm, tveir, tveir",
+    }
+
     DELIMITER: str = ", "
 
     CHARACTERS: str = "characters"
     SPELL_OUT: str = "spell-out"
     DIGITS: str = "digits"
     KENNITALA: str = "kennitala"
+    TELEPHONE: str = "telephone"
 
     def __init__(
         self,
@@ -272,7 +278,7 @@ class SayAsProps(SSMLProps):
                 "Incorrect usage! say-as->interpret-as value must be 'kennitala' for kennitala processing."
             )
 
-        err_msg: str = "Malformed 'kennitala' value in <say-as interpret-as='kennitala'> tag: '{}'\n\n Allowed formats are:\n1. ######-####\n2. ##########"
+        err_msg: str = "Malformed 'kennitala' value in <say-as interpret-as='kennitala'> tag: '{}'\nAllowed formats are:\n1. ######-####\n2. ##########"
 
         # TODO(Smári): Strip internal whitespace chars too when Regina has been patched. (and not char.isspace())
         data = "".join(
@@ -311,11 +317,205 @@ class SayAsProps(SSMLProps):
             kt_text_vals
         )
 
+    def _process_number_pairs(self, pairs: List[Tuple[str, str]]) -> List[str]:
+        """
+        Turns number pairs into spoken values.
+        """
+        # TODO(Smári): Let _process_kennitala() utilize this function.
+
+        text_vals: List[str] = []
+        for pair in pairs:
+            if pair[0] == "0":
+                text_vals.extend(
+                    [
+                        self.DIGITS_DIC[pair[0]],
+                        self.DIGITS_DIC[pair[1]],
+                    ]
+                )
+            elif pair[0] == "1":
+                text_vals.append(self.KENNITALA_DIC[f"{pair[0]}{pair[1]}"])
+            else:
+                text_vals.append(
+                    f"{self.KENNITALA_DIC[pair[0]]} {self.DIGITS_DIC[pair[1]]}"
+                )
+        return text_vals
+
+    def _clean_telephone_num(self, number: str, country_code: bool = False) -> str:
+        """
+        Gets rid of dashes and whitespace characters from number.
+        Validates that number contains only digits afterwards.
+        country_code: If set, the function will give a special treatment to country codes
+        that additionally require removal of the "+" symbol.
+        """
+        remove_lis = ["-"]
+        if country_code:
+            remove_lis.append("+")
+
+        # Strip all whitespaces and dashes from string.
+        number = "".join([digit for digit in number if not digit.isspace() and digit not in remove_lis])
+
+        err_msg: str = "Malformed 'telephone' value in <say-as interpret-as='telephone'> tag: '{}'\n{}"
+        if not number.isdecimal():
+            # If the stripped string contains nonnumerical characters then it is not a valid phone number.
+            raise ValueError(
+                err_msg.format(
+                    number, 
+                    "{} must be digits only with optionally allowed {}.".format(
+                        "country code" if country_code else "telephone number",
+                        "single '+' symbol in front" if country_code else "whitespace characters and dashes",
+                    )
+                )
+            )
+        return number
+
+    def _process_telephone(self):
+        """
+        Determines if data is on a telephone format.
+        Does NOT determine if telephone data value holds an actual valid telephone number.
+        A telephone data value should consist of exactly three, four or seven digits with whitespace characters and dashes optionally allowed.
+        A country code prefix is allowed and should start with a "+" and end with a whitespace.
+
+        Used for validation and processing of <say-as interpret-as='telephone'> tags.
+        """
+        # Icelandic phone numbers are exclusively of these lengths. (According to Wikipedia!)
+        ICELANDIC_NUMBER_LENGTHS: List[int] = [3, 4, 7]
+        err_msg: str = "Malformed 'telephone' value in <say-as interpret-as='telephone'> tag: '{}'\n{}"
+        
+        pn_text_vals: List[str] = []
+        if self.get_data().startswith("+"):
+            raise NotImplemented("Country code telephone number processing is yet to be implemented!")
+
+            # Country code processing
+            telephone_info: List[str] = self.get_data().strip().split(maxsplit=1)
+            if len(telephone_info) > 2:
+                raise ValueError(err_msg.format(self.get_data(), "Country codes must start with a '+' and be separated by whitespace from the remainder of the telephone number."))
+            
+            country_code: str = telephone_info[0]   # TODO: Clean individually using _clean_telephone_num() to isolate number and validate it.
+            phone_number: str = telephone_info[1]   # TODO: Clean individually using _clean_telephone_num() to isolate number and validate it.
+            # To be continued...
+        else:
+            # With no country code provided, we assume the input number is Icelandic. Thus we deny further processing
+            # if it is not of a correct length.
+            telephone: str = self._clean_telephone_num(
+                self.get_data()
+            )
+
+            number_length: int = len(telephone)
+            if not number_length in ICELANDIC_NUMBER_LENGTHS:
+                raise ValueError(err_msg.format(self.get_data(), "Icelandic phone number must be either 3, 4 or 7 digit long. For non-Icelandic phonenumbers, please add a country code."))
+            
+            if telephone in self.TELEPHONE_SPECIAL_CASES:
+                pn_text_vals.append(
+                    self.TELEPHONE_SPECIAL_CASES["telephone"]
+                )
+            elif number_length == 7:
+                # We split the last four digits into pairs: "553-8000" -> [('8', '0'), ('0', '0')]
+                first_three: List[str] = telephone[:3]
+                last_four: List[str] = telephone[3:]
+                
+                PAIR_SIZE: int = 2
+                last_four_pairs: List[Tuple[str, str]] = [
+                    (last_four[i], last_four[i + 1]) for i in range(0, 4, PAIR_SIZE)
+                ]
+
+                for digit in first_three:
+                    pn_text_vals.append(
+                        self.DIGITS_DIC[digit]
+                    )
+
+                # If the latter pair is 00 ("x000", "0x00", "xx00" where x != "0"), we want the whole four to be pronounced as a single number.
+                # "563-5000" -> "fimm, sex, þrír, fimm þúsund", "587-3300" -> "fimm, átta, sjö, þrjú þúsund og þrjú hundruð", "848 0500" -> "átta, fjórir, átta, núll, fimm hundruð"
+                if (
+                    last_four_pairs[1][0] == "0" 
+                    and last_four_pairs[1][1] == "0"
+                ):
+                    # Determine which of the three cases we are dealing with ("x000", "0x00", "xx00" where x != "0").
+
+                    # This is a special case of only four values, so no need to add to the class constant dictionaries.
+                    DIGITS_NEUTRAL: Dict[str, str] = {
+                        "1": "eitt",
+                        "2": "tvö",
+                        "3": "þrjú",
+                        "4": "fjögur",
+                    }
+                    thousand_special = last_four_pairs[0][0] in DIGITS_NEUTRAL
+                    hundred_special = last_four_pairs[0][1] in DIGITS_NEUTRAL
+                    
+                    if last_four_pairs[0][0] != "0" and last_four_pairs[0][1] == "0":       # x000
+                        # append "x þúsund"
+                        pn_text_vals.extend(
+                            [
+                                DIGITS_NEUTRAL[
+                                    last_four_pairs[0][0]
+                                ] if thousand_special else
+                                self.DIGITS_DIC[
+                                    last_four_pairs[0][0]
+                                ],
+                                "þúsund"
+                            ]
+                        )
+                    elif last_four_pairs[0][0] == "0" and last_four_pairs[0][1] != "0":     # 0x00
+                        # append "núll x hundruð"
+                        pn_text_vals.extend(
+                            [
+                                "núll",
+                                DIGITS_NEUTRAL[
+                                    last_four_pairs[0][1]
+                                ] if hundred_special else
+                                self.DIGITS_DIC[
+                                    last_four_pairs[0][1]
+                                ],
+                                "hundruð"
+                            ]
+                        )
+                    elif last_four_pairs[0][0] != "0" and last_four_pairs[0][1] != "0":     # xx00
+                        # append "x þúsund og x hundruð"
+                        pn_text_vals.extend(
+                            [
+                                DIGITS_NEUTRAL[
+                                    last_four_pairs[0][0]
+                                ] if thousand_special else
+                                self.DIGITS_DIC[
+                                    last_four_pairs[0][0]
+                                ],
+                                "og",
+                                DIGITS_NEUTRAL[
+                                    last_four_pairs[0][1]
+                                ] if hundred_special else
+                                self.DIGITS_DIC[
+                                    last_four_pairs[0][1]
+                                ],
+                                "hundruð"
+                            ]
+                        )
+                else:
+                    pn_text_vals.extend(
+                        self._process_number_pairs(
+                            last_four_pairs
+                        )
+                    )
+            elif number_length == 4:
+                pn_text_vals.extend(
+                        self._process_number_pairs(
+                            last_four_pairs
+                        )
+                )
+            else:
+                # Three digit Icelandic phonenumbers
+                for digit in telephone:
+                    pn_text_vals.append(
+                        self.DIGITS_DIC[digit]
+                    )
+
+            return self.DELIMITER.join(
+                pn_text_vals
+            )
+
     def get_interpret_as(self):
         return self.interpret_as
 
     def get_interpretation(self, token: str = ""):
-        type: Literal["characters", "spell-out", "digits"] = self.get_interpret_as()
+        type: Literal["characters", "spell-out", "digits", "kennitala", "telephone"] = self.get_interpret_as()
         if type in [self.CHARACTERS, self.SPELL_OUT]:
             return self.DELIMITER.join(
                 [
@@ -336,6 +536,8 @@ class SayAsProps(SSMLProps):
             )
         elif type == self.KENNITALA:
             return self._process_kennitala()
+        elif type == self.TELEPHONE:
+            return self._process_telephone()
 
         raise ValueError(
             '<say-as> error: Encountered unsupported interpretation type: "{}"'.format(
