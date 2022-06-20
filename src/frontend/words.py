@@ -202,15 +202,15 @@ class SayAsProps(SSMLProps):
     }
 
     TENS_DIC: Dict[str, str] = {
-        "10": "tíu",
-        "20": "tuttugu",
-        "30": "þrjátíu",
-        "40": "fjörutíu",
-        "50": "fimmtíu",
-        "60": "sextíu",
-        "70": "sjötíu",
-        "80": "áttatíu",
-        "90": "níutíu"
+        "1": "tíu",
+        "2": "tuttugu",
+        "3": "þrjátíu",
+        "4": "fjörutíu",
+        "5": "fimmtíu",
+        "6": "sextíu",
+        "7": "sjötíu",
+        "8": "áttatíu",
+        "9": "níutíu"
     }
 
     CHARACTERS_DIC: Dict[str, str] = {
@@ -417,7 +417,7 @@ class SayAsProps(SSMLProps):
             country_code: str = self._clean_telephone_num(telephone_info[0], country_code=True)
             phone_number: str = self._clean_telephone_num(telephone_info[1])
 
-            country_code_txt_vals: List[str] = self._digit_pairs_to_txt(country_code)
+            country_code_txt_vals: List[str] = self._digits_to_txt(country_code)
 
         telephone: str = self._clean_telephone_num(
             self.get_data()
@@ -443,7 +443,9 @@ class SayAsProps(SSMLProps):
         
         if telephone in self.TELEPHONE_SPECIAL_CASES:
             pn_text_vals.append(
-                self.TELEPHONE_SPECIAL_CASES["telephone"]
+                self.TELEPHONE_SPECIAL_CASES[
+                    telephone
+                ]
             )
         elif number_length == 7:
             # We split the last four digits into pairs: "553-8080" -> [('8', '0'), ('8', '0')]
@@ -579,7 +581,7 @@ class SayAsProps(SSMLProps):
             
         if has_country_code:
             # Prepend country code if it is present.
-            pn_text_vals = ["plús", country_code_txt_vals] + pn_text_vals
+            pn_text_vals = ["plús"] + country_code_txt_vals + pn_text_vals
         return self.DELIMITER.join(
             pn_text_vals
         )
