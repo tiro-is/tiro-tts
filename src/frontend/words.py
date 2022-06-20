@@ -201,6 +201,18 @@ class SayAsProps(SSMLProps):
         "9": "níutíu og",
     }
 
+    TENS_DIC: Dict[str, str] = {
+        "10": "tíu",
+        "20": "tuttugu",
+        "30": "þrjátíu",
+        "40": "fjörutíu",
+        "50": "fimmtíu",
+        "60": "sextíu",
+        "70": "sjötíu",
+        "80": "áttatíu",
+        "90": "níutíu"
+    }
+
     CHARACTERS_DIC: Dict[str, str] = {
         ".": "punktur",
         ",": "komma",
@@ -434,7 +446,7 @@ class SayAsProps(SSMLProps):
                 self.TELEPHONE_SPECIAL_CASES["telephone"]
             )
         elif number_length == 7:
-            # We split the last four digits into pairs: "553-8000" -> [('8', '0'), ('0', '0')]
+            # We split the last four digits into pairs: "553-8080" -> [('8', '0'), ('8', '0')]
             first_three: List[str] = telephone[:3]
             last_four: List[str] = telephone[3:]
             
@@ -442,10 +454,48 @@ class SayAsProps(SSMLProps):
             last_four_pairs: List[Tuple[str, str]] = [
                 (last_four[i], last_four[i + 1]) for i in range(0, 4, PAIR_SIZE)
             ]
-
-            for digit in first_three:
-                pn_text_vals.append(
-                    self.DIGITS_DIC[digit]
+            
+            # This is a special case of only four values, so no need to add to the class constant dictionaries.
+            DIGITS_NEUTRAL: Dict[str, str] = {
+                "1": "eitt",
+                "2": "tvö",
+                "3": "þrjú",
+                "4": "fjögur",
+            }
+            
+            if first_three[-1] == "0":
+                hundred_special = first_three[0] in DIGITS_NEUTRAL
+                if first_three[1] == "0":
+                    pn_text_vals.extend(
+                        [
+                            DIGITS_NEUTRAL[
+                                first_three[0]
+                            ] if hundred_special else
+                            self.DIGITS_DIC[
+                                first_three[0]
+                            ],
+                            "hundruð"
+                        ]
+                    )
+                else:
+                    pn_text_vals.extend(
+                        [
+                            DIGITS_NEUTRAL[
+                                first_three[0]
+                            ] if hundred_special else
+                            self.DIGITS_DIC[
+                                first_three[0]
+                            ],
+                            "hundruð",
+                            "og",
+                            self.TENS_DIC[
+                                first_three[1]
+                            ]
+                        ]
+                    )
+            else:
+                pn_text_vals.extend(
+                    self._digits_to_txt(first_three)
                 )
 
             # If the latter pair is 00 ("x000", "0x00", "xx00" where x != "0"), we want the whole four to be pronounced as a single number.
@@ -455,14 +505,6 @@ class SayAsProps(SSMLProps):
                 and last_four_pairs[1][1] == "0"
             ):
                 # Determine which of the three cases we are dealing with ("x000", "0x00", "xx00" where x != "0").
-
-                # This is a special case of only four values, so no need to add to the class constant dictionaries.
-                DIGITS_NEUTRAL: Dict[str, str] = {
-                    "1": "eitt",
-                    "2": "tvö",
-                    "3": "þrjú",
-                    "4": "fjögur",
-                }
                 thousand_special = last_four_pairs[0][0] in DIGITS_NEUTRAL
                 hundred_special = last_four_pairs[0][1] in DIGITS_NEUTRAL
                 
