@@ -306,27 +306,15 @@ class SayAsProps(SSMLProps):
             (data[i], data[i + 1]) for i in range(0, len(data), PAIR_SIZE)  # We split the string into pairs: "2810895479" -> [('2', '8'), ('1', '0'), ('8', '9'), ('5', '4'), ('7', '9')]
         ]
 
-        # Now we map the digit pairs to their spoken text strings.
-        kt_text_vals: List[str] = []
-        for pair in kt_pairs:
-            if pair[0] == "0":
-                kt_text_vals.extend(
-                    [
-                        self.DIGITS_DIC[pair[0]],
-                        self.DIGITS_DIC[pair[1]],
-                    ]
-                )
-            elif pair[0] == "1":
-                kt_text_vals.append(self.KENNITALA_DIC[f"{pair[0]}{pair[1]}"])
-            else:
-                kt_text_vals.append(
-                    f"{self.KENNITALA_DIC[pair[0]]} {self.DIGITS_DIC[pair[1]]}"
-                )
-                
-        #                                        [('2', '8'), ('1', '0'), ('8', '9'), ('5', '4'), ('7', '9')]
-        # Finally, we return a string like this: "tuttugu og átta, tíu, áttatíu og níu, fimmtíu og fjórir, sjötíu og níu"
+        # The digits pairs are mapped to their spoken text strings and then
+        # returned as a string like this:
+        #
+        # "tuttugu og átta, tíu, áttatíu og níu, fimmtíu og fjórir, sjötíu og níu"
+        # [('2', '8'), ('1', '0'), ('8', '9'), ('5', '4'), ('7', '9')]
         return self.DELIMITER.join(
-            kt_text_vals
+            self._digit_pairs_to_txt(
+                kt_pairs
+            )
         )
 
     def _digits_to_txt(self, digits: List[str]) -> List[str]:
@@ -347,8 +335,6 @@ class SayAsProps(SSMLProps):
         Turns digit pairs into spoken values. Digit pairs must be strings contained in tuples in a list.
         Returns: A list of strings which represent the spoken values.
         """
-        # TODO(Smári): Let _process_kennitala() utilize this function.
-
         text_vals: List[str] = []
         for pair in pairs:
             if pair[0] == "0":
