@@ -335,9 +335,24 @@ class SayAsProps(SSMLProps):
         Turns digit pairs into spoken values. Digit pairs must be strings contained in tuples in a list.
         Returns: A list of strings which represent the spoken values.
         """
+        err_msg: str = "Malformed pair detected while processing string: {}\nEach pair must consist of exactly two strings where each string is a numerical string representing a single digit."
         text_vals: List[str] = []
         for pair in pairs:
+            if (
+                len(pair) != 2                      # A pair consists of two strings.
+                or not isinstance(pair[0], str)     # First pair entry must be a string.
+                or len(pair[0]) != 1                # First pair entry must be exactly one character.
+                or not pair[0].isdecimal()          # First pair entry must be numerical.
+                or not isinstance(pair[1], str)     # Ditto for second pair entry.
+                or len(pair[1]) != 1                # Ditto for second pair entry.
+                or not pair[1].isdecimal()          # Ditto for second pair entry.
+            ):
+                raise ValueError(
+                    err_msg.format(pair)
+                )
+
             if pair[0] == "0":
+                # Covers: 00, 01, ..., 09
                 text_vals.extend(
                     [
                         self.DIGITS_DIC[pair[0]],
@@ -345,8 +360,15 @@ class SayAsProps(SSMLProps):
                     ]
                 )
             elif pair[0] == "1":
+                # Covers: 10, 11, ..., 19
                 text_vals.append(self.KENNITALA_DIC[f"{pair[0]}{pair[1]}"])
+            elif pair[1] == "0":
+                # Covers: (10), 20, ..., 90
+                text_vals.append(
+                    self.TENS_DIC[pair[0]]
+                )
             else:
+                # Covers: Everything else
                 text_vals.append(
                     f"{self.KENNITALA_DIC[pair[0]]} {self.DIGITS_DIC[pair[1]]}"
                 )
