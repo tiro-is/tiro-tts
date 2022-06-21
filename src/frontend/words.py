@@ -381,7 +381,7 @@ class SayAsProps(SSMLProps):
         number = "".join([digit for digit in number if not digit.isspace() and digit not in remove_lis])
 
         err_msg: str = "Malformed 'telephone' value in <say-as interpret-as='telephone'> tag: '{}'\n{}"
-        if not number.isdecimal():
+        if not number.isdecimal() or len(number) == 0:
             # If the stripped string contains nonnumerical characters then it is not a valid phone number.
             raise ValueError(
                 err_msg.format(
@@ -425,6 +425,9 @@ class SayAsProps(SSMLProps):
         number_length: int = len(telephone)
         pn_text_vals: List[str] = []
         
+        PAIR_SIZE: int = 2
+        pairs: List[Tuple[str, str]] = []
+        
         # Icelandic phone numbers are exclusively of these lengths. (According to Wikipedia!)
         ICELANDIC_NUMBER_LENGTHS: List[int] = [3, 4, 7]
         if (
@@ -439,7 +442,7 @@ class SayAsProps(SSMLProps):
                 number_length not in ICELANDIC_NUMBER_LENGTHS
             )
             ):
-            raise ValueError(err_msg.format(self.get_data(), "Icelandic phone number must be either 3, 4 or 7 digit long. For non-Icelandic phonenumbers, please add a country code."))
+            raise ValueError(err_msg.format(self.get_data(), "Icelandic phone number must be either 3, 4 or 7 digit long. For non-Icelandic phonenumbers, please add a non-Icelandic country code."))
         
         if telephone in self.TELEPHONE_SPECIAL_CASES:
             pn_text_vals.append(
@@ -451,9 +454,7 @@ class SayAsProps(SSMLProps):
             # We split the last four digits into pairs: "553-8080" -> [('8', '0'), ('8', '0')]
             first_three: List[str] = telephone[:3]
             last_four: List[str] = telephone[3:]
-            
-            PAIR_SIZE: int = 2
-            last_four_pairs: List[Tuple[str, str]] = [
+            pairs = [
                 (last_four[i], last_four[i + 1]) for i in range(0, 4, PAIR_SIZE)
             ]
             
@@ -503,56 +504,56 @@ class SayAsProps(SSMLProps):
             # If the latter pair is 00 ("x000", "0x00", "xx00" where x != "0"), we want the whole four to be pronounced as a single number.
             # "563-5000" -> "fimm, sex, þrír, fimm þúsund", "587-3300" -> "fimm, átta, sjö, þrjú þúsund og þrjú hundruð", "848 0500" -> "átta, fjórir, átta, núll, fimm hundruð"
             if (
-                last_four_pairs[1][0] == "0" 
-                and last_four_pairs[1][1] == "0"
+                pairs[1][0] == "0" 
+                and pairs[1][1] == "0"
             ):
                 # Determine which of the three cases we are dealing with ("x000", "0x00", "xx00" where x != "0").
-                thousand_special = last_four_pairs[0][0] in DIGITS_NEUTRAL
-                hundred_special = last_four_pairs[0][1] in DIGITS_NEUTRAL
+                thousand_special = pairs[0][0] in DIGITS_NEUTRAL
+                hundred_special = pairs[0][1] in DIGITS_NEUTRAL
                 
-                if last_four_pairs[0][0] != "0" and last_four_pairs[0][1] == "0":       # x000
+                if pairs[0][0] != "0" and pairs[0][1] == "0":       # x000
                     # append "x þúsund"
                     pn_text_vals.extend(
                         [
                             DIGITS_NEUTRAL[
-                                last_four_pairs[0][0]
+                                pairs[0][0]
                             ] if thousand_special else
                             self.DIGITS_DIC[
-                                last_four_pairs[0][0]
+                                pairs[0][0]
                             ],
                             "þúsund"
                         ]
                     )
-                elif last_four_pairs[0][0] == "0" and last_four_pairs[0][1] != "0":     # 0x00
+                elif pairs[0][0] == "0" and pairs[0][1] != "0":     # 0x00
                     # append "núll x hundruð"
                     pn_text_vals.extend(
                         [
                             "núll",
                             DIGITS_NEUTRAL[
-                                last_four_pairs[0][1]
+                                pairs[0][1]
                             ] if hundred_special else
                             self.DIGITS_DIC[
-                                last_four_pairs[0][1]
+                                pairs[0][1]
                             ],
                             "hundruð"
                         ]
                     )
-                elif last_four_pairs[0][0] != "0" and last_four_pairs[0][1] != "0":     # xx00
+                elif pairs[0][0] != "0" and pairs[0][1] != "0":     # xx00
                     # append "x þúsund og x hundruð"
                     pn_text_vals.extend(
                         [
                             DIGITS_NEUTRAL[
-                                last_four_pairs[0][0]
+                                pairs[0][0]
                             ] if thousand_special else
                             self.DIGITS_DIC[
-                                last_four_pairs[0][0]
+                                pairs[0][0]
                             ],
                             "og",
                             DIGITS_NEUTRAL[
-                                last_four_pairs[0][1]
+                                pairs[0][1]
                             ] if hundred_special else
                             self.DIGITS_DIC[
-                                last_four_pairs[0][1]
+                                pairs[0][1]
                             ],
                             "hundruð"
                         ]
@@ -560,13 +561,16 @@ class SayAsProps(SSMLProps):
             else:
                 pn_text_vals.extend(
                     self._digit_pairs_to_txt(
-                        last_four_pairs
+                        pairs
                     )
                 )
         elif number_length == 4:
+            pairs = [
+                (telephone[i], telephone[i + 1]) for i in range(0, 4, PAIR_SIZE)
+            ]
             pn_text_vals.extend(
                 self._digit_pairs_to_txt(
-                    last_four_pairs
+                    pairs
                 )
             )
         elif number_length == 3:
