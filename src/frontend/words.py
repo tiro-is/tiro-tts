@@ -167,6 +167,7 @@ class SubProps(SSMLProps):
 class SayAsProps(SSMLProps):
     interpret_as: str
 
+    # TODO(Smári): Clean up and make attempts to merge some of these dictionaries.
     DIGITS_DIC: Dict[str, str] = {
         "0": "núll",
         "1": "einn",
@@ -407,8 +408,8 @@ class SayAsProps(SSMLProps):
         Determines if data is on a telephone format.
         Does NOT determine if telephone data value holds an actual valid telephone number.
         A telephone data value should consist of exactly three, four or seven digits with whitespace characters and dashes optionally allowed.
-        A country code prefix is allowed and should start with a "+" and end with a whitespace. Phone number length reststrictions do not apply
-        if a country code is provided.
+        A country code prefix is allowed and should start with a "+" and end with a whitespace. Phone number length restrictions do not apply
+        if a non-Icelandic country code is provided.
 
         Used for validation and processing of <say-as interpret-as='telephone'> tags.
         """
@@ -475,34 +476,22 @@ class SayAsProps(SSMLProps):
             }
             
             if first_three[-1] == "0":
+                # If the first three digits have a trailing 0, we prefer to pronounce them as a single number.
+                # Example: "550 8080" -> "Fimm hundruð og fimmtíu, áttatíu, áttatíu"
+
                 hundred_special = first_three[0] in DIGITS_NEUTRAL
-                if first_three[1] == "0":
+                if first_three[0] == "0":           # 0xx
+                    # A leading zero, although unusual, is allowed but will produce a individual digit pronuncation rather than a whole 2-3 digit number pronuncation.
                     pn_text_vals.extend(
-                        [
-                            DIGITS_NEUTRAL[
-                                first_three[0]
-                            ] if hundred_special else
-                            self.DIGITS_DIC[
-                                first_three[0]
-                            ],
-                            "hundruð"
-                        ]
+                        self._digits_to_txt(first_three)
                     )
-                else:
-                    pn_text_vals.extend(
-                        [
-                            DIGITS_NEUTRAL[
-                                first_three[0]
-                            ] if hundred_special else
-                            self.DIGITS_DIC[
-                                first_three[0]
-                            ],
-                            "hundruð",
-                            "og",
-                            self.TENS_DIC[
-                                first_three[1]
-                            ]
-                        ]
+                elif first_three[1] == "0":       # x00
+                    pn_text_vals.append(
+                        f"{DIGITS_NEUTRAL[first_three[0]] if hundred_special else self.DIGITS_DIC[first_three[0]]} hundr{'a' if first_three[0] == '1' else 'u'}ð"
+                    )
+                else:                           # xx0
+                    pn_text_vals.append(
+                        f"{DIGITS_NEUTRAL[first_three[0]] if hundred_special else self.DIGITS_DIC[first_three[0]]} hundr{'a' if first_three[0] == '1' else 'u'}ð og {self.TENS_DIC[first_three[1]]}"
                     )
             else:
                 pn_text_vals.extend(
@@ -521,50 +510,18 @@ class SayAsProps(SSMLProps):
                 
                 if pairs[0][0] != "0" and pairs[0][1] == "0":       # x000
                     # append "x þúsund"
-                    pn_text_vals.extend(
-                        [
-                            DIGITS_NEUTRAL[
-                                pairs[0][0]
-                            ] if thousand_special else
-                            self.DIGITS_DIC[
-                                pairs[0][0]
-                            ],
-                            "þúsund"
-                        ]
+                    pn_text_vals.append(
+                        f"{DIGITS_NEUTRAL[pairs[0][0]] if thousand_special else self.DIGITS_DIC[pairs[0][0]]} þúsund"
                     )
                 elif pairs[0][0] == "0" and pairs[0][1] != "0":     # 0x00
                     # append "núll x hundruð"
-                    pn_text_vals.extend(
-                        [
-                            "núll",
-                            DIGITS_NEUTRAL[
-                                pairs[0][1]
-                            ] if hundred_special else
-                            self.DIGITS_DIC[
-                                pairs[0][1]
-                            ],
-                            "hundruð"
-                        ]
+                    pn_text_vals.append(
+                        f"núll {DIGITS_NEUTRAL[pairs[0][1]] if hundred_special else self.DIGITS_DIC[pairs[0][1]]} hundr{'a' if pairs[0][1] == '1' else 'u'}ð"
                     )
                 elif pairs[0][0] != "0" and pairs[0][1] != "0":     # xx00
                     # append "x þúsund og x hundruð"
-                    pn_text_vals.extend(
-                        [
-                            DIGITS_NEUTRAL[
-                                pairs[0][0]
-                            ] if thousand_special else
-                            self.DIGITS_DIC[
-                                pairs[0][0]
-                            ],
-                            "og",
-                            DIGITS_NEUTRAL[
-                                pairs[0][1]
-                            ] if hundred_special else
-                            self.DIGITS_DIC[
-                                pairs[0][1]
-                            ],
-                            "hundruð"
-                        ]
+                    pn_text_vals.append(
+                        f"{DIGITS_NEUTRAL[pairs[0][0]] if thousand_special else self.DIGITS_DIC[pairs[0][0]]} þúsund og {DIGITS_NEUTRAL[pairs[0][1]] if hundred_special else self.DIGITS_DIC[pairs[0][1]]} hundr{'a' if pairs[0][1] == '1' else 'u'}ð"
                     )
             else:
                 pn_text_vals.extend(
