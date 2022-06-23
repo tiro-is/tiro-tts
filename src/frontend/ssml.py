@@ -16,7 +16,7 @@ from typing import Any, Dict, List
 
 # This parser provides the following service:
 #   1) Tag stripping (text isolation)
-#   2) Markup sanitization:
+#   2) Basic markup sanitization:
 #       a) Are all tags matched by closing tags of the same type?
 #       b) Do all tag attributes fullfil their requirements?
 #       c) Are there any tags with no text where it must be present?
@@ -29,9 +29,10 @@ class SSMLValidationException(Exception):
 class OldSSMLParser(HTMLParser):
     _ALLOWED_TAGS = ["speak", "phoneme", "sub", "say-as", "prosody"]
     _first_tag_seen: bool
-    _tag_stack: List[
-        Dict[str, Any]
-    ]  # [{"tag": "tag_val", "attrs": {"tag_attr_01": "tag_attr_01_val", "tag_attr_02": "tag_attrs_02_val"}}, {"tag": ...}, ...]
+
+    # [{"tag": "tag_val", "attrs": {"tag_attr_01": "tag_attr_01_val", "tag_attr_02": "tag_attrs_02_val"}}, {"tag": ...}, ...]
+    _tag_stack: List[Dict[str, Any]]
+
     _text: List[str]
 
     # Tag specific variables
@@ -41,6 +42,7 @@ class OldSSMLParser(HTMLParser):
         "spell-out",
         "digits",
         "kennitala",
+        "telephone",
     ]
 
     def __init__(self, *args, **kwargs):

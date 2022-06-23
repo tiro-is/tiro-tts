@@ -167,6 +167,7 @@ class SubProps(SSMLProps):
 class SayAsProps(SSMLProps):
     interpret_as: str
 
+    # TODO(Smári): Clean up and make attempts to merge some of these dictionaries.
     DIGITS_DIC: Dict[str, str] = {
         "0": "núll",
         "1": "einn",
@@ -201,6 +202,18 @@ class SayAsProps(SSMLProps):
         "9": "níutíu og",
     }
 
+    TENS_DIC: Dict[str, str] = {
+        "1": "tíu",
+        "2": "tuttugu",
+        "3": "þrjátíu",
+        "4": "fjörutíu",
+        "5": "fimmtíu",
+        "6": "sextíu",
+        "7": "sjötíu",
+        "8": "áttatíu",
+        "9": "níutíu",
+    }
+
     CHARACTERS_DIC: Dict[str, str] = {
         ".": "punktur",
         ",": "komma",
@@ -232,12 +245,18 @@ class SayAsProps(SSMLProps):
         "°": "gráðumerki",
     }
 
+    TELEPHONE_SPECIAL_CASES: Dict[str, str] = {
+        "118": "hundrað og átján",
+        "5885522": "fimm, átta, átta, fimm, fimm, tveir, tveir",
+    }
+
     DELIMITER: str = ", "
 
     CHARACTERS: str = "characters"
     SPELL_OUT: str = "spell-out"
     DIGITS: str = "digits"
     KENNITALA: str = "kennitala"
+    TELEPHONE: str = "telephone"
 
     def __init__(
         self,
@@ -272,50 +291,259 @@ class SayAsProps(SSMLProps):
                 "Incorrect usage! say-as->interpret-as value must be 'kennitala' for kennitala processing."
             )
 
-        err_msg: str = "Malformed 'kennitala' value in <say-as interpret-as='kennitala'> tag: '{}'\n\n Allowed formats are:\n1. ######-####\n2. ##########"
+        err_msg: str = "Malformed 'kennitala' value in <say-as interpret-as='kennitala'> tag: '{}'\nAllowed formats are:\n1. ######-####\n2. ##########"
 
         # TODO(Smári): Strip internal whitespace chars too when Regina has been patched. (and not char.isspace())
         data = "".join(
-            [char for char in self.get_data().strip() if char != "-"]   # We strip all leading and trailing whitespace characters along with any dash characters, leaving only digits.
+            [
+                char for char in self.get_data().strip() if char != "-"
+            ]  # We strip all leading and trailing whitespace characters along with any dash characters, leaving only digits.
         )
         if (
-            len(data) != 10 or not data.isdecimal()                     # 10 is min. length for kennitala. If there are nonnumerical characters present, the string is illegal.
+            len(data) != 10
+            or not data.isdecimal()  # 10 is min. length for kennitala. If there are nonnumerical characters present, the string is illegal.
         ):
             raise ValueError(err_msg.format(data))
 
         PAIR_SIZE: int = 2
         kt_pairs: List[Tuple[str, str]] = [
-            (data[i], data[i + 1]) for i in range(0, len(data), PAIR_SIZE)  # We split the string into pairs: "2810895479" -> [('2', '8'), ('1', '0'), ('8', '9'), ('5', '4'), ('7', '9')]
+            (data[i], data[i + 1])
+            for i in range(
+                0, len(data), PAIR_SIZE
+            )  # We split the string into pairs: "2810895479" -> [('2', '8'), ('1', '0'), ('8', '9'), ('5', '4'), ('7', '9')]
         ]
 
-        # Now we map the digit pairs to their spoken text strings.
-        kt_text_vals: List[str] = []
-        for pair in kt_pairs:
+        # The digits pairs are mapped to their spoken text strings and then
+        # returned as a string like this:
+        #
+        # "tuttugu og átta, tíu, áttatíu og níu, fimmtíu og fjórir, sjötíu og níu"
+        # [('2', '8'), ('1', '0'), ('8', '9'), ('5', '4'), ('7', '9')]
+        return self.DELIMITER.join(self._digit_pairs_to_txt(kt_pairs))
+
+    def _digits_to_txt(self, digits: List[str]) -> List[str]:
+        """
+        Turns individual digits to their spoken values. Digits must be strings contained within a list.
+        Returns: A list of strings which represent the spoken values.
+        """
+        text_vals: List[str] = []
+        for digit in digits:
+            text_vals.append(self.DIGITS_DIC[digit])
+        return text_vals
+
+    def _digit_pairs_to_txt(self, pairs: List[Tuple[str, str]]) -> List[str]:
+        """
+        Turns digit pairs into spoken values. Digit pairs must be strings contained in tuples in a list.
+        Returns: A list of strings which represent the spoken values.
+        """
+        err_msg: str = "Malformed pair detected while processing string: {}\nEach pair must consist of exactly two strings where each string is a numerical string representing a single digit."
+        text_vals: List[str] = []
+        for pair in pairs:
+            if (
+                len(pair) != 2                      # A pair consists of two strings.
+                or not isinstance(pair[0], str)     # First pair entry must be a string.
+                or len(pair[0]) != 1                # First pair entry must be exactly one character.
+                or not pair[0].isdecimal()          # First pair entry must be numerical.
+                or not isinstance(pair[1], str)     # Ditto for second pair entry.
+                or len(pair[1]) != 1                # Ditto for second pair entry.
+                or not pair[1].isdecimal()          # Ditto for second pair entry.
+            ):
+                raise ValueError(err_msg.format(pair))
+
             if pair[0] == "0":
-                kt_text_vals.extend(
+                # Covers: 00, 01, ..., 09
+                text_vals.extend(
                     [
                         self.DIGITS_DIC[pair[0]],
                         self.DIGITS_DIC[pair[1]],
                     ]
                 )
             elif pair[0] == "1":
-                kt_text_vals.append(self.KENNITALA_DIC[f"{pair[0]}{pair[1]}"])
+                # Covers: 10, 11, ..., 19
+                text_vals.append(self.KENNITALA_DIC[f"{pair[0]}{pair[1]}"])
+            elif pair[1] == "0":
+                # Covers: (10), 20, ..., 90
+                text_vals.append(self.TENS_DIC[pair[0]])
             else:
-                kt_text_vals.append(
+                # Covers: Everything else
+                text_vals.append(
                     f"{self.KENNITALA_DIC[pair[0]]} {self.DIGITS_DIC[pair[1]]}"
                 )
-                
-        #                                        [('2', '8'), ('1', '0'), ('8', '9'), ('5', '4'), ('7', '9')]
-        # Finally, we return a string like this: "tuttugu og átta, tíu, áttatíu og níu, fimmtíu og fjórir, sjötíu og níu"
-        return self.DELIMITER.join(
-            kt_text_vals
+        return text_vals
+
+    def _clean_telephone_num(self, number: str, country_code: bool = False) -> str:
+        """
+        Gets rid of dashes and whitespace characters from number.
+        Validates that number contains only digits afterwards.
+        country_code: If set, the function will give a special treatment to country codes
+        that additionally require removal of the "+" symbol.
+        """
+        remove_lis = ["-"]
+        if country_code:
+            remove_lis.append("+")
+
+        # Strip all whitespaces and dashes from string.
+        number = "".join(
+            [
+                digit
+                for digit in number
+                if not digit.isspace() and digit not in remove_lis
+            ]
         )
+
+        err_msg: str = "Malformed 'telephone' value in <say-as interpret-as='telephone'> tag: '{}'\n{}"
+        if not number.isdecimal() or len(number) == 0:
+            # If the stripped string contains nonnumerical characters then it is not a valid phone number.
+            raise ValueError(
+                err_msg.format(
+                    number,
+                    "{} must be digits only with {} {}.".format(
+                        "country code" if country_code else "telephone number",
+                        "a mandatory" if country_code else "optionally allowed",
+                        "single '+' symbol in front"
+                        if country_code
+                        else "whitespace characters and dashes",
+                    ),
+                )
+            )
+        return number
+
+    def _process_telephone(self):
+        """
+        Determines if data is on a telephone format.
+        Does NOT determine if telephone data value holds an actual valid telephone number.
+        A telephone data value should consist of exactly three, four or seven digits with whitespace characters and dashes optionally allowed.
+        A country code prefix is allowed and should start with a "+" and end with a whitespace. Phone number length restrictions do not apply
+        if a non-Icelandic country code is provided.
+
+        Used for validation and processing of <say-as interpret-as='telephone'> tags.
+        """
+        err_msg: str = "Malformed 'telephone' value in <say-as interpret-as='telephone'> tag: '{}'\n{}"
+
+        has_country_code: bool = self.get_data().lstrip().startswith("+")
+        if has_country_code:
+            # Country code processing
+            telephone_info: List[str] = self.get_data().strip().split(maxsplit=1)
+            if len(telephone_info) > 2:
+                raise ValueError(
+                    err_msg.format(
+                        self.get_data(),
+                        "Country codes must start with a '+' and be separated by whitespace from the remainder of the telephone number.",
+                    )
+                )
+
+            COUNTRY_CODE_IS: str = "354"
+            country_code: str = self._clean_telephone_num(
+                telephone_info[0], country_code=True
+            )
+            phone_number: str = self._clean_telephone_num(telephone_info[1])
+
+            country_code_txt_vals: List[str] = self._digits_to_txt(country_code)
+
+        telephone: str = (
+            self._clean_telephone_num(self.get_data())
+            if not has_country_code
+            else phone_number
+        )
+        number_length: int = len(telephone)
+        pn_text_vals: List[str] = []
+
+        PAIR_SIZE: int = 2
+        pairs: List[Tuple[str, str]] = []
+
+        # Icelandic phone numbers are exclusively of these lengths. (According to Wikipedia!)
+        ICELANDIC_NUMBER_LENGTHS: List[int] = [3, 4, 7]
+        if (not has_country_code and number_length not in ICELANDIC_NUMBER_LENGTHS) or (
+            has_country_code
+            and country_code == COUNTRY_CODE_IS
+            and number_length not in ICELANDIC_NUMBER_LENGTHS
+        ):
+            raise ValueError(
+                err_msg.format(
+                    self.get_data(),
+                    "Icelandic phone number must be either 3, 4 or 7 digit long. For non-Icelandic phonenumbers, please add a non-Icelandic country code.",
+                )
+            )
+
+        if telephone in self.TELEPHONE_SPECIAL_CASES:
+            pn_text_vals.append(self.TELEPHONE_SPECIAL_CASES[telephone])
+        elif number_length == 7:
+            # We split the last four digits into pairs: "553-8080" -> [('8', '0'), ('8', '0')]
+            first_three: List[str] = telephone[:3]
+            last_four: List[str] = telephone[3:]
+            pairs = [(last_four[i], last_four[i + 1]) for i in range(0, 4, PAIR_SIZE)]
+
+            # This is a special case of only four values, so no need to add to the class constant dictionaries.
+            DIGITS_NEUTRAL: Dict[str, str] = {
+                "1": "eitt",
+                "2": "tvö",
+                "3": "þrjú",
+                "4": "fjögur",
+            }
+
+            if first_three[-1] == "0":
+                # If the first three digits have a trailing 0, we prefer to pronounce them as a single number.
+                # Example: "550 8080" -> "Fimm hundruð og fimmtíu, áttatíu, áttatíu"
+
+                hundred_special = first_three[0] in DIGITS_NEUTRAL
+                if first_three[0] == "0":  # 0xx
+                    # A leading zero, although unusual, is allowed but will produce a individual digit pronuncation rather than a whole 2-3 digit number pronuncation.
+                    pn_text_vals.extend(self._digits_to_txt(first_three))
+                elif first_three[1] == "0":  # x00
+                    pn_text_vals.append(
+                        f"{DIGITS_NEUTRAL[first_three[0]] if hundred_special else self.DIGITS_DIC[first_three[0]]} hundr{'a' if first_three[0] == '1' else 'u'}ð"
+                    )
+                else:  # xx0
+                    pn_text_vals.append(
+                        f"{DIGITS_NEUTRAL[first_three[0]] if hundred_special else self.DIGITS_DIC[first_three[0]]} hundr{'a' if first_three[0] == '1' else 'u'}ð og {self.TENS_DIC[first_three[1]]}"
+                    )
+            else:
+                pn_text_vals.extend(self._digits_to_txt(first_three))
+
+            # If the latter pair is 00 ("x000", "0x00", "xx00" where x != "0"), we want the whole four to be pronounced as a single number.
+            # "563-5000" -> "fimm, sex, þrír, fimm þúsund", "587-3300" -> "fimm, átta, sjö, þrjú þúsund og þrjú hundruð", "848 0500" -> "átta, fjórir, átta, núll, fimm hundruð"
+            if pairs[1][0] == "0" and pairs[1][1] == "0":
+                # Determine which of the three cases we are dealing with ("x000", "0x00", "xx00" where x != "0").
+                thousand_special = pairs[0][0] in DIGITS_NEUTRAL
+                hundred_special = pairs[0][1] in DIGITS_NEUTRAL
+
+                if pairs[0][0] != "0" and pairs[0][1] == "0":  # x000
+                    # append "x þúsund"
+                    pn_text_vals.append(
+                        f"{DIGITS_NEUTRAL[pairs[0][0]] if thousand_special else self.DIGITS_DIC[pairs[0][0]]} þúsund"
+                    )
+                elif pairs[0][0] == "0" and pairs[0][1] != "0":  # 0x00
+                    # append "núll x hundruð"
+                    pn_text_vals.append(
+                        f"núll {DIGITS_NEUTRAL[pairs[0][1]] if hundred_special else self.DIGITS_DIC[pairs[0][1]]} hundr{'a' if pairs[0][1] == '1' else 'u'}ð"
+                    )
+                elif pairs[0][0] != "0" and pairs[0][1] != "0":  # xx00
+                    # append "x þúsund og x hundruð"
+                    pn_text_vals.append(
+                        f"{DIGITS_NEUTRAL[pairs[0][0]] if thousand_special else self.DIGITS_DIC[pairs[0][0]]} þúsund og {DIGITS_NEUTRAL[pairs[0][1]] if hundred_special else self.DIGITS_DIC[pairs[0][1]]} hundr{'a' if pairs[0][1] == '1' else 'u'}ð"
+                    )
+            else:
+                pn_text_vals.extend(self._digit_pairs_to_txt(pairs))
+        elif number_length == 4:
+            pairs = [(telephone[i], telephone[i + 1]) for i in range(0, 4, PAIR_SIZE)]
+            pn_text_vals.extend(self._digit_pairs_to_txt(pairs))
+        elif number_length == 3:
+            pn_text_vals.extend(self._digits_to_txt(telephone))
+        else:
+            # All other number lengths (non-Icelandic numbers)
+            pn_text_vals.extend(self._digits_to_txt(telephone))
+
+        if has_country_code:
+            # Prepend country code if it is present.
+            pn_text_vals = ["plús"] + country_code_txt_vals + pn_text_vals
+        return self.DELIMITER.join(pn_text_vals)
 
     def get_interpret_as(self):
         return self.interpret_as
 
     def get_interpretation(self, token: str = ""):
-        type: Literal["characters", "spell-out", "digits"] = self.get_interpret_as()
+        type: Literal[
+            "characters", "spell-out", "digits", "kennitala", "telephone"
+        ] = self.get_interpret_as()
         if type in [self.CHARACTERS, self.SPELL_OUT]:
             return self.DELIMITER.join(
                 [
@@ -336,6 +564,8 @@ class SayAsProps(SSMLProps):
             )
         elif type == self.KENNITALA:
             return self._process_kennitala()
+        elif type == self.TELEPHONE:
+            return self._process_telephone()
 
         raise ValueError(
             '<say-as> error: Encountered unsupported interpretation type: "{}"'.format(
