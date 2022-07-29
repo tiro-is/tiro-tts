@@ -19,13 +19,13 @@ def tiro_tts_repositories():
     com_github_grammatek_tts_frontend_api()
 
 def rules_python():
-    RULES_PYTHON_VERSION = "bed8c1b410d435bc795a1d03acdc737b8aa1b37f"
-    RULES_PYTHON_SHA256 = "265a793f51b5912bbbebddefc34e781df0683d83827aca627dbf98a37e22699c"
+    RULES_PYTHON_VERSION = "0.10.2"
+    RULES_PYTHON_SHA256 = "a3a6e99f497be089f81ec082882e40246bfd435f52f4e82f37e89449b04573f6"
     maybe(
         http_archive,
         name = "rules_python",
         sha256 = RULES_PYTHON_SHA256,
-        url = "https://github.com/bazelbuild/rules_python/archive/{v}.tar.gz".format(v = RULES_PYTHON_VERSION),
+        url = "https://github.com/bazelbuild/rules_python/archive/refs/tags/{v}.tar.gz".format(v = RULES_PYTHON_VERSION),
         strip_prefix = "rules_python-{v}".format(v = RULES_PYTHON_VERSION),
     )
 
