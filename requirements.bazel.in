@@ -25,7 +25,6 @@ espnet>=0.10.0
 espnet_model_zoo
 parallel_wavegan
 # No wheels available for py3.8 for fairseq 0.10.0 and wheel building broken
-fairseq @ https://github.com/pytorch/fairseq/archive/b554f5ec9067c2f88bf17a736ddb57ea1cab14cc.zip
 ice-g2p @ https://github.com/grammatek/ice-g2p/archive/d318f91bd87edd1b6624c175207f47328d2b4e87.zip
 
 soundfile>=0.10
