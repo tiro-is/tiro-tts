@@ -86,7 +86,7 @@ class LexiconBase(ABC):
     @abstractmethod
     def insert(self, entry: LexWord) -> None:
         """Insert a new entry into to lexicon."""
-        return NotImplemented
+        ...
 
     @abstractmethod
     def get(
@@ -107,7 +107,7 @@ class LexiconBase(ABC):
           The PhoneSeq for grapheme if it exists in the lexicon,
           otherwise default.
         """
-        return NotImplemented
+        ...
 
     @abstractmethod
     def get_xsampa(
@@ -128,7 +128,7 @@ class LexiconBase(ABC):
           The PhoneSeq for grapheme if it exists in the lexicon,
           otherwise default.
         """
-        return NotImplemented
+        ...
 
 
 class SimpleInMemoryLexicon(LexiconBase):

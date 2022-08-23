@@ -43,7 +43,7 @@ from src.frontend.words import (
 class NormalizerBase(ABC):
     @abstractmethod
     def normalize(self, text: str, ssml_reqs: Dict) -> Iterable[Word]:
-        return NotImplemented
+        ...
 
     def _parse_ssml(self, ssml: str) -> str:
         """Sanitizes and isolates text from SSML"""
