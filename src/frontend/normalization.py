@@ -38,9 +38,10 @@ from src.frontend.words import (
     SSMLProps,
     Word,
 )
+from src.utils.version import VersionedThing, hash_from_impl
 
 
-class NormalizerBase(ABC):
+class NormalizerBase(VersionedThing, ABC):
     @abstractmethod
     def normalize(self, text: str, ssml_reqs: Dict) -> Iterable[Word]:
         ...
@@ -286,6 +287,14 @@ def _tokenize(text: str) -> Iterable[Word]:
 
 
 class BasicNormalizer(NormalizerBase):
+    _version_hash: Optional[str] = None
+
+    @property
+    def version_hash(self) -> str:
+        if not self._version_hash:
+            self._version_hash = hash_from_impl(self.__class__)
+        return self._version_hash
+
     def normalize(self, text: str, ssml_reqs: Dict = None):
         if ssml_reqs != None and ssml_reqs["process_as_ssml"]:
             ssml_str = text
@@ -312,14 +321,25 @@ class BasicNormalizer(NormalizerBase):
 class GrammatekNormalizer(NormalizerBase):
     _stub: tts_frontend_service_pb2_grpc.TTSFrontendStub
     _channel: grpc.Channel
+    _address: str
+    _version_hash: Optional[str] = None
 
     def __init__(self, address: str):
+        self._address = address
         parsed_url = urllib.parse.urlparse(address)
         if parsed_url.scheme == "grpc":
             self._channel = grpc.insecure_channel(parsed_url.netloc)
         else:
             raise ValueError("Unsupported scheme in address '%s'", address)
         self._stub = tts_frontend_service_pb2_grpc.TTSFrontendStub(self._channel)
+
+    @property
+    def version_hash(self) -> str:
+        if not self._version_hash:
+            # Not really correct, but we don't have a way of getting any version info
+            # from the server
+            self._version_hash = hash_from_impl(self.__class__, self._address)
+        return self._version_hash
 
     def normalize(self, text: str, ssml_reqs: Dict):
         process_as_ssml: bool = False
