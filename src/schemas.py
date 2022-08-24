@@ -254,6 +254,19 @@ class DescribeVoicesRequest(Schema):
         example="is-IS",
     )
 
+    ExtraMetadata = fields.Bool(
+        required=False,
+        description=textwrap.dedent(
+            """\
+            Whether to include extra metadata for each voice, e.g. model versions/hashes.
+            """
+        ),
+    )
+
+
+class VoiceMetadata(Schema):
+    VoiceVersion = fields.Str(required=False)
+
 
 class Voice(Schema):
     VoiceId = fields.Str(example="Alfur")
@@ -265,6 +278,8 @@ class Voice(Schema):
     LanguageName = fields.Str(example="Íslenska")
 
     SupportedEngines = fields.List(fields.Str(validate=validate.OneOf(["standard"])))
+
+    ExtraMetadata = fields.Nested(VoiceMetadata)
 
 
 class Error(Schema):
