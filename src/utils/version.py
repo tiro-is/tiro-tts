@@ -46,3 +46,10 @@ def hash_from_impl(
         (additional if additional else b"")
         + ast.dump(ast.parse(inspect.getsource(cls))).encode()
     ).hexdigest()
+
+
+def hash_from_string(to_hash: Union[str, bytes]) -> str:
+    if isinstance(to_hash, str):
+        to_hash = to_hash.encode()
+
+    return hashlib.sha1(to_hash).hexdigest()

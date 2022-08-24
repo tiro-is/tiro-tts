@@ -14,6 +14,8 @@
 from abc import ABC, abstractmethod, abstractproperty
 from typing import Iterable, List, Literal, Optional, TextIO, Union
 
+from src.utils.version import VersionedThing
+
 
 class OutputFormat:
     output_format: Literal["json", "mp3", "pcm", "ogg_vorbis"]
@@ -71,7 +73,7 @@ class VoiceProperties:
         self.supported_output_formats = supported_output_formats
 
 
-class VoiceBase(ABC):
+class VoiceBase(VersionedThing, ABC):
     @abstractmethod
     def synthesize(self, text: str, ssml: bool = False, **kwargs) -> Iterable[bytes]:
         ...

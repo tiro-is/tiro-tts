@@ -41,12 +41,13 @@ from src.frontend.words import (
     Word,
     preprocess_sentences,
 )
+from src.utils.version import VersionedThing, hash_from_impl
 
 from .utils import wavarray_to_pcm
 from .voice_base import OutputFormat, VoiceBase, VoiceProperties
 
 
-class Espnet2Synthesizer:
+class Espnet2Synthesizer(VersionedThing):
     """Synthesizer backend for ESPNET2 trained voices.
 
     The backend should be able to run ESPNET2 voices compatible with the Text2Speech
@@ -74,6 +75,7 @@ class Espnet2Synthesizer:
     _tts_internal: Text2Speech
     _phoneme_map: Dict[str, int]
     _alphabet: Alphabet
+    _version_hash: str
 
     def __init__(
         self,
@@ -86,6 +88,8 @@ class Espnet2Synthesizer:
         self._phonetizer = phonetizer
         self._normalizer = normalizer
         self._alphabet = alphabet
+
+        content_to_hash = b""
 
         with tempfile.TemporaryDirectory() as tmpdir:
             if not (model_uri.startswith("zoo://") or model_uri.startswith("file://")):
@@ -112,23 +116,35 @@ class Espnet2Synthesizer:
                         ][0]
                         vocoder_zip.extractall(tmpdir, [vocoder_file, vocoder_config])
 
+                full_vocoder_file = Path(tmpdir) / vocoder_file if vocoder_uri else None
+                full_vocoder_config = (
+                    Path(tmpdir) / vocoder_config if vocoder_uri else None
+                )
                 self._tts_internal = Text2Speech(
                     train_config=model_info["train_config"],
                     model_file=model_info["model_file"],
-                    vocoder_config=Path(tmpdir) / vocoder_config
-                    if vocoder_uri
-                    else None,
-                    vocoder_file=Path(tmpdir) / vocoder_file if vocoder_uri else None,
+                    vocoder_config=full_vocoder_config,
+                    vocoder_file=full_vocoder_file,
                     speed_control_alpha=1.0,  # is this only an initialization option?
                 )
                 self._phoneme_map = {
                     phn: idx
                     for idx, phn in enumerate(self._tts_internal.train_args.token_list)
                 }
+                content_to_hash += Path(model_info["model_file"]).read_bytes()
+                if full_vocoder_file and full_vocoder_config:
+                    content_to_hash += full_vocoder_file.read_bytes()
             except IndexError:
                 raise ValueError("Missing model path or name")
             except zipfile.BadZipFile:
                 raise ValueError("Vocoder must be a Zip archive")
+
+        self._version_hash = hash_from_impl(
+            self.__class__,
+            content_to_hash
+            + self._phonetizer.version_hash.encode()
+            + self._normalizer.version_hash.encode(),
+        )
 
     def synthesize(
         self,
@@ -195,6 +211,10 @@ class Espnet2Synthesizer:
             else:
                 yield chunk
 
+    @property
+    def version_hash(self) -> str:
+        return self._version_hash
+
 
 class Espnet2Voice(VoiceBase):
     _backend: Espnet2Synthesizer
@@ -238,6 +258,10 @@ class Espnet2Voice(VoiceBase):
     @property
     def properties(self) -> VoiceProperties:
         return self._properties
+
+    @property
+    def version_hash(self) -> str:
+        return self._backend.version_hash
 
 
 _OGG_VORBIS_SAMPLE_RATES = ["8000", "16000", "22050", "24000"]
