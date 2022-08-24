@@ -214,7 +214,7 @@ def convert_xsampa_to_xsampa_with_stress(phoneme: PhoneSeq, word: str) -> PhoneS
 
     # From here: https://github.com/grammatek/ice-g2p/blob/d318f91/src/ice_g2p/transcriber.py#L53
     entries = ice_g2p.syllab_stress_processing.init_pron_dict_from_tuples(
-        [(word, " ".join(phoneme))]
+        [(word, " ".join(phoneme))], syllab_symbol="."
     )
     syllabified_dict = ice_g2p.syllab_stress_processing.syllabify_and_label(entries)
     stressed = ice_g2p.stress.set_stress([syllabified_dict[word]])

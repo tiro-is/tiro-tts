@@ -324,7 +324,7 @@ class IceG2PTranslator(EmbeddedPhonemeTranslatorBase):
 
     def __init__(self):
         self._transcriber = ice_g2p.transcriber.Transcriber(
-            use_dict=True, use_syll=True
+            use_dict=True, syllab_symbol=".", stress_label=True
         )
 
     def _translate(
@@ -339,11 +339,13 @@ class IceG2PTranslator(EmbeddedPhonemeTranslatorBase):
         if text.strip() == "":
             return []
 
-        out = self._transcriber.transcribe(
-            text.lower(),
-            syllab=True if alphabet == "x-sampa+syll+stress" else False,
-            use_dict=True,
-        )
+        if alphabet == "x-sampa+syll+stress":
+            syllab_symbol = self._transcriber.syllab_symbol
+            self._transcriber.syllab_symbol = ""
+            out = self._transcriber.transcribe(text.lower())
+            self._transcriber.syllab_symbol = syllab_symbol
+        else:
+            out = self._transcriber.transcribe(text.lower())
 
         phone_seq = out.split()
         if alphabet == "ipa":

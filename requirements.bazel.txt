@@ -431,8 +431,8 @@ hydra-core==1.0.7 \
     --hash=sha256:58cc3f7531995b6d8de162ca21f936e17bdaebd4d1e8614d63c32e17c2e41e45 \
     --hash=sha256:e800c6deb8309395508094851fa93bc13408f2285261eb97e626d37193b58a9f
     # via fairseq
-ice-g2p @ https://github.com/grammatek/ice-g2p/archive/d318f91bd87edd1b6624c175207f47328d2b4e87.zip \
-    --hash=sha256:fd4c19a8013f9b99832cad997a1959ba41fe335aeebac3a333429bce685881fc
+ice-g2p @ https://github.com/grammatek/ice-g2p/archive/bc145b77b92cf1f05edd69fc54f7cced8877f471.zip \
+    --hash=sha256:51fb63c33b779bc6269a5633c3e09c254e494c37e3f54e751fa92eb1eab83a15
     # via -r requirements.bazel.in
 idna==3.3 \
     --hash=sha256:84d9dd047ffa80596e0f246e2eab0b391788b0503584e8945f2368256d2735ff \
