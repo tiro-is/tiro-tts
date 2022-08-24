@@ -15,7 +15,7 @@ import ast
 import hashlib
 import inspect
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Type
+from typing import Any, Optional, Type, Union
 
 
 class VersionedThing(ABC):
@@ -36,8 +36,13 @@ class VersionedThing(ABC):
         ...
 
 
-def hash_from_impl(cls: Type[Any], additional: Optional[str] = None) -> str:
+def hash_from_impl(
+    cls: Type[Any], additional: Optional[Union[str, bytes]] = None
+) -> str:
+    if isinstance(additional, str):
+        additional = additional.encode()
+
     return hashlib.sha1(
-        (additional if additional else "").encode()
+        (additional if additional else b"")
         + ast.dump(ast.parse(inspect.getsource(cls))).encode()
     ).hexdigest()
