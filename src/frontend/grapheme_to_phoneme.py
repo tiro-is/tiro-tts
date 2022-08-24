@@ -232,22 +232,18 @@ class SequiturOptions(dict):
 
 
 class LexiconGraphemeToPhonemeTranslator(EmbeddedPhonemeTranslatorBase):
-    _lookup_lexicon: Dict[LangID, LexiconBase]
+    _lookup_lexicon: LexiconBase
     _language_code: LangID
     _alphabet: Alphabet
 
     def __init__(
         self,
-        lexicon: Union[LexiconBase, Path],
+        lexicon: Path,
         language_code: LangID,
         alphabet: Alphabet,
     ):
-        if isinstance(lexicon, Path):
-            self._lookup_lexicon = SimpleInMemoryLexicon(lexicon, alphabet)
-        else:
-            self._lookup_lexicon = lexicon
+        self._lookup_lexicon = SimpleInMemoryLexicon(lexicon, alphabet)
         self._language_code = language_code
-
         # TODO(rkjaran): By default LexiconBase.get(...) returns IPA, change this once
         #   we add a parameter for the alphabet to .get()
         self._alphabet = "ipa"
@@ -277,7 +273,7 @@ class LexiconGraphemeToPhonemeTranslator(EmbeddedPhonemeTranslatorBase):
 
 class SequiturGraphemeToPhonemeTranslator(EmbeddedPhonemeTranslatorBase):
     # TODO(rkjaran): Implement a DB backed version of this
-    _lang_models: Dict[str, sequitur.ModelTemplate]
+    _lang_model: sequitur.ModelTemplate
     _language_code: LangID
     _alphabet: Alphabet
 
