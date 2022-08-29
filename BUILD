@@ -106,6 +106,7 @@ py_library(
         requirement("tokenizer"),
         requirement("ice-g2p"),
         "@com_github_grammatek_tts_frontend_api//:tts_frontend_service_python_grpc",
+        ":utils",
     ],
 )
 
@@ -121,8 +122,16 @@ py_library(
         requirement("espnet_model_zoo"),
         requirement("parallel_wavegan"),
         ":frontend",
+        ":utils",
         "//proto/tiro/tts:voice_python_proto",
     ],
+)
+
+py_library(
+    name = "utils",
+    srcs = glob(["src/utils/**/*.py"], exclude=["**/tests"]),
+    srcs_version = "PY3",
+    deps = [],
 )
 
 py_library(

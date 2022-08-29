@@ -17,7 +17,7 @@ import re
 import sys
 import typing
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Optional
 
 import torch
 from flask import current_app
@@ -34,6 +34,7 @@ from src.frontend.normalization import (
 from src.frontend.phonemes import Alphabet
 from src.frontend.ssml import OldSSMLParser as SSMLParser
 from src.frontend.words import ProsodyProps, preprocess_sentences
+from src.utils.version import VersionedThing, hash_from_impl
 
 from .utils import wavarray_to_pcm
 from .voice_base import OutputFormat, VoiceBase, VoiceProperties
@@ -105,7 +106,7 @@ FASTSPEECH2_SYMBOLS = {
 }
 
 
-class FastSpeech2Synthesizer:
+class FastSpeech2Synthesizer(VersionedThing):
     """A synthesizer wrapper around Fastspeech2 using MelGAN as a vocoder."""
 
     _device: torch.device
@@ -114,6 +115,7 @@ class FastSpeech2Synthesizer:
     _phonetizer: GraphemeToPhonemeTranslatorBase
     _normalizer: NormalizerBase
     _alphabet: Alphabet
+    _version_hash: Optional[str] = None
 
     def __init__(
         self,
@@ -281,6 +283,20 @@ class FastSpeech2Synthesizer:
                 else:
                     yield chunk
 
+    @property
+    def version_hash(self) -> str:
+        # TODO(rkjaran): We want to separate the normalizer and phonetizer hashes, so we
+        #   need a "VersionedThing" with different semantics
+        if not self._version_hash:
+            self._version_hash = hash_from_impl(
+                self.__class__,
+                str(self._melgan_model.state_dict())
+                + str(self._fs_model.state_dict())
+                + self._normalizer.version_hash
+                + self._phonetizer.version_hash,
+            )
+        return self._version_hash
+
 
 class FastSpeech2Voice(VoiceBase):
     _backend: FastSpeech2Synthesizer
@@ -323,6 +339,10 @@ class FastSpeech2Voice(VoiceBase):
     @property
     def properties(self) -> VoiceProperties:
         return self._properties
+
+    @property
+    def version_hash(self) -> str:
+        return self._backend.version_hash
 
 
 _OGG_VORBIS_SAMPLE_RATES = ["8000", "16000", "22050", "24000"]

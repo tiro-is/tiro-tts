@@ -190,6 +190,15 @@ def route_describe_voices(**kwargs):
                         "LanguageCode": v[1].properties.language_code,
                         "LanguageName": v[1].properties.language_name,
                         "SupportedEngines": ["standard"],
+                        **(
+                            {
+                                "ExtraMetadata": {
+                                    "VoiceVersion": v[1].version_hash,
+                                }
+                            }
+                            if kwargs.get("ExtraMetadata")
+                            else {}
+                        ),
                     }
                     for v in g_synthesizers.voices()
                 ),

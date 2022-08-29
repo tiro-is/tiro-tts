@@ -12,10 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
+import hashlib
 from typing import Iterable
 
 from boto3 import Session
 from flask import current_app
+
+from src.utils.version import hash_from_string
 
 from .voice_base import OutputFormat, VoiceBase, VoiceProperties
 
@@ -37,10 +40,12 @@ class PollySession:
 
 class PollyVoice(VoiceBase):
     _properties: VoiceProperties
+    _version_hash: str
 
     def __init__(self, properties: VoiceProperties):
         """Initialize a fixed voice with a Polly backend"""
         self._properties = properties
+        self._version_hash = hash_from_string(self.properties.voice_id)
 
     def _synthesize_speech(self, *args, **kwargs):
         return PollySession.get_client().synthesize_speech(*args, **kwargs)
@@ -56,6 +61,10 @@ class PollyVoice(VoiceBase):
     @property
     def properties(self) -> VoiceProperties:
         return self._properties
+
+    @property
+    def version_hash(self) -> str:
+        return self._version_hash
 
 
 _MP3_SAMPLE_RATES = ["8000", "16000", "22050", "24000"]

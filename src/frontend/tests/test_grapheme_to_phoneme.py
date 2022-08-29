@@ -1,8 +1,6 @@
 import pytest
-from src.frontend.grapheme_to_phoneme import (
-    EmbeddedPhonemeTranslatorBase,
-    IceG2PTranslator,
-)
+
+from src.frontend.grapheme_to_phoneme import IceG2PTranslator
 from src.frontend.words import LangID, Word
 
 
@@ -112,3 +110,8 @@ class TestIceG2PTranslator:
         ]
 
         assert output == expected_output
+
+    def test_version_hash(self):
+        # The version hash is something that looks like a sha1 hash
+        assert isinstance(self._translator.version_hash, str)
+        assert len(self._translator.version_hash) == 40

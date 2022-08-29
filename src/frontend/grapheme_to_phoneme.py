@@ -21,6 +21,8 @@ import g2p  # from sequitur
 import ice_g2p.transcriber
 import sequitur
 
+from src.utils.version import VersionedThing, hash_from_impl
+
 from .lexicon import LangID, LexiconBase, SimpleInMemoryLexicon, read_kaldi_lexicon
 from .phonemes import (
     SHORT_PAUSE,
@@ -34,7 +36,7 @@ from .phonemes import (
 from .words import WORD_SENTENCE_SEPARATOR, Word
 
 
-class GraphemeToPhonemeTranslatorBase(ABC):
+class GraphemeToPhonemeTranslatorBase(VersionedThing, ABC):
     @abstractmethod
     def translate(
         self,
@@ -183,11 +185,20 @@ class ComposedTranslator(GraphemeToPhonemeTranslatorBase):
     """
 
     _translators: List[GraphemeToPhonemeTranslatorBase]
+    _version_hash: Optional[str] = None
 
     def __init__(self, *translators):
         if len(translators) < 1:
             raise ValueError("Needs at least 1 argument.")
         self._translators = list(translators)
+
+    @property
+    def version_hash(self) -> str:
+        if not self._version_hash:
+            self._version_hash = hash_from_impl(
+                self.__class__, "-".join(t.version_hash for t in self._translators)
+            )
+        return self._version_hash
 
     def translate(
         self,
@@ -232,25 +243,28 @@ class SequiturOptions(dict):
 
 
 class LexiconGraphemeToPhonemeTranslator(EmbeddedPhonemeTranslatorBase):
-    _lookup_lexicon: Dict[LangID, LexiconBase]
+    _lookup_lexicon: LexiconBase
     _language_code: LangID
     _alphabet: Alphabet
+    _version_hash: str
 
     def __init__(
         self,
-        lexicon: Union[LexiconBase, Path],
+        lexicon: Path,
         language_code: LangID,
         alphabet: Alphabet,
     ):
-        if isinstance(lexicon, Path):
-            self._lookup_lexicon = SimpleInMemoryLexicon(lexicon, alphabet)
-        else:
-            self._lookup_lexicon = lexicon
+        self._lookup_lexicon = SimpleInMemoryLexicon(lexicon, alphabet)
         self._language_code = language_code
-
         # TODO(rkjaran): By default LexiconBase.get(...) returns IPA, change this once
         #   we add a parameter for the alphabet to .get()
         self._alphabet = "ipa"
+
+        self._version_hash = hash_from_impl(self.__class__, lexicon.read_bytes())
+
+    @property
+    def version_hash(self) -> str:
+        return self._version_hash
 
     def _translate(
         self,
@@ -277,9 +291,10 @@ class LexiconGraphemeToPhonemeTranslator(EmbeddedPhonemeTranslatorBase):
 
 class SequiturGraphemeToPhonemeTranslator(EmbeddedPhonemeTranslatorBase):
     # TODO(rkjaran): Implement a DB backed version of this
-    _lang_models: Dict[str, sequitur.ModelTemplate]
+    _lang_model: sequitur.ModelTemplate
     _language_code: LangID
     _alphabet: Alphabet
+    _version_hash: str
 
     def __init__(
         self,
@@ -292,6 +307,13 @@ class SequiturGraphemeToPhonemeTranslator(EmbeddedPhonemeTranslatorBase):
         )
         self._language_code = language_code
         self._alphabet = alphabet
+        self._version_hash = hash_from_impl(
+            self.__class__, lang_model_path.read_bytes()
+        )
+
+    @property
+    def version_hash(self) -> str:
+        return self._version_hash
 
     def _translate(
         self,
@@ -321,11 +343,36 @@ class SequiturGraphemeToPhonemeTranslator(EmbeddedPhonemeTranslatorBase):
 
 class IceG2PTranslator(EmbeddedPhonemeTranslatorBase):
     _transcriber: ice_g2p.transcriber.Transcriber
+    _version_hash: Optional[str] = None
 
     def __init__(self):
         self._transcriber = ice_g2p.transcriber.Transcriber(
-            use_dict=True, use_syll=True
+            use_dict=True, syllab_symbol=".", stress_label=True
         )
+
+    @property
+    def version_hash(self) -> str:
+        if not self._version_hash:
+            # We're relying on implementation details of ice-g2p here...
+            self._version_hash = hash_from_impl(
+                self.__class__,
+                Path(self._transcriber.g2p.model_path)
+                .joinpath(self._transcriber.g2p.model_file)
+                .read_bytes()
+                + b"\n".join(
+                    sorted(
+                        f"{k} {v}".encode()
+                        for k, v in (self._transcriber.g2p.custom_dict or {}).items()
+                    )
+                )
+                + b"\n".join(
+                    sorted(
+                        f"{k} {v}".encode()
+                        for k, v in (self._transcriber.g2p.pron_dict or {}).items()
+                    )
+                ),
+            )
+        return self._version_hash
 
     def _translate(
         self,
@@ -339,11 +386,13 @@ class IceG2PTranslator(EmbeddedPhonemeTranslatorBase):
         if text.strip() == "":
             return []
 
-        out = self._transcriber.transcribe(
-            text.lower(),
-            syllab=True if alphabet == "x-sampa+syll+stress" else False,
-            use_dict=True,
-        )
+        if alphabet != "x-sampa+syll+stress":
+            syllab_symbol = self._transcriber.syllab_symbol
+            self._transcriber.syllab_symbol = ""
+            out = self._transcriber.transcribe(text.lower())
+            self._transcriber.syllab_symbol = syllab_symbol
+        else:
+            out = self._transcriber.transcribe(text.lower())
 
         phone_seq = out.split()
         if alphabet == "ipa":
