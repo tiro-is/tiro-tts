@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import re
-from typing import Any, Dict, List, Literal, Pattern, Tuple
+from typing import Any, Dict, List, Literal, Optional, Pattern, Tuple
 
 from regex import Match
 
@@ -142,11 +142,19 @@ class SSMLConsumer:
 
         # Note: This should already be sanitized by SSMLParser earlier in the process.
         err_msg: str = "{} tag did not supply the required attributes!\n{}"
+
+        def attr_pattern(possible_values: Optional[List[str]] = None) -> str:
+            values_pattern = ".+"
+            if possible_values:
+                values_pattern = "|".join(possible_values)
+            return r"(\"|'){1}(" + values_pattern + r")(\"|'){1}"
+
         if self.PHONEME in tag_val:
             alphabet: List[Tuple] = re.findall(
-                r"alphabet\s*=\s*(\"|'{1}(x-sampa|ipa)(\"|'){1})", tag_val
+                rf"alphabet\s*=\s*({attr_pattern(['x-sampa', 'ipa'])})",
+                tag_val,
             )
-            ph: List[Tuple] = re.findall(r"ph\s*=\s*(\"|'{1}(.*?)(\"|'){1})", tag_val)
+            ph: List[Tuple] = re.findall(rf"ph\s*=\s*({attr_pattern()})", tag_val)
 
             if len(alphabet) == 0 or len(ph) == 0:
                 raise AttributeError(err_msg.format(self.PHONEME, tag_val))
@@ -155,29 +163,27 @@ class SSMLConsumer:
 
             return {
                 "alphabet": alphabet[0][1],
-                "ph": ph[0][1],
+                "ph": ph[0][2],
             }
         elif self.SUB in tag_val:
-            alias: List[Tuple] = re.findall(
-                r"alias\s*=\s*(\"|'{1}(.*?)(\"|'){1})", tag_val
-            )
+            alias: List[Tuple] = re.findall(rf"alias\s*=\s*({attr_pattern()})", tag_val)
             if len(alias) == 0:
                 raise AttributeError(err_msg.format(self.SUB, tag_val))
-            return {"alias": alias[0][1]}
+            return {"alias": alias[0][2]}
         elif self.SAY_AS in tag_val:
             interpret_as: List[Tuple] = re.findall(
-                r"interpret-as\s*=\s*(\"|'{1}(.*?)(\"|'){1})", tag_val
+                rf"interpret-as\s*=\s*({attr_pattern()})", tag_val
             )
             if len(interpret_as) == 0:
                 raise AttributeError(err_msg.format(self.SAY_AS, tag_val))
             return {"interpret-as": interpret_as[0][1]}
         elif self.PROSODY in tag_val:
             matches: List[Tuple] = re.findall(
-                r"(\w+)\s*=\s*(\"|'{1}(.*?)(\"|'){1})", tag_val
+                rf"(\w+)\s*=\s*({attr_pattern()})", tag_val
             )
             if len(matches) == 0:
                 raise AttributeError(err_msg.format(self.PROSODY, tag_val))
-            return {m[0]: m[2] for m in matches}
+            return {m[0]: m[3] for m in matches}
 
         raise ValueError(
             f'Unable to extract attributes from unsupported tag: "{tag_val}"'
