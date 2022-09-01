@@ -44,6 +44,11 @@ def runner(dut_app):
     return dut_app.test_cli_runner()
 
 
+@pytest.fixture(params=["'", '"'])
+def quote(request):
+    return request.param
+
+
 def test_describe_voices(client):
     res = client.get("/v0/voices")
     data = res.json
@@ -127,13 +132,13 @@ def test_synthesize_ssml_sanity(client):
     assert len(pcm_data) % 2 == 0
 
 
-def test_synthesize_ssml_phoneme_sanity(client):
+def test_synthesize_ssml_phoneme_sanity(client, quote):
     res = client.post(
         "/v0/speech",
         json={
             "OutputFormat": "pcm",
             "SampleRate": "22050",
-            "Text": "<speak>Hæ! Ég <phoneme alphabet='x-sampa' ph='hei:tI'>heiti</phoneme> Gervimaður Finnland, en þú?</speak>",
+            "Text": f"<speak>Hæ! Ég <phoneme alphabet={quote}x-sampa{quote} ph={quote}hei:tI{quote}>heiti</phoneme> Gervimaður Finnland, en þú?</speak>",
             "TextType": "ssml",
             "VoiceId": "Alfur",
         },
@@ -187,13 +192,13 @@ def test_speechmarks_fastspeech(client):
         assert original_mark == expected_mark
 
 
-def test_ssml_speechmarks_fastspeech_01(client):
+def test_ssml_speechmarks_fastspeech_01(client, quote):
     res = client.post(
         "/v0/speech",
         json={
             "OutputFormat": "json",
             "SampleRate": "22050",
-            "Text": "<speak>Hæ! Ég <phoneme alphabet='x-sampa' ph='hei:tI'>heiti</phoneme> Gervimaður Finnland & er hestur. En þú?</speak>",
+            "Text": f"<speak>Hæ! Ég <phoneme alphabet={quote}x-sampa{quote} ph={quote}hei:tI{quote}>heiti</phoneme> Gervimaður Finnland & er hestur. En þú?</speak>",
             "TextType": "ssml",
             "SpeechMarkTypes": ["word"],
             "VoiceId": "Alfur",
@@ -224,13 +229,13 @@ def test_ssml_speechmarks_fastspeech_01(client):
         assert original_mark == expected_mark
 
 
-def test_ssml_speechmarks_fastspeech_02(client):
+def test_ssml_speechmarks_fastspeech_02(client, quote):
     res = client.post(
         "/v0/speech",
         json={
             "OutputFormat": "json",
             "SampleRate": "22050",
-            "Text": "<speak>Alls náðu 22 konur að sigla með <phoneme alphabet='x-sampa' ph='t_hai:t_hanIk'>Titanic halló. Hæ </phoneme> og borguðu fyrir það 57006 kr.</speak>",
+            "Text": f"<speak>Alls náðu 22 konur að sigla með <phoneme alphabet={quote}x-sampa{quote} ph={quote}t_hai:t_hanIk{quote}>Titanic halló. Hæ </phoneme> og borguðu fyrir það 57006 kr.</speak>",
             "TextType": "ssml",
             "SpeechMarkTypes": ["word"],
             "VoiceId": "Alfur",
@@ -266,13 +271,13 @@ def test_ssml_speechmarks_fastspeech_02(client):
         assert original_mark == expected_mark
 
 
-def test_ssml_speechmarks_fastspeech_03(client):
+def test_ssml_speechmarks_fastspeech_03(client, quote):
     res = client.post(
         "/v0/speech",
         json={
             "OutputFormat": "json",
             "SampleRate": "22050",
-            "Text": "<speak><phoneme alphabet='x-sampa' ph='a:fI'>Afi</phoneme> minn fór á honum <phoneme alphabet='x-sampa' ph='t9i:D'>rauð</phoneme></speak>",
+            "Text": f"<speak><phoneme alphabet={quote}x-sampa{quote} ph={quote}a:fI{quote}>Afi</phoneme> minn fór á honum <phoneme alphabet={quote}x-sampa{quote} ph={quote}t9i:D{quote}>rauð</phoneme></speak>",
             "TextType": "ssml",
             "SpeechMarkTypes": ["word"],
             "VoiceId": "Alfur",
