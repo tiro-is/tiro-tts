@@ -151,6 +151,82 @@ def test_synthesize_ssml_phoneme_sanity(client, quote):
     assert len(pcm_data) % 2 == 0
 
 
+def test_synthesize_ssml_prosody_sanity_01(client, quote):
+    res = client.post(
+        "/v0/speech",
+        json={
+            "OutputFormat": "pcm",
+            "SampleRate": "22050",
+            "Text": f"<speak>Við notum <prosody volume={quote}x-loud{quote}>123 vafrakökur á þessari vefsíðu ehf hehehe</prosody></speak>",
+            "TextType": "ssml",
+            "VoiceId": "Alfur",
+        },
+    )
+
+    pcm_data = res.get_data(as_text=False)
+    # The response contains some reasonable number of bytes
+    assert len(pcm_data) > 4000
+    # And each sample is two bytes
+    assert len(pcm_data) % 2 == 0
+
+
+def test_synthesize_ssml_prosody_sanity_02(client, quote):
+    res = client.post(
+        "/v0/speech",
+        json={
+            "OutputFormat": "pcm",
+            "SampleRate": "22050",
+            "Text": f"<speak>Við notum <prosody volume={quote}x-loud{quote} pitch={quote}high{quote} rate={quote}140%{quote}>123 vafrakökur á þessari vefsíðu ehf hehehe</prosody></speak>",
+            "TextType": "ssml",
+            "VoiceId": "Alfur",
+        },
+    )
+
+    pcm_data = res.get_data(as_text=False)
+    # The response contains some reasonable number of bytes
+    assert len(pcm_data) > 4000
+    # And each sample is two bytes
+    assert len(pcm_data) % 2 == 0
+
+
+def test_synthesize_ssml_say_as_sanity_01(client, quote):
+    res = client.post(
+        "/v0/speech",
+        json={
+            "OutputFormat": "pcm",
+            "SampleRate": "22050",
+            "Text": f"<speak>Við notum <say-as interpret-as={quote}digits{quote}>123</say-as> vafrakökur á þessari vefsíðu ehf hehehe</speak>",
+            "TextType": "ssml",
+            "VoiceId": "Alfur",
+        },
+    )
+
+    pcm_data = res.get_data(as_text=False)
+    # The response contains some reasonable number of bytes
+    assert len(pcm_data) > 4000
+    # And each sample is two bytes
+    assert len(pcm_data) % 2 == 0
+
+
+def test_synthesize_ssml_sub_sanity_01(client, quote):
+    res = client.post(
+        "/v0/speech",
+        json={
+            "OutputFormat": "pcm",
+            "SampleRate": "22050",
+            "Text": f"<speak>Við notum <sub alias={quote}rosa margar{quote}>123</sub> vafrakökur á þessari vefsíðu ehf hehehe</speak>",
+            "TextType": "ssml",
+            "VoiceId": "Alfur",
+        },
+    )
+
+    pcm_data = res.get_data(as_text=False)
+    # The response contains some reasonable number of bytes
+    assert len(pcm_data) > 4000
+    # And each sample is two bytes
+    assert len(pcm_data) % 2 == 0
+
+
 def test_speechmarks_fastspeech(client):
     res = client.post(
         "/v0/speech",
