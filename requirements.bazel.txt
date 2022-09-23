@@ -5,7 +5,6 @@
 #    bazel run //:pip_compile.update
 #
 --only-binary scipy
---only-binary sequitur-g2p
 
 alembic==1.7.6 \
     --hash=sha256:6c0c05e9768a896d804387e20b299880fe01bc56484246b0dffe8075d6d3d847 \
@@ -866,7 +865,6 @@ numpy==1.22.0 \
     #   sacrebleu
     #   scikit-learn
     #   scipy
-    #   sequitur-g2p
     #   tensorboardx
     #   torch-complex
 omegaconf==2.0.6 \
@@ -1266,24 +1264,6 @@ sentencepiece==0.1.96 \
     --hash=sha256:fd907a8f744e5337de7fc532dd800c4416b571ea47f8c3c66be10cd1bc67c925 \
     --hash=sha256:ff7d752a7f82d87711ec1a95c2262cb74f98be5b457f0300d81a1aefe5be2a95
     # via espnet
-sequitur-g2p==1.0.1668.21 \
-    --hash=sha256:20156239108ca09411c3dd6ca49d6f7fd862580431919919fda9f5aa8d9046b1 \
-    --hash=sha256:23d6d120c572f1c5935c32c6a84bf8231df6414d057b4d85177ba81a24c60490 \
-    --hash=sha256:3a9170a63236101e791210296fb4f1651fe3f22f8c3110432cab6a6c28905395 \
-    --hash=sha256:4239b45f7afb322cd3f0476a25db922b717ab04e5053d492012f5271c8499f12 \
-    --hash=sha256:5c71e0feaf7c636aae2b6dc10c3499e2f3e74f7c4ea8ea9b199537b329b49911 \
-    --hash=sha256:5d8dfb93be37fb28a93222d8a9509db189fc71bd903a7c25e430c5f8790cf91e \
-    --hash=sha256:5df6db6f57001cbf20e1ba80511135a654d7501c61cceb733855e1fdc5105e14 \
-    --hash=sha256:7e546318231b6c1c4668f2a2671b4c93b8f0af457ff6298086da7db3f12bcf0f \
-    --hash=sha256:7f6ec44485e7d5d0eb4b3cb5bad632c45252a09ffbdacf78fe465cfcd731afb3 \
-    --hash=sha256:8d37adba355696eba812a873b4327c0d6fb3fe196ea91d65274fc85ee7591690 \
-    --hash=sha256:9ae3e9b03cd4a071b2deef4076f4ddd16d8d4874d5fe81e2bd74fd6daf795e48 \
-    --hash=sha256:9b52924a8db255b38c6b2bbb43b277464d44db507374e01f26ab6d93bc5d50a9 \
-    --hash=sha256:b8bba21d7070df8739802d34078432ab29a3be87c8e35d160667b4dfe2ef5459 \
-    --hash=sha256:c404ee91aac0e182e7d0576ad0a97309082157ccabeb7c2c0dc4548dec8ab635 \
-    --hash=sha256:d24eab48a719679d5dc5f10b61c0754903d187d80fa04b7311649e67ca6d9ffa \
-    --hash=sha256:d8bc824ad6ac6883824a1abb608bf89305eb5b8978822738a9b8193e25abcba5
-    # via -r requirements.bazel.in
 six==1.15.0 \
     --hash=sha256:30639c035cdb23534cd4aa2dd52c3bf48f06e5f4a941509c8bafd8ce11080259 \
     --hash=sha256:8b74bedcbbbaca38ff6d7491d76f2b06b3592611af620f8426e82dddb04a5ced
@@ -1292,7 +1272,6 @@ six==1.15.0 \
     #   gdown
     #   python-dateutil
     #   resampy
-    #   sequitur-g2p
     #   tensorboardx
 soundfile==0.10.3.post1 \
     --hash=sha256:2d17e0a6fc2af0d6c1d868bafa5ec80aae6e186a97fec8db07ad6af29842fbc7 \

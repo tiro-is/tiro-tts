@@ -17,9 +17,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Callable, Dict, Iterable, List, Literal, NewType, Optional, Union
 
-import g2p  # from sequitur
 import ice_g2p.transcriber
-import sequitur
 
 from src.utils.version import VersionedThing, hash_from_impl
 
@@ -181,7 +179,7 @@ class ComposedTranslator(GraphemeToPhonemeTranslatorBase):
     successfully translated (or we run out of translators).
 
     Example:
-      >>> ComposedTranslator(LexiconGraphemeToPhonemeTranslator(...), SequiturGraphemeToPhonemeTranslator(...))
+      >>> ComposedTranslator(LexiconGraphemeToPhonemeTranslator(...), IceG2PTranslator(...))
     """
 
     _translators: List[GraphemeToPhonemeTranslatorBase]
@@ -212,34 +210,6 @@ class ComposedTranslator(GraphemeToPhonemeTranslatorBase):
             if phone:
                 break
         return phone
-
-
-class SequiturOptions(dict):
-    """
-    Wrapper class for Sequitur options
-    """
-
-    def __init__(
-        self,
-        modelFile: str = "final.mdl",
-        variants_number: int = 4,
-        variants_mass: float = 0.9,
-    ):
-        super(SequiturOptions, self).__init__(
-            modelFile=modelFile,
-            encoding="UTF-8",
-            variants_number=variants_number,
-            variants_mass=variants_mass,
-        )
-
-    def __getattr__(self, name):
-        try:
-            return self[name]
-        except KeyError:
-            return None
-
-    def __setattr__(self, name, value):
-        self[name] = value
 
 
 class LexiconGraphemeToPhonemeTranslator(EmbeddedPhonemeTranslatorBase):
@@ -285,58 +255,6 @@ class LexiconGraphemeToPhonemeTranslator(EmbeddedPhonemeTranslatorBase):
             phones = convert_ipa_to_xsampa(phones)
             if alphabet == "x-sampa+syll+stress":
                 phones = convert_xsampa_to_xsampa_with_stress(phones, w)
-
-        return phones
-
-
-class SequiturGraphemeToPhonemeTranslator(EmbeddedPhonemeTranslatorBase):
-    # TODO(rkjaran): Implement a DB backed version of this
-    _lang_model: sequitur.ModelTemplate
-    _language_code: LangID
-    _alphabet: Alphabet
-    _version_hash: str
-
-    def __init__(
-        self,
-        lang_model_path: Path,
-        language_code: LangID,
-        alphabet: Alphabet,
-    ):
-        self._lang_model = g2p.SequiturTool.procureModel(
-            SequiturOptions(modelFile=str(lang_model_path)), g2p.loadG2PSample
-        )
-        self._language_code = language_code
-        self._alphabet = alphabet
-        self._version_hash = hash_from_impl(
-            self.__class__, lang_model_path.read_bytes()
-        )
-
-    @property
-    def version_hash(self) -> str:
-        return self._version_hash
-
-    def _translate(
-        self,
-        w: str,
-        lang: LangID,
-        alphabet: Alphabet = "ipa",
-    ) -> PhoneSeq:
-        translator = g2p.Translator(self._lang_model)
-        phones: PhoneSeq = []
-        w_lower = w.lower()
-        if not phones:
-            try:
-                phones = translator(w_lower)
-            except g2p.Translator.TranslationFailure:
-                pass
-        if self._alphabet == "ipa" and alphabet in (
-            "x-sampa",
-            "x-sampa+syll+stress",
-        ):
-            phones = convert_ipa_to_xsampa(phones)
-
-        if self._alphabet in ("ipa", "x-sampa") and alphabet == "x-sampa+syll+stress":
-            phones = convert_xsampa_to_xsampa_with_stress(phones, w)
 
         return phones
 

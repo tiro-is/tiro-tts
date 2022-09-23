@@ -22,10 +22,8 @@ phonetizers {
     }
   }
   translators {
-    sequitur {
-      language_code: "is-IS"
-      alphabet: IPA
-      uri: "file://external/test_models/sequitur.mdl"
+    ice_g2p {
+      alphabet: XSAMPA
     }
   }
 }
