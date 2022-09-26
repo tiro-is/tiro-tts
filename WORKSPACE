@@ -31,7 +31,6 @@ filegroup(
     name = "models",
     srcs = [
         "lexicon.txt",
-        "sequitur.mdl",
         "alfur/fastspeech_jit.pt",
         "alfur/melgan_jit.pt",
         "dilja/espnet2.zip",

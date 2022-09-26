@@ -7,7 +7,7 @@ voices {
       alphabet: IPA
       fastspeech2_uri: "file:///models/dilja/fastspeech_jit.pt"
       melgan_uri: "file:///models/dilja/melgan_jit.pt"
-      phonetizer_name: "phonetizer/is-IS/2021-07-26"
+      phonetizer_name: "phonetizer/ice-g2p"
       normalizer_name: "default"
   }
 }
@@ -20,7 +20,7 @@ voices {
       alphabet: IPA
       fastspeech2_uri: "file:///models/alfur/fastspeech_jit.pt"
       melgan_uri: "file:///models/alfur/melgan_jit.pt"
-      phonetizer_name: "phonetizer/is-IS/2021-07-26"
+      phonetizer_name: "phonetizer/ice-g2p"
       normalizer_name: "default"
   }
 }
@@ -89,31 +89,6 @@ voices {
   gender: FEMALE
   language_code: "is-IS"
   polly { }
-}
-phonetizers {
-  name: "phonetizer/is-IS/2021-07-26"
-  language_code: "is-IS"
-  translators {
-    lexicon {
-      language_code: "is-IS"
-      alphabet: XSAMPA
-      uri: "file:///models/lexicon.txt"
-    }
-  }
-  translators {
-    sequitur {
-      language_code: "is-IS"
-      alphabet: IPA
-      uri: "file:///models/sequitur.mdl"
-    }
-  }
-  translators {
-    sequitur {
-      language_code: "is-IS"
-      alphabet: IPA
-      uri: "file:///models/sequitur_fail_en.mdl"
-    }
-  }
 }
 phonetizers {
   name: "phonetizer/ice-g2p"

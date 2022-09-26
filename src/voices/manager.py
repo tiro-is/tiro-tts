@@ -23,7 +23,6 @@ from src.frontend.grapheme_to_phoneme import (
     IceG2PTranslator,
     LangID,
     LexiconGraphemeToPhonemeTranslator,
-    SequiturGraphemeToPhonemeTranslator,
 )
 from src.frontend.lexicon import SimpleInMemoryLexicon
 from src.frontend.normalization import (
@@ -175,12 +174,6 @@ def _translator_from_pb(
             lexicon=_parse_uri(pb.lexicon.uri),
             language_code=LangID(language_code),
             alphabet=_alphabet_pb_as_str(pb.lexicon.alphabet),
-        )
-    elif model_kind == "sequitur":
-        return SequiturGraphemeToPhonemeTranslator(
-            lang_model_path=_parse_uri(pb.sequitur.uri),
-            language_code=LangID(pb.sequitur.language_code),
-            alphabet=_alphabet_pb_as_str(pb.sequitur.alphabet),
         )
     elif model_kind == "ice_g2p":
         if language_code != "is-IS":
